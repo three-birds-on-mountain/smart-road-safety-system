@@ -1,0 +1,1 @@
+幫我根據目前的 staged file 產生 git commit message，拿掉 claude code 的字樣
