@@ -1,0 +1,810 @@
+openapi: 3.1.0
+info:
+  title: 智慧道路守護系統 API
+  description: |
+    提供交通事故熱點查詢與管理功能的RESTful API。
+
+    **核心功能**：
+    - 查詢用戶附近的事故熱點（支援距離、時間範圍、嚴重程度篩選）
+    - 查詢地圖可視範圍內的熱點分布
+    - 查詢事故記錄（管理用途）
+    - 手動觸發資料擷取與熱點分析（管理端點）
+  version: 1.0.0
+  contact:
+    name: 智慧道路守護系統開發團隊
+
+servers:
+  - url: http://localhost:8000/api/v1
+    description: 本地開發環境
+  - url: https://api.road-safety.example.com/api/v1
+    description: 生產環境
+
+tags:
+  - name: hotspots
+    description: 事故熱點查詢相關操作
+  - name: accidents
+    description: 事故記錄查詢相關操作（管理用途）
+  - name: admin
+    description: 管理端點（需要認證）
+
+paths:
+  /hotspots/nearby:
+    get:
+      tags:
+        - hotspots
+      summary: 查詢用戶附近的事故熱點
+      description: |
+        根據用戶的GPS位置，查詢指定距離內的事故熱點。
+        支援時間範圍、事故嚴重程度篩選。
+
+        **使用情境**: 前端GPS定位後，即時查詢附近熱點並觸發警示。
+      operationId: getNearbyHotspots
+      parameters:
+        - name: latitude
+          in: query
+          required: true
+          description: 用戶當前緯度
+          schema:
+            type: number
+            format: double
+            minimum: 21.5
+            maximum: 25.5
+            example: 25.0330
+        - name: longitude
+          in: query
+          required: true
+          description: 用戶當前經度
+          schema:
+            type: number
+            format: double
+            minimum: 119.5
+            maximum: 122.5
+            example: 121.5654
+        - name: distance
+          in: query
+          required: true
+          description: 查詢半徑（公尺）
+          schema:
+            type: integer
+            enum: [100, 500, 1000, 3000]
+            example: 1000
+        - name: time_range
+          in: query
+          required: false
+          description: 事故時間範圍篩選（預設：1年）
+          schema:
+            type: string
+            enum: [1_month, 3_months, 6_months, 1_year]
+            default: 1_year
+            example: 3_months
+        - name: severity_levels
+          in: query
+          required: false
+          description: 事故嚴重程度篩選（逗號分隔，預設：全部）
+          schema:
+            type: string
+            pattern: '^(A1|A2|A3)(,(A1|A2|A3))*$'
+            example: "A1,A2"
+      responses:
+        '200':
+          description: 成功回傳附近的熱點列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Hotspot'
+                  meta:
+                    type: object
+                    properties:
+                      total_count:
+                        type: integer
+                        description: 符合條件的熱點總數
+                        example: 3
+                      user_location:
+                        type: object
+                        properties:
+                          latitude:
+                            type: number
+                            example: 25.0330
+                          longitude:
+                            type: number
+                            example: 121.5654
+                      query_radius_meters:
+                        type: integer
+                        example: 1000
+              examples:
+                nearby_hotspots:
+                  summary: 用戶附近有3個熱點
+                  value:
+                    data:
+                      - id: "550e8400-e29b-41d4-a716-446655440000"
+                        center_latitude: 25.0342
+                        center_longitude: 121.5678
+                        radius_meters: 250
+                        total_accidents: 12
+                        a1_count: 2
+                        a2_count: 7
+                        a3_count: 3
+                        earliest_accident_at: "2024-03-15T08:30:00Z"
+                        latest_accident_at: "2024-10-22T14:45:00Z"
+                        distance_from_user_meters: 450
+                        severity_score: 8.5
+                      - id: "660e8400-e29b-41d4-a716-446655440001"
+                        center_latitude: 25.0310
+                        center_longitude: 121.5620
+                        radius_meters: 300
+                        total_accidents: 8
+                        a1_count: 0
+                        a2_count: 5
+                        a3_count: 3
+                        earliest_accident_at: "2024-05-10T10:15:00Z"
+                        latest_accident_at: "2024-11-01T09:30:00Z"
+                        distance_from_user_meters: 780
+                        severity_score: 5.2
+                    meta:
+                      total_count: 2
+                      user_location:
+                        latitude: 25.0330
+                        longitude: 121.5654
+                      query_radius_meters: 1000
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /hotspots/in-bounds:
+    get:
+      tags:
+        - hotspots
+      summary: 查詢地圖可視範圍內的熱點
+      description: |
+        根據地圖的邊界座標（西南角與東北角），查詢範圍內的所有熱點。
+
+        **使用情境**: 前端地圖移動或縮放時，動態載入可視範圍內的熱點標記。
+      operationId: getHotspotsInBounds
+      parameters:
+        - name: sw_lat
+          in: query
+          required: true
+          description: 西南角緯度
+          schema:
+            type: number
+            format: double
+            example: 24.9500
+        - name: sw_lng
+          in: query
+          required: true
+          description: 西南角經度
+          schema:
+            type: number
+            format: double
+            example: 121.4500
+        - name: ne_lat
+          in: query
+          required: true
+          description: 東北角緯度
+          schema:
+            type: number
+            format: double
+            example: 25.1500
+        - name: ne_lng
+          in: query
+          required: true
+          description: 東北角經度
+          schema:
+            type: number
+            format: double
+            example: 121.6500
+        - name: time_range
+          in: query
+          required: false
+          description: 事故時間範圍篩選（預設：1年）
+          schema:
+            type: string
+            enum: [1_month, 3_months, 6_months, 1_year]
+            default: 1_year
+        - name: severity_levels
+          in: query
+          required: false
+          description: 事故嚴重程度篩選（逗號分隔，預設：全部）
+          schema:
+            type: string
+            pattern: '^(A1|A2|A3)(,(A1|A2|A3))*$'
+        - name: limit
+          in: query
+          required: false
+          description: 最多回傳熱點數量（避免地圖過於擁擠）
+          schema:
+            type: integer
+            minimum: 10
+            maximum: 1000
+            default: 500
+            example: 100
+      responses:
+        '200':
+          description: 成功回傳範圍內的熱點列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Hotspot'
+                  meta:
+                    type: object
+                    properties:
+                      total_count:
+                        type: integer
+                        description: 回傳的熱點總數
+                      bounds:
+                        type: object
+                        properties:
+                          sw_lat:
+                            type: number
+                          sw_lng:
+                            type: number
+                          ne_lat:
+                            type: number
+                          ne_lng:
+                            type: number
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /hotspots/{hotspot_id}:
+    get:
+      tags:
+        - hotspots
+      summary: 查詢單一熱點詳細資訊
+      description: |
+        根據熱點ID查詢詳細資訊，包含包含的事故記錄。
+
+        **使用情境**: 用戶點擊地圖上的熱點標記，顯示詳細資訊彈窗。
+      operationId: getHotspotById
+      parameters:
+        - name: hotspot_id
+          in: path
+          required: true
+          description: 熱點UUID
+          schema:
+            type: string
+            format: uuid
+            example: "550e8400-e29b-41d4-a716-446655440000"
+        - name: include_accidents
+          in: query
+          required: false
+          description: 是否包含事故記錄列表
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: 成功回傳熱點詳細資訊
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/HotspotDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /accidents:
+    get:
+      tags:
+        - accidents
+      summary: 查詢事故記錄列表（管理用途）
+      description: |
+        查詢事故記錄，支援時間範圍、嚴重程度、地理範圍篩選與分頁。
+
+        **使用情境**: 管理後台檢視原始事故資料。
+      operationId: getAccidents
+      parameters:
+        - name: start_date
+          in: query
+          required: false
+          description: 起始日期（ISO 8601格式）
+          schema:
+            type: string
+            format: date
+            example: "2024-01-01"
+        - name: end_date
+          in: query
+          required: false
+          description: 結束日期（ISO 8601格式）
+          schema:
+            type: string
+            format: date
+            example: "2024-12-31"
+        - name: severity_levels
+          in: query
+          required: false
+          description: 事故嚴重程度篩選（逗號分隔）
+          schema:
+            type: string
+            pattern: '^(A1|A2|A3)(,(A1|A2|A3))*$'
+        - name: source_type
+          in: query
+          required: false
+          description: 資料來源篩選
+          schema:
+            type: string
+            enum: [A1, A2, A3]
+        - name: page
+          in: query
+          required: false
+          description: 頁碼（從1開始）
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+            example: 1
+        - name: page_size
+          in: query
+          required: false
+          description: 每頁筆數
+          schema:
+            type: integer
+            minimum: 10
+            maximum: 100
+            default: 50
+            example: 50
+      responses:
+        '200':
+          description: 成功回傳事故記錄列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Accident'
+                  meta:
+                    $ref: '#/components/schemas/PaginationMeta'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /accidents/{accident_id}:
+    get:
+      tags:
+        - accidents
+      summary: 查詢單一事故詳細資訊
+      description: 根據事故ID查詢詳細資訊，包含原始JSON資料
+      operationId: getAccidentById
+      parameters:
+        - name: accident_id
+          in: path
+          required: true
+          description: 事故UUID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 成功回傳事故詳細資訊
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Accident'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /admin/ingest:
+    post:
+      tags:
+        - admin
+      summary: 手動觸發資料擷取
+      description: |
+        手動觸發從政府API擷取最新事故資料（A1、A2、A3）。
+
+        **注意**: 此端點應受到認證保護，僅供管理員使用。
+      operationId: triggerDataIngestion
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                source_types:
+                  type: array
+                  description: 要擷取的資料來源（預設：全部）
+                  items:
+                    type: string
+                    enum: [A1, A2, A3]
+                  example: ["A2", "A3"]
+                force_refresh:
+                  type: boolean
+                  description: 是否強制重新擷取已存在的資料
+                  default: false
+      responses:
+        '202':
+          description: 已接受請求，資料擷取工作已排程
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "資料擷取工作已排程"
+                  job_id:
+                    type: string
+                    format: uuid
+                    description: 工作ID（可用於查詢進度）
+                    example: "770e8400-e29b-41d4-a716-446655440002"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /admin/analyze-hotspots:
+    post:
+      tags:
+        - admin
+      summary: 手動觸發熱點分析
+      description: |
+        手動觸發DBSCAN聚類分析，識別事故熱點。
+
+        **注意**: 此端點應受到認證保護，僅供管理員使用。
+      operationId: triggerHotspotAnalysis
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                analysis_period_days:
+                  type: integer
+                  description: 分析過去幾天的事故資料（預設：365天）
+                  minimum: 30
+                  maximum: 1095
+                  default: 365
+                  example: 365
+                epsilon_meters:
+                  type: integer
+                  description: DBSCAN epsilon參數（公尺）
+                  minimum: 100
+                  maximum: 1000
+                  default: 500
+                min_samples:
+                  type: integer
+                  description: DBSCAN min_samples參數（最小事故數）
+                  minimum: 3
+                  maximum: 20
+                  default: 5
+      responses:
+        '202':
+          description: 已接受請求，熱點分析工作已排程
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "熱點分析工作已排程"
+                  job_id:
+                    type: string
+                    format: uuid
+                    example: "880e8400-e29b-41d4-a716-446655440003"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /health:
+    get:
+      tags:
+        - system
+      summary: 健康檢查端點
+      description: 檢查API服務健康狀態
+      operationId: healthCheck
+      responses:
+        '200':
+          description: 服務正常運作
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "healthy"
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2024-11-02T10:30:00Z"
+                  database:
+                    type: string
+                    example: "connected"
+
+components:
+  schemas:
+    Hotspot:
+      type: object
+      description: 事故熱點基本資訊
+      required:
+        - id
+        - center_latitude
+        - center_longitude
+        - radius_meters
+        - total_accidents
+        - a1_count
+        - a2_count
+        - a3_count
+        - earliest_accident_at
+        - latest_accident_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 熱點唯一識別碼
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        center_latitude:
+          type: number
+          format: double
+          description: 熱點中心緯度
+          example: 25.0330
+        center_longitude:
+          type: number
+          format: double
+          description: 熱點中心經度
+          example: 121.5654
+        radius_meters:
+          type: integer
+          description: 熱點影響半徑（公尺）
+          example: 250
+        total_accidents:
+          type: integer
+          description: 包含的事故總數
+          example: 12
+        a1_count:
+          type: integer
+          description: A1事故數量（死亡）
+          example: 2
+        a2_count:
+          type: integer
+          description: A2事故數量（受傷）
+          example: 7
+        a3_count:
+          type: integer
+          description: A3事故數量（財損）
+          example: 3
+        earliest_accident_at:
+          type: string
+          format: date-time
+          description: 最早事故發生時間
+          example: "2024-03-15T08:30:00Z"
+        latest_accident_at:
+          type: string
+          format: date-time
+          description: 最近事故發生時間
+          example: "2024-10-22T14:45:00Z"
+        distance_from_user_meters:
+          type: integer
+          description: 與用戶的距離（公尺，僅在nearby端點回傳）
+          example: 450
+        severity_score:
+          type: number
+          format: float
+          description: 嚴重程度分數（加權計算：A1=5, A2=3, A3=1）
+          example: 8.5
+
+    HotspotDetail:
+      allOf:
+        - $ref: '#/components/schemas/Hotspot'
+        - type: object
+          properties:
+            analysis_date:
+              type: string
+              format: date
+              description: 熱點分析執行日期
+              example: "2024-11-02"
+            analysis_period_start:
+              type: string
+              format: date
+              description: 分析資料期間起始日
+              example: "2023-11-02"
+            analysis_period_end:
+              type: string
+              format: date
+              description: 分析資料期間結束日
+              example: "2024-11-01"
+            accidents:
+              type: array
+              description: 包含的事故記錄列表（當include_accidents=true時回傳）
+              items:
+                $ref: '#/components/schemas/Accident'
+
+    Accident:
+      type: object
+      description: 事故記錄資訊
+      required:
+        - id
+        - source_type
+        - occurred_at
+        - latitude
+        - longitude
+        - severity_level
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: 事故唯一識別碼
+          example: "660e8400-e29b-41d4-a716-446655440001"
+        source_type:
+          type: string
+          enum: [A1, A2, A3]
+          description: 資料來源類型
+          example: "A2"
+        source_id:
+          type: string
+          description: 來源系統的原始ID
+          example: "113-01-0001234"
+        occurred_at:
+          type: string
+          format: date-time
+          description: 事故發生時間
+          example: "2024-01-15T14:30:00Z"
+        location_text:
+          type: string
+          description: 地點文字描述
+          example: "台北市信義區忠孝東路五段與松仁路口"
+        latitude:
+          type: number
+          format: double
+          description: 緯度
+          example: 25.0408
+        longitude:
+          type: number
+          format: double
+          description: 經度
+          example: 121.5683
+        severity_level:
+          type: string
+          enum: [A1, A2, A3]
+          description: 事故嚴重程度（A1=死亡, A2=受傷, A3=財損）
+          example: "A2"
+        vehicle_type:
+          type: string
+          description: 車種或涉及對象
+          example: "小客車"
+        geocoded:
+          type: boolean
+          description: 是否經過地理編碼
+          example: false
+        geocode_confidence:
+          type: number
+          format: float
+          description: 地理編碼信心分數（0-1，僅A3資料）
+          example: 0.95
+        raw_data:
+          type: object
+          description: 原始JSON資料
+          additionalProperties: true
+
+    PaginationMeta:
+      type: object
+      description: 分頁資訊
+      required:
+        - page
+        - page_size
+        - total_count
+        - total_pages
+      properties:
+        page:
+          type: integer
+          description: 當前頁碼
+          example: 1
+        page_size:
+          type: integer
+          description: 每頁筆數
+          example: 50
+        total_count:
+          type: integer
+          description: 總筆數
+          example: 523
+        total_pages:
+          type: integer
+          description: 總頁數
+          example: 11
+
+    Error:
+      type: object
+      description: 錯誤回應格式
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: 錯誤類型
+          example: "validation_error"
+        message:
+          type: string
+          description: 錯誤訊息（繁體中文）
+          example: "經緯度參數不在台灣範圍內"
+        details:
+          type: object
+          description: 詳細錯誤資訊
+          additionalProperties: true
+
+  responses:
+    BadRequest:
+      description: 請求參數錯誤
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "validation_error"
+            message: "請求參數不正確"
+            details:
+              latitude: "緯度必須介於 21.5 到 25.5 之間"
+
+    Unauthorized:
+      description: 未授權（需要認證）
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "unauthorized"
+            message: "此端點需要管理員權限"
+
+    NotFound:
+      description: 資源不存在
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "not_found"
+            message: "找不到指定的熱點記錄"
+
+    InternalServerError:
+      description: 伺服器內部錯誤
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: "internal_error"
+            message: "伺服器處理請求時發生錯誤"
+            details:
+              request_id: "req_abc123xyz"
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT Token認證（管理端點使用）
+
+security:
+  - BearerAuth: []
