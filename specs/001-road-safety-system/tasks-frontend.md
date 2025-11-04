@@ -6,6 +6,37 @@
 
 本文件僅列出前端相關任務，方便前端開發者專注執行。
 
+## ⚠️ 重要：UI 設計規範
+
+**所有 UI 相關任務都必須嚴格遵守 Town Pass Design System**
+
+- **Design System 文件**: `specs/design-system/`
+  - 主入口：`specs/design-system/showcase.html`（色彩、字體、間距、元件）
+  - 圖標系統：`specs/design-system/icons/index.html`（95+ 圖標）
+  - 說明文件：`specs/design-system/README.md`
+
+### UI 實作原則
+
+1. **使用 CSS 變數**：不要寫死色碼，使用 `var(--primary-500)` 等 design tokens
+2. **遵循間距系統**：使用 `var(--space-md)` 等預定義間距
+3. **使用設計系統圖標**：從 `icons/index.html` 選擇圖標，不要自己畫
+4. **語意化命名**：使用 `.btn-primary` 而非 `.blue-button`
+5. **保持一致性**：確保圓角、陰影、字體都使用設計系統定義的值
+
+### 受影響的任務
+
+以下任務在實作時必須參考 Design System：
+
+- **T029**: 配置 Tailwind CSS（需整合 Design System 的色彩與間距 tokens）
+- **T030**: 基礎佈局元件（需使用 Design System 的佈局規範）
+- **T045-T046**: AlertOverlay 與 AlertIcon（需使用 Design System 的警示色彩與圖標）
+- **T056-T059**: 設定元件（需使用 Design System 的表單元件樣式）
+- **T060**: SettingsPage（需使用 Design System 的卡片與按鈕樣式）
+- **T082-T084**: 地圖元件（需使用 Design System 的圖標與色彩）
+- **T087**: HotspotDetailPopup（需使用 Design System 的彈窗樣式）
+- **T091**: 載入指示器（需使用 Design System 的 spinner 樣式）
+- **T119-T120**: 錯誤提示與警告訊息（需使用 Design System 的 Alert 元件）
+
 ---
 
 ## Phase 1: Setup (Frontend)

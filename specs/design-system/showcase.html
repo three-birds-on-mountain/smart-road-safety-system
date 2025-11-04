@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Town Pass Design System</title>
+    <style>
+        :root {
+            /* Primary Colors */
+            --primary-50: #EDF8FA;
+            --primary-100: #DBF1F5;
+            --primary-200: #B4E2EA;
+            --primary-300: #93D4DF;
+            --primary-400: #71C5D5;
+            --primary-500: #5AB4C5;
+            --primary-600: #468D9B;
+            --primary-700: #356C77;
+            --primary-800: #22474E;
+            --primary-900: #112629;
+            --primary-950: #081315;
+
+            /* Secondary Colors */
+            --secondary-50: #FDF8ED;
+            --secondary-100: #FCF2DF;
+            --secondary-200: #F8E3BC;
+            --secondary-300: #F4D69E;
+            --secondary-400: #F0C87C;
+            --secondary-500: #F5BA4B;
+            --secondary-600: #E7A43C;
+            --secondary-700: #AD7B2B;
+            --secondary-800: #74521B;
+            --secondary-900: #3C2B0B;
+            --secondary-950: #1C1304;
+
+            /* Grey Colors */
+            --grey-50: #F1F3F4;
+            --grey-100: #E3E7E9;
+            --grey-200: #CAD1D5;
+            --grey-300: #ADB8BE;
+            --grey-400: #91A0A8;
+            --grey-500: #738995;
+            --grey-600: #5E6D76;
+            --grey-700: #475259;
+            --grey-800: #30383D;
+            --grey-900: #171B1D;
+            --grey-950: #0B0D0E;
+
+            /* Semantic Colors */
+            --red-300: #E29494;
+            --red-500: #D45251;
+            --orange-300: #F4B992;
+            --orange-500: #FD853A;
+            --green-500: #76A732;
+
+            /* Backgrounds */
+            --bg-white: #FFFFFF;
+            --bg-grey: #F1F3F4;
+
+            /* Text Colors */
+            --text-primary: #30383D;
+            --text-secondary: #475259;
+            --text-description: #91A0A8;
+
+            /* Spacing */
+            --space-xs: 4px;
+            --space-sm: 8px;
+            --space-md: 16px;
+            --space-lg: 24px;
+            --space-xl: 32px;
+            --space-2xl: 48px;
+            --space-3xl: 64px;
+
+            /* Border Radius */
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --radius-xl: 16px;
+            --radius-full: 9999px;
+
+            /* Shadows */
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'PingFang SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-size: 14px;
+            line-height: 20px;
+            color: var(--text-primary);
+            background: var(--bg-grey);
+        }
+
+        .container {
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: var(--space-xl);
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary-500) 0%, var(--primary-600) 100%);
+            color: white;
+            padding: var(--space-3xl) var(--space-xl);
+            margin: calc(-1 * var(--space-xl)) calc(-1 * var(--space-xl)) var(--space-2xl);
+            border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+            box-shadow: var(--shadow-xl);
+        }
+
+        .header h1 {
+            font-size: 48px;
+            font-weight: 600;
+            line-height: 64px;
+            margin-bottom: var(--space-md);
+        }
+
+        .header p {
+            font-size: 18px;
+            line-height: 28px;
+            opacity: 0.95;
+        }
+
+        .section {
+            background: var(--bg-white);
+            border-radius: var(--radius-lg);
+            padding: var(--space-xl);
+            margin-bottom: var(--space-xl);
+            box-shadow: var(--shadow-md);
+        }
+
+        .section-title {
+            font-size: 24px;
+            font-weight: 600;
+            line-height: 32px;
+            color: var(--text-primary);
+            margin-bottom: var(--space-lg);
+            padding-bottom: var(--space-md);
+            border-bottom: 2px solid var(--grey-100);
+        }
+
+        .color-palette {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: var(--space-lg);
+            margin-bottom: var(--space-xl);
+        }
+
+        .color-group {
+            background: var(--bg-white);
+            border: 1px solid var(--grey-100);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .color-group:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .color-group-title {
+            font-weight: 600;
+            padding: var(--space-md);
+            background: var(--grey-50);
+            border-bottom: 1px solid var(--grey-100);
+        }
+
+        .color-swatches {
+            padding: var(--space-sm);
+        }
+
+        .color-swatch {
+            display: flex;
+            align-items: center;
+            padding: var(--space-sm);
+            transition: background 0.2s;
+        }
+
+        .color-swatch:hover {
+            background: var(--grey-50);
+        }
+
+        .color-preview {
+            width: 48px;
+            height: 48px;
+            border-radius: var(--radius-sm);
+            margin-right: var(--space-md);
+            border: 1px solid var(--grey-200);
+        }
+
+        .color-info {
+            flex: 1;
+        }
+
+        .color-name {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .color-value {
+            font-size: 11px;
+            color: var(--text-description);
+            font-family: 'Monaco', 'Courier New', monospace;
+        }
+
+        .typography-samples {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-lg);
+        }
+
+        .type-sample {
+            padding: var(--space-lg);
+            background: var(--grey-50);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--grey-100);
+        }
+
+        .type-label {
+            font-size: 12px;
+            color: var(--text-description);
+            margin-bottom: var(--space-sm);
+            font-family: 'Monaco', 'Courier New', monospace;
+        }
+
+        .h1-sample {
+            font-size: 36px;
+            font-weight: 600;
+            line-height: 48px;
+        }
+
+        .h2-sample {
+            font-size: 24px;
+            font-weight: 600;
+            line-height: 32px;
+        }
+
+        .body-semibold-sample {
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 20px;
+        }
+
+        .body-regular-sample {
+            font-size: 14px;
+            font-weight: 400;
+            line-height: 20px;
+        }
+
+        .spacing-demo {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--space-xl);
+        }
+
+        .spacing-item {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+        }
+
+        .spacing-visual {
+            background: var(--primary-500);
+            height: 48px;
+            border-radius: var(--radius-sm);
+        }
+
+        .spacing-label {
+            font-size: 12px;
+            color: var(--text-description);
+            min-width: 80px;
+        }
+
+        .component-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--space-lg);
+        }
+
+        .btn {
+            padding: var(--space-sm) var(--space-lg);
+            border-radius: var(--radius-md);
+            border: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 40px;
+        }
+
+        .btn-primary {
+            background: var(--primary-500);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-600);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-secondary {
+            background: var(--secondary-500);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: var(--secondary-600);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-success {
+            background: var(--green-500);
+            color: white;
+        }
+
+        .btn-warning {
+            background: var(--orange-500);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--red-500);
+            color: white;
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--primary-500);
+            border: 2px solid var(--primary-500);
+        }
+
+        .btn-outline:hover {
+            background: var(--primary-50);
+        }
+
+        .btn:disabled {
+            background: var(--grey-100);
+            color: var(--text-description);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .form-group {
+            margin-bottom: var(--space-lg);
+        }
+
+        .label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: var(--space-sm);
+            color: var(--text-primary);
+        }
+
+        .input {
+            width: 100%;
+            padding: var(--space-sm) var(--space-md);
+            border: 1px solid var(--grey-200);
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .input:focus {
+            outline: none;
+            border-color: var(--primary-500);
+            box-shadow: 0 0 0 3px rgba(90, 180, 197, 0.1);
+        }
+
+        .card {
+            background: var(--bg-white);
+            border: 1px solid var(--grey-100);
+            border-radius: var(--radius-lg);
+            padding: var(--space-lg);
+            transition: all 0.2s;
+        }
+
+        .card:hover {
+            box-shadow: var(--shadow-lg);
+            transform: translateY(-2px);
+        }
+
+        .alert {
+            padding: var(--space-md) var(--space-lg);
+            border-radius: var(--radius-md);
+            margin-bottom: var(--space-md);
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+        }
+
+        .alert-success {
+            background: rgba(118, 167, 50, 0.1);
+            color: var(--green-500);
+            border-left: 4px solid var(--green-500);
+        }
+
+        .alert-warning {
+            background: rgba(253, 133, 58, 0.1);
+            color: var(--orange-500);
+            border-left: 4px solid var(--orange-500);
+        }
+
+        .alert-danger {
+            background: rgba(212, 82, 81, 0.1);
+            color: var(--red-500);
+            border-left: 4px solid var(--red-500);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: var(--space-xs) var(--space-sm);
+            border-radius: var(--radius-full);
+            font-size: 12px;
+            font-weight: 600;
+            line-height: 16px;
+        }
+
+        .badge-primary {
+            background: var(--primary-100);
+            color: var(--primary-700);
+        }
+
+        .badge-success {
+            background: rgba(118, 167, 50, 0.1);
+            color: var(--green-500);
+        }
+
+        .badge-warning {
+            background: rgba(253, 133, 58, 0.1);
+            color: var(--orange-500);
+        }
+
+        .badge-danger {
+            background: rgba(212, 82, 81, 0.1);
+            color: var(--red-500);
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: var(--space-xs);
+            border-bottom: 2px solid var(--grey-100);
+            margin-bottom: var(--space-lg);
+        }
+
+        .nav-tab {
+            padding: var(--space-sm) var(--space-lg);
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+        }
+
+        .nav-tab:hover {
+            color: var(--primary-500);
+        }
+
+        .nav-tab.active {
+            color: var(--primary-500);
+            border-bottom-color: var(--primary-500);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: var(--space-md);
+            }
+
+            .header {
+                padding: var(--space-xl) var(--space-md);
+            }
+
+            .color-palette {
+                grid-template-columns: 1fr;
+            }
+
+            .component-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Town Pass Design System</h1>
+            <p>統一的設計語言，打造一致且優雅的使用者體驗</p>
+        </div>
+
+        <!-- Color System -->
+        <section class="section">
+            <h2 class="section-title">🎨 色彩系統 Color System</h2>
+
+            <div class="color-palette">
+                <!-- Primary Colors -->
+                <div class="color-group">
+                    <div class="color-group-title">Primary 主色（青藍色）</div>
+                    <div class="color-swatches">
+                        <div class="color-swatch">
+                            <div class="color-preview" style="background: var(--primary-50)"></div>
+                            <div class="color-info">
+                                <div class="color-name">Primary/50</div>
+                                <div class="color-value">#EDF8FA</div>
+                            </div>
+                        </div>
+                        <div class="color-swatch">
+                            <div class="color-preview" style="background: var(--primary-200)"></div>
+                            <div class="color-info">
+                                <div class="color-name">Primary/200</div>
+                                <div class="color-value">#B4E2EA</div>
+                            </div>
+                        </div>
+                        <div class="color-swatch">
+                            <div class="color-preview" style="background: var(--primary-500)"></div>
+                            <div class="color-info">
+                                <div class="color-name">Primary/500 ⭐</div>
+                                <div class="color-value">#5AB4C5</div>
+                            </div>
+                        </div>
+                        <div class="color-swatch">
+                            <div class="color-preview" style="background: var(--primary-700)"></div>
+                            <div class="color-info">
+                                <div class="color-name">Primary/700</div>
+                                <div class="color-value">#356C77</div>
+                            </div>
+                        </div>
+                        <div class="color-swatch">
+                            <div class="color-preview" style="background: var(--primary-900)"></div>
+                            <div class="color-info">
+                                <div class="color-name">Primary/900</div>
+                                <div class="color-value">#112629</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Secondary Colors -->
+                <div class="color-group">
+                    <div class="color-group-title">Secondary 次要色（金黃色）</div>
+                    <div class="color-swatches">
+                        <div class="color-swatch">
+                            <div class="color-preview" style="background: var(--secondary-50)"></div>
+                            <div class="color-info">
+                                <div class="color-name">Secondary/50</div>
+                                <div class="color-value">#FDF8ED</div>
+                            </div>
+                        </div>
+                        <div class="color-swatch">
+                            <div class="color-preview" style="background: var(--secondary-200)"></div>
+                            <div class="color-info">
+                                <div class="color-name">Secondary/200</div>
+                                <div class="color-value">#F8E3BC</div>
+                            </div>
+                        </div>
+                        <div class="color-swatch">
+                            <div class="color-preview" style="background: var(--secondary-500)"></div>
+                            <div class="color-info">
+                                <div class="color-name">Secondary/500 ⭐</div>
+                                <div class="color-value">#F5BA4B</div>
+                            </div>
+                        </div>
+                        <div class="color-swatch">
+                            <div class="color-preview" style="background: var(--secondary-700)"></div>
+                            <div class="color-info">
+                                <div class="color-name">Secondary/700</div>
+                                <div class="color-value">#AD7B2B</div>
+                            </div>
+                        </div>
+                        <div class="color-swatch">
+                            <div class="color-preview" style="background: var(--secondary-900)"></div>
+                            <div class="color-info">
+                                <div class="color-name">Secondary/900</div>
+                                <div class="color-value">#3C2B0B</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Semantic Colors -->
+                <div class="color-group">
+                    <div class="color-group-title">Semantic 語意色彩</div>
+                    <div class="color-swatches">
+                        <div class="color-swatch">
+                            <div class="color-preview" style="background: var(--green-500)"></div>
+                            <div class="color-info">
+                                <div class="color-name">Success 成功</div>
+                                <div class="color-value">#76A732</div>
+                            </div>
+                        </div>
+                        <div class="color-swatch">
+                            <div class="color-preview" style="background: var(--orange-500)"></div>
+                            <div class="color-info">
+                                <div class="color-name">Warning 警告</div>
+                                <div class="color-value">#FD853A</div>
+                            </div>
+                        </div>
+                        <div class="color-swatch">
+                            <div class="color-preview" style="background: var(--red-500)"></div>
+                            <div class="color-info">
+                                <div class="color-name">Danger 危險</div>
+                                <div class="color-value">#D45251</div>
+                            </div>
+                        </div>
+                        <div class="color-swatch">
+                            <div class="color-preview" style="background: var(--grey-100)"></div>
+                            <div class="color-info">
+                                <div class="color-name">Disabled 禁用</div>
+                                <div class="color-value">#E3E7E9</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Text Colors -->
+                <div class="color-group">
+                    <div class="color-group-title">Text 文字色彩</div>
+                    <div class="color-swatches">
+                        <div class="color-swatch">
+                            <div class="color-preview" style="background: var(--text-primary)"></div>
+                            <div class="color-info">
+                                <div class="color-name">主要文字</div>
+                                <div class="color-value">#30383D</div>
+                            </div>
+                        </div>
+                        <div class="color-swatch">
+                            <div class="color-preview" style="background: var(--text-secondary)"></div>
+                            <div class="color-info">
+                                <div class="color-name">次要文字</div>
+                                <div class="color-value">#475259</div>
+                            </div>
+                        </div>
+                        <div class="color-swatch">
+                            <div class="color-preview" style="background: var(--text-description)"></div>
+                            <div class="color-info">
+                                <div class="color-name">說明文字</div>
+                                <div class="color-value">#91A0A8</div>
+                            </div>
+                        </div>
+                        <div class="color-swatch">
+                            <div class="color-preview" style="background: var(--bg-white); border: 2px solid var(--grey-200)"></div>
+                            <div class="color-info">
+                                <div class="color-name">白色背景</div>
+                                <div class="color-value">#FFFFFF</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Typography -->
+        <section class="section">
+            <h2 class="section-title">📝 字體系統 Typography</h2>
+
+            <div class="typography-samples">
+                <div class="type-sample">
+                    <div class="type-label">H1 Semibold • 36px / 48px • Font-weight: 600</div>
+                    <div class="h1-sample">標題一：打造優雅的使用者體驗</div>
+                </div>
+
+                <div class="type-sample">
+                    <div class="type-label">H2 Semibold • 24px / 32px • Font-weight: 600</div>
+                    <div class="h2-sample">標題二：設計系統的核心價值</div>
+                </div>
+
+                <div class="type-sample">
+                    <div class="type-label">Body Semibold • 14px / 20px • Font-weight: 600</div>
+                    <div class="body-semibold-sample">強調文字：用於重要內容、按鈕文字、標籤等需要突出的地方</div>
+                </div>
+
+                <div class="type-sample">
+                    <div class="type-label">Body Regular • 14px / 20px • Font-weight: 400</div>
+                    <div class="body-regular-sample">正文內容：Town Pass 設計系統提供一致、優雅且易於使用的設計語言，幫助團隊快速打造高品質的產品體驗。透過標準化的元件和樣式，我們能確保產品在各個平台上都能提供一致的使用體驗。</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Spacing System -->
+        <section class="section">
+            <h2 class="section-title">📐 間距系統 Spacing System</h2>
+
+            <div class="spacing-demo">
+                <div class="spacing-item">
+                    <div class="spacing-label">XS (4px)</div>
+                    <div class="spacing-visual" style="width: 4px;"></div>
+                </div>
+                <div class="spacing-item">
+                    <div class="spacing-label">SM (8px)</div>
+                    <div class="spacing-visual" style="width: 8px;"></div>
+                </div>
+                <div class="spacing-item">
+                    <div class="spacing-label">MD (16px)</div>
+                    <div class="spacing-visual" style="width: 16px;"></div>
+                </div>
+                <div class="spacing-item">
+                    <div class="spacing-label">LG (24px)</div>
+                    <div class="spacing-visual" style="width: 24px;"></div>
+                </div>
+                <div class="spacing-item">
+                    <div class="spacing-label">XL (32px)</div>
+                    <div class="spacing-visual" style="width: 32px;"></div>
+                </div>
+                <div class="spacing-item">
+                    <div class="spacing-label">2XL (48px)</div>
+                    <div class="spacing-visual" style="width: 48px;"></div>
+                </div>
+                <div class="spacing-item">
+                    <div class="spacing-label">3XL (64px)</div>
+                    <div class="spacing-visual" style="width: 64px;"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Components -->
+        <section class="section">
+            <h2 class="section-title">🧩 元件展示 Components</h2>
+
+            <!-- Buttons -->
+            <div style="margin-bottom: var(--space-xl);">
+                <h3 style="margin-bottom: var(--space-lg); color: var(--text-secondary);">按鈕 Buttons</h3>
+                <div class="component-grid">
+                    <button class="btn btn-primary">主要按鈕</button>
+                    <button class="btn btn-secondary">次要按鈕</button>
+                    <button class="btn btn-success">成功操作</button>
+                    <button class="btn btn-warning">警告操作</button>
+                    <button class="btn btn-danger">危險操作</button>
+                    <button class="btn btn-outline">外框按鈕</button>
+                    <button class="btn" disabled>禁用狀態</button>
+                </div>
+            </div>
+
+            <!-- Forms -->
+            <div style="margin-bottom: var(--space-xl);">
+                <h3 style="margin-bottom: var(--space-lg); color: var(--text-secondary);">表單 Forms</h3>
+                <div class="form-group">
+                    <label class="label">使用者名稱</label>
+                    <input type="text" class="input" placeholder="請輸入使用者名稱">
+                </div>
+                <div class="form-group">
+                    <label class="label">電子郵件</label>
+                    <input type="email" class="input" placeholder="example@townpass.com">
+                </div>
+            </div>
+
+            <!-- Alerts -->
+            <div style="margin-bottom: var(--space-xl);">
+                <h3 style="margin-bottom: var(--space-lg); color: var(--text-secondary);">提示 Alerts</h3>
+                <div class="alert alert-success">
+                    <span>✓</span>
+                    <span>操作成功！你的資料已經儲存。</span>
+                </div>
+                <div class="alert alert-warning">
+                    <span>⚠</span>
+                    <span>請注意：此操作可能會影響其他使用者。</span>
+                </div>
+                <div class="alert alert-danger">
+                    <span>✕</span>
+                    <span>錯誤：無法連接到伺服器，請稍後再試。</span>
+                </div>
+            </div>
+
+            <!-- Badges -->
+            <div style="margin-bottom: var(--space-xl);">
+                <h3 style="margin-bottom: var(--space-lg); color: var(--text-secondary);">標籤 Badges</h3>
+                <div style="display: flex; gap: var(--space-md); flex-wrap: wrap;">
+                    <span class="badge badge-primary">新功能</span>
+                    <span class="badge badge-success">已完成</span>
+                    <span class="badge badge-warning">處理中</span>
+                    <span class="badge badge-danger">緊急</span>
+                </div>
+            </div>
+
+            <!-- Cards -->
+            <div style="margin-bottom: var(--space-xl);">
+                <h3 style="margin-bottom: var(--space-lg); color: var(--text-secondary);">卡片 Cards</h3>
+                <div class="card">
+                    <h3 style="margin-bottom: var(--space-md);">卡片標題</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: var(--space-lg);">這是一個卡片元件的範例，可以用來展示各種內容。卡片具有良好的視覺層次，適合用於資訊分組。</p>
+                    <button class="btn btn-primary">了解更多</button>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div>
+                <h3 style="margin-bottom: var(--space-lg); color: var(--text-secondary);">頁籤 Tabs</h3>
+                <div class="nav-tabs">
+                    <button class="nav-tab active">概覽</button>
+                    <button class="nav-tab">詳細資訊</button>
+                    <button class="nav-tab">設定</button>
+                    <button class="nav-tab">說明</button>
+                </div>
+                <div style="padding: var(--space-lg); background: var(--grey-50); border-radius: var(--radius-md);">
+                    <p>頁籤內容區域 - 這裡可以放置各種相關內容。</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Icons Section -->
+        <section class="section">
+            <h2 class="section-title">🎨 圖標系統 Icon System</h2>
+
+            <div style="margin-bottom: var(--space-xl);">
+                <p style="color: var(--text-secondary); margin-bottom: var(--space-lg); line-height: 1.6;">
+                    Town Pass 提供完整的圖標系統，包含 70+ 個精心設計的圖標，涵蓋基礎功能、導航、地圖標記等各種場景。
+                    所有圖標都支援多種尺寸和主題配色，確保在不同情境下都能完美呈現。
+                </p>
+
+                <!-- Icon Categories Grid -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--space-lg); margin-bottom: var(--space-xl);">
+                    <!-- Primary Icons -->
+                    <div class="card">
+                        <div style="display: flex; align-items: center; gap: var(--space-md); margin-bottom: var(--space-md);">
+                            <div style="width: 48px; height: 48px; background: var(--primary-100); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; color: var(--primary-600);">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M20 6L9 17l-5-5"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 4px;">Primary Icons</h3>
+                                <p style="font-size: 12px; color: var(--text-description);">24 個圖標</p>
+                            </div>
+                        </div>
+                        <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.5;">
+                            基礎功能圖標，包含常見操作如勾選、取消、新增、刪除、搜尋、設定等
+                        </p>
+                    </div>
+
+                    <!-- Tabber Icons -->
+                    <div class="card">
+                        <div style="display: flex; align-items: center; gap: var(--space-md); margin-bottom: var(--space-md);">
+                            <div style="width: 48px; height: 48px; background: var(--secondary-100); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; color: var(--secondary-700);">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+                                    <path d="M9 22V12h6v10"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 4px;">Tabber Icons</h3>
+                                <p style="font-size: 12px; color: var(--text-description);">5 個圖標</p>
+                            </div>
+                        </div>
+                        <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.5;">
+                            底部導航欄專用圖標，包含首頁、服務、卡片、優惠券、帳戶
+                        </p>
+                    </div>
+
+                    <!-- Map Icons -->
+                    <div class="card">
+                        <div style="display: flex; align-items: center; gap: var(--space-md); margin-bottom: var(--space-md);">
+                            <div style="width: 48px; height: 48px; background: rgba(118, 167, 50, 0.1); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; color: var(--green-500);">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
+                                    <circle cx="12" cy="10" r="3"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 4px;">Map Icons</h3>
+                                <p style="font-size: 12px; color: var(--text-description);">15 個圖標</p>
+                            </div>
+                        </div>
+                        <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.5;">
+                            地圖標記與導航圖標，包含地點、UBike、停車場、AED、避難所等
+                        </p>
+                    </div>
+
+                    <!-- Town Pass Icons -->
+                    <div class="card">
+                        <div style="display: flex; align-items: center; gap: var(--space-md); margin-bottom: var(--space-md);">
+                            <div style="width: 48px; height: 48px; background: rgba(212, 82, 81, 0.1); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; color: var(--red-500);">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 4px;">Town Pass Icons</h3>
+                                <p style="font-size: 12px; color: var(--text-description);">12 個圖標</p>
+                            </div>
+                        </div>
+                        <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.5;">
+                            Town Pass 專屬功能圖標，包含民生用品、水表、探索台北、簽到等
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Icon Samples -->
+                <div style="background: white; border: 1px solid var(--grey-200); border-radius: var(--radius-lg); padding: var(--space-xl); margin-bottom: var(--space-xl);">
+                    <h3 style="font-size: 16px; font-weight: 600; margin-bottom: var(--space-lg); color: var(--text-primary);">Icon 範例</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: var(--space-lg);">
+                        <div style="text-align: center;">
+                            <div style="width: 48px; height: 48px; margin: 0 auto var(--space-sm); display: flex; align-items: center; justify-content: center; background: var(--grey-50); border-radius: var(--radius-md); color: var(--text-primary);">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M20 6L9 17l-5-5"/>
+                                </svg>
+                            </div>
+                            <div style="font-size: 11px; color: var(--text-description);">check</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="width: 48px; height: 48px; margin: 0 auto var(--space-sm); display: flex; align-items: center; justify-content: center; background: var(--grey-50); border-radius: var(--radius-md); color: var(--text-primary);">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                                </svg>
+                            </div>
+                            <div style="font-size: 11px; color: var(--text-description);">search</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="width: 48px; height: 48px; margin: 0 auto var(--space-sm); display: flex; align-items: center; justify-content: center; background: var(--grey-50); border-radius: var(--radius-md); color: var(--text-primary);">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M3 12h18M3 6h18M3 18h18"/>
+                                </svg>
+                            </div>
+                            <div style="font-size: 11px; color: var(--text-description);">menu</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="width: 48px; height: 48px; margin: 0 auto var(--space-sm); display: flex; align-items: center; justify-content: center; background: var(--grey-50); border-radius: var(--radius-md); color: var(--text-primary);">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/>
+                                </svg>
+                            </div>
+                            <div style="font-size: 11px; color: var(--text-description);">bookmark</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="width: 48px; height: 48px; margin: 0 auto var(--space-sm); display: flex; align-items: center; justify-content: center; background: var(--grey-50); border-radius: var(--radius-md); color: var(--text-primary);">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M18 8A6 6 0 106 8c0 7-3 9-3 9h18s-3-2-3-9zM13.73 21a2 2 0 01-3.46 0"/>
+                                </svg>
+                            </div>
+                            <div style="font-size: 11px; color: var(--text-description);">notification</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="width: 48px; height: 48px; margin: 0 auto var(--space-sm); display: flex; align-items: center; justify-content: center; background: var(--grey-50); border-radius: var(--radius-md); color: var(--text-primary);">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
+                                </svg>
+                            </div>
+                            <div style="font-size: 11px; color: var(--text-description);">location</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CTA Button -->
+                <div style="text-align: center;">
+                    <a href="icons/index.html" target="_blank" style="display: inline-flex; align-items: center; gap: var(--space-sm); padding: var(--space-md) var(--space-xl); background: linear-gradient(135deg, var(--primary-500), var(--secondary-500)); color: white; text-decoration: none; border-radius: var(--radius-md); font-weight: 600; box-shadow: var(--shadow-md); transition: all 0.3s ease;">
+                        <span>查看完整圖標系統</span>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="m9 18 6-6-6-6"/>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </section>
+    </div>
+</body>
+</html>

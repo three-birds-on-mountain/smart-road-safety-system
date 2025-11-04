@@ -3,6 +3,8 @@
 **Input**: Design documents from `/specs/001-road-safety-system/`
 **Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/openapi.yaml
 
+**🎨 Design System**: `/specs/design-system/showcase.html` (必看！所有前端 UI 實作都要參考)
+
 **Tests**: 根據Constitution要求，本專案採用TDD（Test-Driven Development），所有測試任務標記為必要。
 
 **Organization**: 任務按User Story組織，每個Story可獨立實作與測試。
