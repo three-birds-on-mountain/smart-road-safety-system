@@ -108,10 +108,10 @@
 
 ### Implementation: 設定驅動的篩選邏輯
 
-- [ ] T063 [US2] 修改 fetchNearbyHotspots thunk in frontend/src/store/hotspotsSlice.ts（讀取 settingsSlice 狀態）
-- [ ] T064 [US2] 修改 Alert Service in frontend/src/services/alerts.ts（根據 alertModes 設定觸發）
-- [ ] T065 [US2] 實作「不提醒」模式的視覺提示 in frontend/src/components/Alert/AlertOverlay.tsx
-- [ ] T066 [US2] 實作多重警示方式組合 in frontend/src/services/alerts.ts（音效+震動）
+- [x] T063 [US2] 修改 fetchNearbyHotspots thunk in frontend/src/store/hotspotsSlice.ts（讀取 settingsSlice 狀態）
+- [x] T064 [US2] 修改 Alert Service in frontend/src/services/alerts.ts（根據 alertModes 設定觸發）
+- [x] T065 [US2] 實作「不提醒」模式的視覺提示 in frontend/src/components/Alert/AlertOverlay.tsx
+- [x] T066 [US2] 實作多重警示方式組合 in frontend/src/services/alerts.ts（音效+震動）
 
 ### Verification
 

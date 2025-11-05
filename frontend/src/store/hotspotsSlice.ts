@@ -7,7 +7,8 @@ import type {
   HotspotSummary,
   NearbyHotspot,
 } from '../types/hotspot';
-import type { AccidentSeverity } from '../types/accident';
+import type { RootState } from '../store';
+import type { TimeRangeOption } from '../types/settings';
 
 interface HotspotsState {
   items: HotspotSummary[];
@@ -56,11 +57,15 @@ interface HotspotListMetaApi {
 interface FetchNearbyParams {
   latitude: number;
   longitude: number;
-  distanceMeters: number;
-  severityLevels?: AccidentSeverity[];
-  timeRange?: string;
   signal?: AbortSignal;
 }
+
+const TIME_RANGE_QUERY: Record<TimeRangeOption, string> = {
+  '1Y': '12_months',
+  '6M': '6_months',
+  '3M': '3_months',
+  '1M': '1_month',
+};
 
 const adaptNearbyHotspot = (payload: NearbyHotspotApi): NearbyHotspot => ({
   id: payload.id,
@@ -79,22 +84,30 @@ const adaptNearbyHotspot = (payload: NearbyHotspotApi): NearbyHotspot => ({
 
 export const fetchNearbyHotspots = createAsyncThunk<
   HotspotListResponse<NearbyHotspot>,
-  FetchNearbyParams
+  FetchNearbyParams,
+  { state: RootState }
 >(
   'hotspots/fetchNearby',
-  async ({ latitude, longitude, distanceMeters, severityLevels, timeRange, signal }) => {
+  async ({ latitude, longitude, signal }, { getState }) => {
+    const {
+      settings: {
+        current: { distanceMeters, severityFilter, timeRange },
+      },
+    } = getState();
+
     const params = new URLSearchParams({
       latitude: latitude.toString(),
       longitude: longitude.toString(),
       distance: distanceMeters.toString(),
     });
 
-    if (severityLevels?.length) {
-      params.set('severity_levels', severityLevels.join(','));
+    if (severityFilter.length) {
+      params.set('severity_levels', severityFilter.join(','));
     }
 
-    if (timeRange) {
-      params.set('time_range', timeRange);
+    const timeRangeQuery = TIME_RANGE_QUERY[timeRange];
+    if (timeRangeQuery) {
+      params.set('time_range', timeRangeQuery);
     }
 
     const response = await apiClient.get<{

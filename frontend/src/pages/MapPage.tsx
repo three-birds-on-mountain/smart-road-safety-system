@@ -1,33 +1,20 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import AlertOverlay from '../components/Alert/AlertOverlay'
 import { useAppDispatch, useAppSelector } from '../hooks/store'
-import { createAlertService } from '../services/alerts'
+import { createAlertService, type TriggerAlertResult } from '../services/alerts'
 import { createGeolocationService } from '../services/geolocation'
-import {
-  fetchNearbyHotspots,
-  type FetchNearbyParams,
-} from '../store/hotspotsSlice'
+import { fetchNearbyHotspots } from '../store/hotspotsSlice'
 import { toggleIgnoredHotspot } from '../store/settingsSlice'
 import type { NearbyHotspot } from '../types/hotspot'
-import type { TimeRangeOption } from '../types/settings'
-
-const timeRangeQuery: Record<TimeRangeOption, string> = {
-  '1Y': '12_months',
-  '6M': '6_months',
-  '3M': '3_months',
-  '1M': '1_month',
-}
+import type { AlertChannel } from '../types/settings'
 
 interface ActiveAlertState {
   hotspot: NearbyHotspot
   distanceMeters: number
   muted: boolean
+  channels: AlertChannel[]
+  unsupportedChannels: AlertChannel[]
+  reason?: TriggerAlertResult['reason']
 }
 
 const gpsStatusDescriptor = {
@@ -52,6 +39,9 @@ const MapPage = () => {
   const locationState = useAppSelector((state) => state.location)
   const settings = useAppSelector((state) => state.settings.current)
   const hotspotsState = useAppSelector((state) => state.hotspots)
+  const currentLocation = locationState.current
+  const latitude = currentLocation?.latitude
+  const longitude = currentLocation?.longitude
 
   const [activeAlert, setActiveAlert] = useState<ActiveAlertState | null>(null)
 
@@ -64,18 +54,24 @@ const MapPage = () => {
   )
   const fetchControllerRef = useRef<AbortController | null>(null)
 
-  const requestParams: Omit<FetchNearbyParams, 'signal'> | null = useMemo(() => {
-    if (!locationState.current) {
+  const fetchDependencies = useMemo(() => {
+    if (latitude == null || longitude == null) {
       return null
     }
     return {
-      latitude: locationState.current.latitude,
-      longitude: locationState.current.longitude,
-      distanceMeters: settings.distanceMeters,
-      severityLevels: settings.severityFilter,
-      timeRange: timeRangeQuery[settings.timeRange],
+      latitude,
+      longitude,
+      distance: settings.distanceMeters,
+      severity: settings.severityFilter.join(','),
+      timeRange: settings.timeRange,
     }
-  }, [locationState, settings])
+  }, [
+    latitude,
+    longitude,
+    settings.distanceMeters,
+    settings.severityFilter,
+    settings.timeRange,
+  ])
 
   const updateActiveAlert = useCallback((next: ActiveAlertState | null) => {
     activeAlertRef.current = next
@@ -116,7 +112,7 @@ const MapPage = () => {
   }, [settings.autoSilenceSeconds])
 
   useEffect(() => {
-    if (!requestParams || locationState.status !== 'active') {
+    if (!fetchDependencies || locationState.status !== 'active') {
       fetchControllerRef.current?.abort()
       fetchControllerRef.current = null
       return
@@ -126,12 +122,18 @@ const MapPage = () => {
     fetchControllerRef.current?.abort()
     fetchControllerRef.current = controller
 
-    dispatch(fetchNearbyHotspots({ ...requestParams, signal: controller.signal }))
+    dispatch(
+      fetchNearbyHotspots({
+        latitude: fetchDependencies.latitude,
+        longitude: fetchDependencies.longitude,
+        signal: controller.signal,
+      }),
+    )
 
     return () => {
       controller.abort()
     }
-  }, [dispatch, requestParams, locationState.status])
+  }, [dispatch, fetchDependencies, locationState.status])
 
   useEffect(() => {
     const alertService = alertServiceRef.current
@@ -166,12 +168,18 @@ const MapPage = () => {
       })
 
       if (result.triggered) {
+        const muted =
+          result.activatedChannels.length === 0 ||
+          result.reason === 'channels-disabled' ||
+          result.reason === 'unsupported'
+
         triggered = {
           hotspot,
           distanceMeters: result.distanceMeters,
-          muted:
-            result.reason === 'channels-disabled' ||
-            settings.alertChannels.length === 0,
+          muted,
+          channels: result.activatedChannels,
+          unsupportedChannels: result.unsupportedChannels ?? [],
+          reason: result.reason,
         }
         break
       }
@@ -181,6 +189,9 @@ const MapPage = () => {
           hotspot: previous.hotspot,
           distanceMeters: result.distanceMeters,
           muted: previous.muted,
+          channels: previous.channels,
+          unsupportedChannels: previous.unsupportedChannels,
+          reason: result.reason,
         }
         break
       }
@@ -189,11 +200,24 @@ const MapPage = () => {
     if (triggered) {
       const prev = activeAlertRef.current
       const isSameHotspot = prev?.hotspot.id === triggered.hotspot.id
+      const sameChannels =
+        prev &&
+        prev.channels.length === triggered.channels.length &&
+        prev.channels.every((channel, index) => channel === triggered.channels[index])
+      const sameUnsupported =
+        prev &&
+        prev.unsupportedChannels.length === triggered.unsupportedChannels.length &&
+        prev.unsupportedChannels.every(
+          (channel, index) => channel === triggered.unsupportedChannels[index],
+        )
       const hasChanges =
         !isSameHotspot ||
         Math.round(prev?.distanceMeters ?? -1) !==
           Math.round(triggered.distanceMeters) ||
-        prev?.muted !== triggered.muted
+        prev?.muted !== triggered.muted ||
+        !sameChannels ||
+        !sameUnsupported ||
+        prev?.reason !== triggered.reason
 
       if (hasChanges) {
         updateActiveAlert(triggered)
@@ -272,6 +296,9 @@ const MapPage = () => {
                 hotspot={activeAlert.hotspot}
                 distanceMeters={activeAlert.distanceMeters}
                 isMuted={activeAlert.muted}
+                channels={activeAlert.channels}
+                unsupportedChannels={activeAlert.unsupportedChannels}
+                reason={activeAlert.reason}
                 onDismiss={handleDismissAlert}
                 onIgnore={handleIgnoreHotspot}
               />

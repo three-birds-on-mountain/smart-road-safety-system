@@ -1,5 +1,5 @@
 import type { NearbyHotspot } from '../types/hotspot';
-import type { AlertSettings } from '../types/settings';
+import type { AlertSettings, AlertChannel } from '../types/settings';
 import type { Coordinates } from '../store/locationSlice';
 import { getHighestSeverityLevel } from '../types/hotspot';
 
@@ -24,6 +24,8 @@ export interface TriggerAlertResult {
     | 'cooldown'
     | 'unsupported'
     | 'channels-disabled';
+  activatedChannels: AlertChannel[];
+  unsupportedChannels?: AlertChannel[];
 }
 
 const EARTH_RADIUS_METERS = 6_371_000;
@@ -68,40 +70,87 @@ export class AlertService {
         : calculateDistanceMeters(userLocation, hotspot);
 
     if (settings.ignoredHotspotIds.includes(hotspot.id)) {
-      return { triggered: false, distanceMeters, reason: 'ignored' };
+      return { triggered: false, distanceMeters, reason: 'ignored', activatedChannels: [] };
     }
 
     const highestSeverity = getHighestSeverityLevel(hotspot);
     if (!settings.severityFilter.includes(highestSeverity)) {
-      return { triggered: false, distanceMeters, reason: 'severity-filtered' };
+      return {
+        triggered: false,
+        distanceMeters,
+        reason: 'severity-filtered',
+        activatedChannels: [],
+      };
     }
 
     if (distanceMeters > settings.distanceMeters) {
-      return { triggered: false, distanceMeters, reason: 'out-of-range' };
+      return {
+        triggered: false,
+        distanceMeters,
+        reason: 'out-of-range',
+        activatedChannels: [],
+      };
     }
 
     const lastTriggeredAt = this.lastTriggeredMap.get(hotspot.id);
     const now = Date.now();
 
     if (lastTriggeredAt && now - lastTriggeredAt < this.minIntervalMs) {
-      return { triggered: false, distanceMeters, reason: 'cooldown' };
+      return {
+        triggered: false,
+        distanceMeters,
+        reason: 'cooldown',
+        activatedChannels: [],
+      };
     }
 
     this.lastTriggeredMap.set(hotspot.id, now);
 
     if (settings.alertChannels.length === 0) {
-      return { triggered: true, distanceMeters, reason: 'channels-disabled' };
+      return {
+        triggered: true,
+        distanceMeters,
+        reason: 'channels-disabled',
+        activatedChannels: [],
+      };
     }
 
+    const activatedChannels: AlertChannel[] = [];
+    const unsupportedChannels: AlertChannel[] = [];
+
     if (settings.alertChannels.includes('sound')) {
-      this.playSound(settings.autoSilenceSeconds);
+      const played = this.playSound(settings.autoSilenceSeconds);
+      if (played || !this.audio) {
+        activatedChannels.push('sound');
+      } else {
+        unsupportedChannels.push('sound');
+      }
     }
 
     if (settings.alertChannels.includes('vibration')) {
-      this.triggerVibration();
+      if (this.triggerVibration()) {
+        activatedChannels.push('vibration');
+      } else {
+        unsupportedChannels.push('vibration');
+      }
     }
 
-    return { triggered: true, distanceMeters };
+    if (activatedChannels.length === 0) {
+      return {
+        triggered: true,
+        distanceMeters,
+        reason: 'unsupported',
+        activatedChannels,
+        unsupportedChannels,
+      };
+    }
+
+    return {
+      triggered: true,
+      distanceMeters,
+      activatedChannels,
+      unsupportedChannels: unsupportedChannels.length ? unsupportedChannels : undefined,
+    };
   }
 
   clearHotspotCooldown(hotspotId: string) {
@@ -121,9 +170,9 @@ export class AlertService {
     this.stopSound();
   }
 
-  private playSound(autoSilenceSeconds: number) {
+  private playSound(autoSilenceSeconds: number): boolean {
     if (!this.audio) {
-      return;
+      return false;
     }
 
     const durationMs = Math.max(autoSilenceSeconds * 1_000, this.minIntervalMs);
@@ -143,6 +192,7 @@ export class AlertService {
     this.stopAudioTimeout = window.setTimeout(() => {
       this.stopSound();
     }, durationMs);
+    return true;
   }
 
   private stopSound() {
@@ -159,15 +209,15 @@ export class AlertService {
     this.audio.currentTime = 0;
   }
 
-  private triggerVibration() {
+  private triggerVibration(): boolean {
     if (!canVibrate()) {
-      return;
+      return false;
     }
 
     try {
-      navigator.vibrate([200, 100, 200]);
+      return navigator.vibrate([200, 100, 200]);
     } catch {
-      // Ignore vibration failures (commonly blocked by user agent policies).
+      return false;
     }
   }
 }

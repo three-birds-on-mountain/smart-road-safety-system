@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createAlertService } from '../../src/services/alerts';
 import type { Coordinates } from '../../src/store/locationSlice';
 import type { AlertSettings } from '../../src/types/settings';
@@ -41,11 +41,15 @@ describe('AlertService', () => {
     vi.useRealTimers();
   });
 
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it('triggers alert when hotspot within range and severity allowed', () => {
     const service = createAlertService();
     const hotspot = createHotspot();
 
-    const result = service.triggerAlert({
+  const result = service.triggerAlert({
       hotspot,
       userLocation,
       settings: baseSettings,
@@ -54,6 +58,7 @@ describe('AlertService', () => {
     expect(result.triggered).toBe(true);
     expect(result.distanceMeters).toBe(150);
     expect(result.reason).toBeUndefined();
+    expect(result.activatedChannels).toEqual(['sound']);
   });
 
   it('does not trigger when hotspot is ignored', () => {
@@ -138,5 +143,29 @@ describe('AlertService', () => {
 
     expect(result.triggered).toBe(true);
     expect(result.reason).toBe('channels-disabled');
+    expect(result.activatedChannels).toEqual([]);
+  });
+
+  it('returns unsupported when vibration is requested but not available', () => {
+    vi.stubGlobal('navigator', {
+      vibrate: undefined,
+    } as unknown as Navigator);
+
+    const service = createAlertService();
+    const hotspot = createHotspot();
+
+    const result = service.triggerAlert({
+      hotspot,
+      userLocation,
+      settings: {
+        ...baseSettings,
+        alertChannels: ['vibration'],
+      },
+    });
+
+    expect(result.triggered).toBe(true);
+    expect(result.reason).toBe('unsupported');
+    expect(result.activatedChannels).toEqual([]);
+    expect(result.unsupportedChannels).toEqual(['vibration']);
   });
 });

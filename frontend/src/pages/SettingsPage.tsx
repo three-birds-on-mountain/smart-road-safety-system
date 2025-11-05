@@ -73,7 +73,7 @@ const SettingsPage = () => {
         <aside className="flex flex-col gap-md rounded-lg bg-surface-white p-lg shadow-md">
           <h2 className="text-lg font-semibold text-text-primary">設定摘要</h2>
           <p className="text-sm text-text-secondary">
-            調整將立即生效，並在之後的開車過程中依照最新設定提醒您。即將新增自動儲存功能，讓設定在裝置間同步。
+            調整會即時生效並自動儲存至裝置，下次開啟仍會沿用最新偏好設定。
           </p>
 
           <div className="flex flex-col gap-sm rounded-lg border border-primary-100 bg-primary-50/60 px-md py-md text-sm text-primary-700">
@@ -86,15 +86,8 @@ const SettingsPage = () => {
             </ul>
           </div>
 
-          <button
-            type="button"
-            className="inline-flex items-center justify-center rounded-md bg-primary-600 px-lg py-sm text-sm font-semibold text-white shadow-md transition hover:bg-primary-700 disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-text-secondary/60"
-            disabled
-          >
-            儲存設定（即將推出）
-          </button>
           <p className="text-xs text-text-description">
-            設定變更會立即反映在警示流程中。儲存功能將在後續任務中連結本地儲存，確保重新開啟 App 後仍保留偏好。
+            提醒：若需清除設定，可於瀏覽器清除網站資料或使用「重置設定」功能（稍後提供）。
           </p>
         </aside>
       </div>
