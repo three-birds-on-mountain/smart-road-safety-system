@@ -63,6 +63,23 @@ export const createGeolocationService = (dispatch: AppDispatch) => {
 
       dispatch(setPermissionGranted(true));
       dispatch(updateLocation(coordinates));
+
+      // T119: GPS 訊號弱處理
+      // 根據 accuracy (精確度) 判斷訊號強度
+      // accuracy 單位為公尺，值越大表示越不準確
+      const isWeakSignal = coords.accuracy > 50 // 精確度 > 50 公尺視為訊號弱
+
+      if (isWeakSignal) {
+        dispatch(
+          setLocationError(
+            `GPS 訊號較弱（精確度: ${Math.round(coords.accuracy)} 公尺），警示功能可能受影響。`
+          )
+        );
+      } else {
+        // 訊號正常，清除錯誤訊息
+        dispatch(setLocationError(undefined));
+      }
+
       emitStatus('active', options);
       options?.onLocationUpdate?.(coordinates);
     };

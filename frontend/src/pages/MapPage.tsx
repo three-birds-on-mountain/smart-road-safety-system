@@ -1,11 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import AlertOverlay from '../components/Alert/AlertOverlay'
+import MapView from '../components/Map/MapView'
+import HotspotLayer from '../components/Map/HotspotLayer'
+import UserLocation from '../components/Map/UserLocation'
+import HotspotDetailPopup from '../components/Map/HotspotDetailPopup'
 import { useAppDispatch, useAppSelector } from '../hooks/store'
 import { createAlertService, type TriggerAlertResult } from '../services/alerts'
 import { createGeolocationService } from '../services/geolocation'
 import { fetchNearbyHotspots } from '../store/hotspotsSlice'
 import { toggleIgnoredHotspot } from '../store/settingsSlice'
-import type { NearbyHotspot } from '../types/hotspot'
+import type { NearbyHotspot, HotspotSummary } from '../types/hotspot'
 import type { AlertChannel } from '../types/settings'
 
 interface ActiveAlertState {
@@ -44,6 +48,9 @@ const MapPage = () => {
   const longitude = currentLocation?.longitude
 
   const [activeAlert, setActiveAlert] = useState<ActiveAlertState | null>(null)
+  const [selectedHotspot, setSelectedHotspot] = useState<HotspotSummary | null>(
+    null,
+  )
 
   const activeAlertRef = useRef<ActiveAlertState | null>(null)
   const geolocationServiceRef = useRef<ReturnType<
@@ -253,8 +260,7 @@ const MapPage = () => {
           即時危險區域警示
         </h1>
         <p className="max-w-2xl text-base text-text-secondary">
-          持續監測您的 GPS 位置，當進入高風險熱點時即時觸發警示。地圖互動與
-          Mapbox 圖層將於後續任務整合。
+          持續監測您的 GPS 位置，當進入高風險熱點時即時觸發警示。地圖顯示事故熱點分布與您的當前位置。
         </p>
       </header>
 
@@ -285,11 +291,35 @@ const MapPage = () => {
           </p>
         )}
 
-        <div className="relative mt-sm h-[360px] overflow-hidden rounded-lg border border-gray-100 bg-surface-muted">
-          <div className="grid h-full place-items-center text-text-secondary">
-            地圖元件開發中，待 US3 導入 Mapbox GL JS
-          </div>
+        <div className="relative mt-sm h-[500px] overflow-hidden rounded-lg border border-gray-100">
+          <MapView
+            className="h-full w-full"
+            center={
+              latitude && longitude ? [longitude, latitude] : undefined
+            }
+            zoom={13}
+          >
+            {(map) =>
+              map && (
+                <>
+                  <HotspotLayer
+                    map={map}
+                    hotspots={hotspotsState.nearby}
+                    onHotspotClick={setSelectedHotspot}
+                    enableClustering={true}
+                  />
+                  <UserLocation
+                    map={map}
+                    latitude={latitude ?? null}
+                    longitude={longitude ?? null}
+                    showAccuracyCircle={true}
+                  />
+                </>
+              )
+            }
+          </MapView>
 
+          {/* 警示覆蓋層（置於地圖上方） */}
           {activeAlert && (
             <div className="pointer-events-auto absolute left-1/2 top-4 w-full max-w-[90%] -translate-x-1/2 md:left-4 md:right-auto md:top-4 md:max-w-sm md:translate-x-0">
               <AlertOverlay
@@ -301,6 +331,16 @@ const MapPage = () => {
                 reason={activeAlert.reason}
                 onDismiss={handleDismissAlert}
                 onIgnore={handleIgnoreHotspot}
+              />
+            </div>
+          )}
+
+          {/* 熱點詳情彈窗（置於地圖上方） */}
+          {selectedHotspot && (
+            <div className="pointer-events-auto absolute right-4 top-4 max-w-sm">
+              <HotspotDetailPopup
+                hotspot={selectedHotspot}
+                onClose={() => setSelectedHotspot(null)}
               />
             </div>
           )}
@@ -325,7 +365,7 @@ const MapPage = () => {
         </div>
 
         <p className="text-xs text-text-description">
-          當前頁面提供警示流程與 UI，地圖渲染與熱點圖層將在 US3（T082-T088）中完成。
+          地圖整合已完成！點擊地圖上的熱點標記可查看詳細資訊。地圖會自動追蹤您的 GPS 位置並顯示附近的事故熱點。
         </p>
       </div>
     </section>

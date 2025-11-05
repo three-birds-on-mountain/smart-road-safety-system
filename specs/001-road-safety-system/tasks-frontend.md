@@ -128,19 +128,19 @@
 
 ### Implementation: Mapbox 地圖整合
 
-- [ ] T082 [P] [US3] 建立 MapView 元件 in frontend/src/components/Map/MapView.tsx（Mapbox GL JS 初始化）
-- [ ] T083 [P] [US3] 建立 HotspotLayer 元件 in frontend/src/components/Map/HotspotLayer.tsx（Circle layer 渲染）
-- [ ] T084 [P] [US3] 建立 UserLocation 元件 in frontend/src/components/Map/UserLocation.tsx（顯示用戶位置標記）
-- [ ] T085 [US3] 實作熱點資料載入邏輯 in frontend/src/store/hotspotsSlice.ts（fetchHotspotsInBounds thunk）
-- [ ] T086 [US3] 實作地圖事件監聽 in frontend/src/components/Map/MapView.tsx（moveend, zoomend）
-- [ ] T087 [US3] 建立熱點詳細資訊彈窗 in frontend/src/components/Map/HotspotDetailPopup.tsx
-- [ ] T088 [US3] 實作點擊熱點標記觸發彈窗 in frontend/src/components/Map/MapView.tsx
+- [x] T082 [P] [US3] 建立 MapView 元件 in frontend/src/components/Map/MapView.tsx（Mapbox GL JS 初始化）
+- [x] T083 [P] [US3] 建立 HotspotLayer 元件 in frontend/src/components/Map/HotspotLayer.tsx（Circle layer 渲染）
+- [x] T084 [P] [US3] 建立 UserLocation 元件 in frontend/src/components/Map/UserLocation.tsx（顯示用戶位置標記）
+- [x] T085 [US3] 實作熱點資料載入邏輯 in frontend/src/store/hotspotsSlice.ts（fetchHotspotsInBounds thunk）
+- [x] T086 [US3] 實作地圖事件監聽 in frontend/src/components/Map/MapView.tsx（moveend, zoomend）
+- [x] T087 [US3] 建立熱點詳細資訊彈窗 in frontend/src/components/Map/HotspotDetailPopup.tsx
+- [x] T088 [US3] 實作點擊熱點標記觸發彈窗 in frontend/src/components/Map/MapView.tsx
 
 ### 地圖視覺化優化
 
-- [ ] T089 [US3] 實作熱點顏色映射邏輯 in frontend/src/components/Map/HotspotLayer.tsx（A1: 紅色、A2: 橙色、A3: 黃色）
-- [ ] T090 [US3] 實作熱點聚合顯示 in frontend/src/components/Map/HotspotLayer.tsx（縮小時聚合、放大時展開）
-- [ ] T091 [US3] 加入載入指示器 in frontend/src/components/Map/MapView.tsx（spinner）
+- [x] T089 [US3] 實作熱點顏色映射邏輯 in frontend/src/components/Map/HotspotLayer.tsx（A1: 紅色、A2: 橙色、A3: 黃色）
+- [x] T090 [US3] 實作熱點聚合顯示 in frontend/src/components/Map/HotspotLayer.tsx（縮小時聚合、放大時展開）
+- [x] T091 [US3] 加入載入指示器 in frontend/src/components/Map/MapView.tsx（spinner）
 
 ### Verification
 
@@ -157,8 +157,8 @@
 
 ### 錯誤處理
 
-- [ ] T119 [P] 實作 GPS 訊號弱處理 in frontend/src/services/geolocation.ts（顯示警告訊息）
-- [ ] T120 [P] 實作資料更新中提示 in frontend/src/pages/MapPage.tsx（顯示「資料更新中」）
+- [x] T119 [P] 實作 GPS 訊號弱處理 in frontend/src/services/geolocation.ts（顯示警告訊息）
+- [x] T120 [P] 實作資料更新中提示 in frontend/src/pages/MapPage.tsx（顯示「資料更新中」）
 
 ### 測試與文件
 
@@ -167,7 +167,7 @@
 
 ### 安全性
 
-- [ ] T130 [P] 前端環境變數驗證 in frontend/src/main.tsx（VITE_API_BASE_URL, VITE_MAPBOX_ACCESS_TOKEN 必填檢查）
+- [x] T130 [P] 前端環境變數驗證 in frontend/src/main.tsx（VITE_API_BASE_URL, VITE_MAPBOX_ACCESS_TOKEN 必填檢查）
 
 ### CI/CD
 
