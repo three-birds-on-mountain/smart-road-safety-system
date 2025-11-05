@@ -75,9 +75,9 @@
 - [x] T042 [P] [US1] 建立 Alert Service in frontend/src/services/alerts.ts（音效播放、Vibration API、距離判斷邏輯）
 - [x] T043 [US1] 實作 locationSlice actions in frontend/src/store/locationSlice.ts（updateLocation, setGPSStatus）
 - [x] T044 [US1] 實作 hotspotsSlice actions in frontend/src/store/hotspotsSlice.ts（fetchNearbyHotspots thunk, updateNearbyList）
-- [ ] T045 [P] [US1] 建立 AlertOverlay 元件 in frontend/src/components/Alert/AlertOverlay.tsx（視覺警示、熱點資訊顯示）
-- [ ] T046 [P] [US1] 建立 AlertIcon 元件 in frontend/src/components/Alert/AlertIcon.tsx（不同嚴重程度的圖示）
-- [ ] T047 [US1] 整合 Geolocation 與 Alert 邏輯 in frontend/src/pages/MapPage.tsx（GPS 更新→查詢熱點→觸發警示）
+- [x] T045 [P] [US1] 建立 AlertOverlay 元件 in frontend/src/components/Alert/AlertOverlay.tsx（視覺警示、熱點資訊顯示）
+- [x] T046 [P] [US1] 建立 AlertIcon 元件 in frontend/src/components/Alert/AlertIcon.tsx（不同嚴重程度的圖示）
+- [x] T047 [US1] 整合 Geolocation 與 Alert 邏輯 in frontend/src/pages/MapPage.tsx（GPS 更新→查詢熱點→觸發警示）
 - [x] T048 [US1] 實作警示間隔控制（最小30秒）in frontend/src/services/alerts.ts（防止連續重複警示）
 
 ### Verification

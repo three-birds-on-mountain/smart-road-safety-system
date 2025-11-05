@@ -117,6 +117,10 @@ export class AlertService {
     this.resetAllCooldowns();
   }
 
+  silence() {
+    this.stopSound();
+  }
+
   private playSound(autoSilenceSeconds: number) {
     if (!this.audio) {
       return;
