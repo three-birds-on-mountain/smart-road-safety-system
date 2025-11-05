@@ -90,19 +90,19 @@
 
 ### Tests
 
-- [ ] T051 [P] [US2] Unit test for DistanceSelector in frontend/tests/unit/components/test_distance_selector.spec.ts
-- [ ] T052 [P] [US2] Unit test for AccidentLevelFilter in frontend/tests/unit/components/test_accident_level_filter.spec.ts
-- [ ] T053 [P] [US2] Unit test for TimeRangeFilter in frontend/tests/unit/components/test_time_range_filter.spec.ts
-- [ ] T054 [P] [US2] Unit test for AlertModeSelector in frontend/tests/unit/components/test_alert_mode_selector.spec.ts
-- [ ] T055 [P] [US2] Integration test for 設定變更立即生效 in frontend/tests/integration/test_settings_flow.spec.ts
+- [x] T051 [P] [US2] Unit test for DistanceSelector in frontend/tests/unit/components/test_distance_selector.spec.tsx
+- [x] T052 [P] [US2] Unit test for AccidentLevelFilter in frontend/tests/unit/components/test_accident_level_filter.spec.tsx
+- [x] T053 [P] [US2] Unit test for TimeRangeFilter in frontend/tests/unit/components/test_time_range_filter.spec.tsx
+- [x] T054 [P] [US2] Unit test for AlertModeSelector in frontend/tests/unit/components/test_alert_mode_selector.spec.tsx
+- [x] T055 [P] [US2] Integration test for 設定變更立即生效 in frontend/tests/integration/test_settings_flow.spec.tsx
 
 ### Implementation: 設定介面
 
-- [ ] T056 [P] [US2] 建立 DistanceSelector 元件 in frontend/src/components/Settings/DistanceSelector.tsx
-- [ ] T057 [P] [US2] 建立 AccidentLevelFilter 元件 in frontend/src/components/Settings/AccidentLevelFilter.tsx
-- [ ] T058 [P] [US2] 建立 TimeRangeFilter 元件 in frontend/src/components/Settings/TimeRangeFilter.tsx
-- [ ] T059 [P] [US2] 建立 AlertModeSelector 元件 in frontend/src/components/Settings/AlertModeSelector.tsx
-- [ ] T060 [US2] 整合設定頁面 in frontend/src/pages/SettingsPage.tsx（佈局、儲存按鈕）
+- [x] T056 [P] [US2] 建立 DistanceSelector 元件 in frontend/src/components/Settings/DistanceSelector.tsx
+- [x] T057 [P] [US2] 建立 AccidentLevelFilter 元件 in frontend/src/components/Settings/AccidentLevelFilter.tsx
+- [x] T058 [P] [US2] 建立 TimeRangeFilter 元件 in frontend/src/components/Settings/TimeRangeFilter.tsx
+- [x] T059 [P] [US2] 建立 AlertModeSelector 元件 in frontend/src/components/Settings/AlertModeSelector.tsx
+- [x] T060 [US2] 整合設定頁面 in frontend/src/pages/SettingsPage.tsx（佈局、儲存按鈕）
 - [ ] T061 [US2] 實作 settingsSlice actions in frontend/src/store/settingsSlice.ts
 - [ ] T062 [US2] 實作本地儲存持久化 in frontend/src/store/settingsSlice.ts（localStorage sync）
 

@@ -1,37 +1,105 @@
-const SettingsPage = () => (
-  <section className="flex flex-1 flex-col gap-lg">
-    <header className="flex flex-col gap-sm">
-      <h1 className="text-3xl font-semibold text-primary-700">警示設定</h1>
-      <p className="max-w-2xl text-base text-text-secondary">
-        客製化提醒距離、事故等級與時間範圍，打造最符合行車習慣的安全系統。表單與資料串接將隨
-        US2 任務逐步補齊。
-      </p>
-    </header>
+import { useMemo } from 'react'
+import AlertModeSelector from '../components/Settings/AlertModeSelector'
+import AccidentLevelFilter from '../components/Settings/AccidentLevelFilter'
+import DistanceSelector from '../components/Settings/DistanceSelector'
+import TimeRangeFilter from '../components/Settings/TimeRangeFilter'
+import { useAppSelector } from '../hooks/store'
+import type { TimeRangeOption } from '../types/settings'
 
-    <div className="grid gap-lg md:grid-cols-2">
-      <div className="rounded-lg bg-surface-white p-lg shadow-md">
-        <h2 className="text-xl font-semibold text-text-primary">提醒距離</h2>
-        <p className="mt-sm text-sm text-text-description">
-          預設提醒距離為 500 公尺。完成設定元件後，將可在此調整距離選項。
+const TIME_RANGE_TEXT: Record<TimeRangeOption, string> = {
+  '1Y': '一年內',
+  '6M': '半年內',
+  '3M': '三個月內',
+  '1M': '一個月內',
+}
+
+const SettingsPage = () => {
+  const settings = useAppSelector((state) => state.settings.current)
+
+  const severitySummary = useMemo(() => settings.severityFilter.join(' / '), [settings.severityFilter])
+  const channelSummary = useMemo(() => {
+    if (settings.alertChannels.length === 0) {
+      return '僅視覺提示'
+    }
+
+    const mapping: Record<string, string> = { sound: '音效', vibration: '震動' }
+    return settings.alertChannels.map((channel) => mapping[channel] ?? channel).join(' + ')
+  }, [settings.alertChannels])
+
+  return (
+    <section className="flex flex-1 flex-col gap-xl">
+      <header className="flex flex-col gap-sm">
+        <h1 className="text-3xl font-semibold text-primary-700">警示設定</h1>
+        <p className="max-w-2xl text-base text-text-secondary">
+          客製化提醒距離、事故等級、警示方式與事故時間範圍，打造最符合行車習慣的安全系統。
+          變更會即時套用在警示流程上。
         </p>
-      </div>
 
-      <div className="rounded-lg bg-surface-white p-lg shadow-md">
-        <h2 className="text-xl font-semibold text-text-primary">事故等級</h2>
-        <p className="mt-sm text-sm text-text-description">
-          支援 A1/A2/A3 事故等級選擇。後續將以 Checkbox 元件呈現多選。
-        </p>
-      </div>
+        <div className="flex flex-wrap items-center gap-sm text-sm">
+          <span className="rounded-full bg-primary-50 px-sm py-xs text-primary-700">
+            距離：{settings.distanceMeters} 公尺
+          </span>
+          <span className="rounded-full bg-secondary-50 px-sm py-xs text-secondary-700">
+            等級：{severitySummary}
+          </span>
+          <span className="rounded-full bg-gray-50 px-sm py-xs text-text-secondary">
+            時間範圍：{TIME_RANGE_TEXT[settings.timeRange]}
+          </span>
+          <span className="rounded-full bg-warning-100 px-sm py-xs text-warning-500">
+            警示方式：{channelSummary}
+          </span>
+        </div>
+      </header>
 
-      <div className="rounded-lg bg-surface-white p-lg shadow-md md:col-span-2">
-        <h2 className="text-xl font-semibold text-text-primary">提醒方式與時間範圍</h2>
-        <p className="mt-sm text-sm text-text-description">
-          可選擇音效、震動或僅顯示視覺提醒，並設定事故時間範圍（一年內、半年內、三個月、一個月）。
-          相關邏輯將在 US2 任務整合。
-        </p>
-      </div>
-    </div>
-  </section>
-);
+      <div className="grid gap-xl lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+        <div className="flex flex-col gap-xl">
+          <div className="rounded-lg bg-surface-white p-lg shadow-md">
+            <DistanceSelector />
+          </div>
 
-export default SettingsPage;
+          <div className="rounded-lg bg-surface-white p-lg shadow-md">
+            <AccidentLevelFilter />
+          </div>
+
+          <div className="rounded-lg bg-surface-white p-lg shadow-md">
+            <TimeRangeFilter />
+          </div>
+
+          <div className="rounded-lg bg-surface-white p-lg shadow-md">
+            <AlertModeSelector />
+          </div>
+        </div>
+
+        <aside className="flex flex-col gap-md rounded-lg bg-surface-white p-lg shadow-md">
+          <h2 className="text-lg font-semibold text-text-primary">設定摘要</h2>
+          <p className="text-sm text-text-secondary">
+            調整將立即生效，並在之後的開車過程中依照最新設定提醒您。即將新增自動儲存功能，讓設定在裝置間同步。
+          </p>
+
+          <div className="flex flex-col gap-sm rounded-lg border border-primary-100 bg-primary-50/60 px-md py-md text-sm text-primary-700">
+            <span className="font-semibold">提醒概要</span>
+            <ul className="list-disc space-y-xs pl-lg">
+              <li>距離：{settings.distanceMeters} 公尺</li>
+              <li>事故等級：{severitySummary}</li>
+              <li>時間範圍：{TIME_RANGE_TEXT[settings.timeRange]}</li>
+              <li>提醒方式：{channelSummary}</li>
+            </ul>
+          </div>
+
+          <button
+            type="button"
+            className="inline-flex items-center justify-center rounded-md bg-primary-600 px-lg py-sm text-sm font-semibold text-white shadow-md transition hover:bg-primary-700 disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-text-secondary/60"
+            disabled
+          >
+            儲存設定（即將推出）
+          </button>
+          <p className="text-xs text-text-description">
+            設定變更會立即反映在警示流程中。儲存功能將在後續任務中連結本地儲存，確保重新開啟 App 後仍保留偏好。
+          </p>
+        </aside>
+      </div>
+    </section>
+  )
+}
+
+export default SettingsPage
