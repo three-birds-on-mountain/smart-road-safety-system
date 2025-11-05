@@ -66,8 +66,8 @@
 
 ### Tests
 
-- [ ] T034 [P] [US1] Integration test for GPS定位與警示觸發 in frontend/tests/integration/test_alert_trigger.spec.ts
-- [ ] T035 [P] [US1] Unit test for AlertService in frontend/tests/unit/test_alert_service.spec.ts
+- [x] T034 [P] [US1] Integration test for GPS定位與警示觸發 in frontend/tests/integration/test_alert_trigger.spec.ts
+- [x] T035 [P] [US1] Unit test for AlertService in frontend/tests/unit/test_alert_service.spec.ts
 
 ### Implementation: GPS 定位與警示系統
 
