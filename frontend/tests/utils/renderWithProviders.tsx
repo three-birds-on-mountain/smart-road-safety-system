@@ -1,30 +1,25 @@
 import type { PropsWithChildren, ReactElement } from 'react';
 import React from 'react';
 import { Provider } from 'react-redux';
-import { configureStore, type PreloadedState } from '@reduxjs/toolkit';
 import { render, type RenderOptions } from '@testing-library/react';
-import hotspotsReducer from '../../src/store/hotspotsSlice';
-import settingsReducer from '../../src/store/settingsSlice';
-import locationReducer from '../../src/store/locationSlice';
-import type { RootState, AppDispatch } from '../../src/store';
+import type { PreloadedState } from '@reduxjs/toolkit';
+import {
+  createAppStore,
+  type AppStore,
+  type RootState,
+  type AppDispatch,
+} from '../../src/store';
 
 export const createTestStore = (preloadedState?: PreloadedState<RootState>) =>
-  configureStore({
-    reducer: {
-      hotspots: hotspotsReducer,
-      settings: settingsReducer,
-      location: locationReducer,
-    },
-    preloadedState,
-  });
+  createAppStore(preloadedState);
 
 interface ProvidersOptions extends Omit<RenderOptions, 'wrapper'> {
   preloadedState?: PreloadedState<RootState>;
-  store?: ReturnType<typeof createTestStore>;
+  store?: AppStore;
 }
 
 export interface RenderResult extends ReturnType<typeof render> {
-  store: ReturnType<typeof createTestStore>;
+  store: AppStore;
 }
 
 export const renderWithProviders = (
@@ -42,5 +37,5 @@ export const renderWithProviders = (
   return { store, ...render(ui, { wrapper: Wrapper, ...renderOptions }) };
 };
 
-export type TestStore = ReturnType<typeof createTestStore>;
+export type TestStore = AppStore;
 export type TestDispatch = AppDispatch;

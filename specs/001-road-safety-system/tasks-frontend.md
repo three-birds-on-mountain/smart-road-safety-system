@@ -103,8 +103,8 @@
 - [x] T058 [P] [US2] 建立 TimeRangeFilter 元件 in frontend/src/components/Settings/TimeRangeFilter.tsx
 - [x] T059 [P] [US2] 建立 AlertModeSelector 元件 in frontend/src/components/Settings/AlertModeSelector.tsx
 - [x] T060 [US2] 整合設定頁面 in frontend/src/pages/SettingsPage.tsx（佈局、儲存按鈕）
-- [ ] T061 [US2] 實作 settingsSlice actions in frontend/src/store/settingsSlice.ts
-- [ ] T062 [US2] 實作本地儲存持久化 in frontend/src/store/settingsSlice.ts（localStorage sync）
+- [x] T061 [US2] 實作 settingsSlice actions in frontend/src/store/settingsSlice.ts
+- [x] T062 [US2] 實作本地儲存持久化 in frontend/src/store/settingsSlice.ts（localStorage sync）
 
 ### Implementation: 設定驅動的篩選邏輯
 
