@@ -53,12 +53,12 @@
 
 ### 前端基礎設定
 
-- [ ] T025 設定 Redux Store：frontend/src/store/index.ts（store 配置與 middleware）
-- [ ] T026 [P] 建立 Redux slices 骨架：frontend/src/store/hotspotsSlice.ts, frontend/src/store/settingsSlice.ts, frontend/src/store/locationSlice.ts
-- [ ] T027 [P] 建立 API 客戶端：frontend/src/services/api.ts（Axios instance, base URL 設定）
-- [ ] T028 [P] 建立型別定義：frontend/src/types/accident.ts, frontend/src/types/hotspot.ts, frontend/src/types/settings.ts
-- [ ] T029 配置 Tailwind CSS：frontend/tailwind.config.js（主題色彩、中文字型）
-- [ ] T030 建立基礎佈局元件：frontend/src/App.tsx（路由設定）
+- [x] T025 設定 Redux Store：frontend/src/store/index.ts（store 配置與 middleware）
+- [x] T026 [P] 建立 Redux slices 骨架：frontend/src/store/hotspotsSlice.ts, frontend/src/store/settingsSlice.ts, frontend/src/store/locationSlice.ts
+- [x] T027 [P] 建立 API 客戶端：frontend/src/services/api.ts（Axios instance, base URL 設定）
+- [x] T028 [P] 建立型別定義：frontend/src/types/accident.ts, frontend/src/types/hotspot.ts, frontend/src/types/settings.ts
+- [x] T029 配置 Tailwind CSS：frontend/tailwind.config.js（主題色彩、中文字型）
+- [x] T030 建立基礎佈局元件：frontend/src/App.tsx（路由設定）
 
 ---
 
