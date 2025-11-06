@@ -196,9 +196,9 @@
 **Goal**: 用戶可以在地圖上查看所在區域的事故熱點分布，包括熱點位置、範圍、事故數量、事故等級比例等資訊。
 
 **Independent Test**:
-1. 開啟地圖頁面，驗證熱點標記正確顯示
-2. 點擊熱點標記，驗證彈窗顯示詳細資訊（中心座標、半徑、事故數量、A1/A2/A3比例）
-3. 移動地圖或縮放，驗證熱點動態更新
+1. 開啟地圖頁面，驗證熱點標記與事故件數標籤正確顯示並在資料更新前不會消失
+2. 點擊熱點標記後，地圖需聚焦該熱點並顯示彈窗（含事故件數、地址、A1/A2/A3 比例與說明）
+3. 透過「查看全部事故詳情」進入全屏列表，確認每筆事故包含日期時間、地址與距離、事故等級、涉入人員與車種
 
 ### Tests for User Story 3
 
@@ -238,6 +238,12 @@
 - [ ] T089 [US3] 實作熱點顏色映射邏輯 in frontend/src/components/Map/HotspotLayer.tsx（A1: 紅色、A2: 橙色、A3: 黃色，依 severity_score）
 - [ ] T090 [US3] 實作熱點聚合顯示 in frontend/src/components/Map/HotspotLayer.tsx（縮小地圖時聚合、放大時展開）
 - [ ] T091 [US3] 加入載入指示器 in frontend/src/components/Map/MapView.tsx（地圖載入、熱點查詢中顯示 spinner）
+- [ ] T194 [US3] 維持熱點標記存留（避免地圖重載或資料更新前清空）in frontend/src/pages/MapPage.tsx
+- [ ] T195 [US3] 在熱點標記顯示事故件數並點擊時聚焦該熱點 in frontend/src/components/Map/HotspotLayer.tsx
+- [ ] T196 [US3] 更新熱點詳情彈窗（地址、等級說明、查看詳情按鈕）in frontend/src/components/Map/HotspotDetailPopup.tsx
+- [ ] T197 [US3] 建立全屏事故詳情頁面（含事故清單）in frontend/src/components/Map/HotspotIncidentListModal.tsx、frontend/src/pages/MapPage.tsx
+- [ ] T198 [US3] 擴充事故資料模型與 mock 資料（地址、距離、涉入人員/車種）in frontend/src/types/accident.ts、frontend/src/mocks/hotspots.ts
+- [ ] T199 [US3] 補齊熱點詳細資料 thunk（含 mock fallback）in frontend/src/store/hotspotsSlice.ts
 
 #### 驗證與除錯
 

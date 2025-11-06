@@ -19,6 +19,7 @@ export interface NearbyHotspot extends HotspotSummary {
 }
 
 export interface HotspotDetail extends HotspotSummary {
+  distanceFromUserMeters?: number;
   analysisDate?: string;
   analysisPeriodStart?: string;
   analysisPeriodEnd?: string;

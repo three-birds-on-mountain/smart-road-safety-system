@@ -166,6 +166,11 @@
 - [x] T089 [US3] 實作熱點顏色映射邏輯 in frontend/src/components/Map/HotspotLayer.tsx（A1: 紅色、A2: 橙色、A3: 黃色）
 - [x] T090 [US3] 實作熱點聚合顯示 in frontend/src/components/Map/HotspotLayer.tsx（縮小時聚合、放大時展開）
 - [x] T091 [US3] 加入載入指示器 in frontend/src/components/Map/MapView.tsx（spinner）
+- [x] T194 維持熱點標記存留：避免地圖重載或資料更新前清空 in frontend/src/pages/MapPage.tsx
+- [x] T195 顯示事故件數標籤與點擊置中 in frontend/src/components/Map/HotspotLayer.tsx
+- [x] T196 充實熱點彈窗：展示地址、提示說明與查看詳情按鈕 in frontend/src/components/Map/HotspotDetailPopup.tsx
+- [x] T197 建立全屏事故詳情清單 in frontend/src/components/Map/HotspotIncidentListModal.tsx 與相關 store 邏輯
+- [x] T198 擴充事故 mock/型別資料（含地址、距離、人車資訊）in frontend/src/mocks/hotspots.ts, frontend/src/types/accident.ts
 
 ### Verification
 

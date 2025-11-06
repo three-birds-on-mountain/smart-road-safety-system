@@ -1,9 +1,19 @@
-import type { HotspotSummary } from '../../types/hotspot'
+import { useState } from 'react'
+import type { HotspotDetail, HotspotSummary } from '../../types/hotspot'
 import { getHighestSeverityLevel } from '../../types/hotspot'
+
+type DetailStatus = 'idle' | 'loading' | 'succeeded' | 'failed'
 
 export interface HotspotDetailPopupProps {
   /** 熱點資料 */
   hotspot: HotspotSummary
+  /** 詳細資料 */
+  detail?: HotspotDetail
+  /** 詳細資料載入狀態 */
+  detailStatus: DetailStatus
+  detailError?: string
+  /** 開啟完整詳情頁 */
+  onShowFullDetail: () => void
   /** 關閉彈窗的回調 */
   onClose: () => void
 }
@@ -77,24 +87,65 @@ const getSeverityLabel = (severity: string): string => {
  * />
  * ```
  */
-const HotspotDetailPopup = ({ hotspot, onClose }: HotspotDetailPopupProps) => {
+const HotspotDetailPopup = ({
+  hotspot,
+  detail,
+  detailStatus,
+  detailError,
+  onShowFullDetail,
+  onClose,
+}: HotspotDetailPopupProps) => {
   const severity = getHighestSeverityLevel(hotspot)
   const severityBadgeClass = getSeverityBadgeClass(severity)
   const severityLabel = getSeverityLabel(severity)
+  const [showSeverityHint, setShowSeverityHint] = useState(false)
+
+  const toggleSeverityHint = () => {
+    setShowSeverityHint((prev) => !prev)
+  }
+
+  const primaryAddress =
+    detail?.accidents?.find((item) => item.address)?.address ?? '暫無詳細地址資訊'
 
   return (
     <div className="rounded-lg bg-white shadow-xl" style={{ minWidth: '280px' }}>
       {/* 標題列 */}
       <div className="flex items-start justify-between border-b border-gray-100 px-md py-sm">
         <div className="flex flex-col gap-xs">
-          <h3 className="text-base font-semibold text-text-primary">
-            事故熱點詳情
-          </h3>
-          <span
-            className={`self-start rounded-full px-sm py-xs text-xs font-semibold ${severityBadgeClass}`}
-          >
-            {severityLabel}
-          </span>
+          <h3 className="text-base font-semibold text-text-primary">事故熱點詳情</h3>
+          <div className="flex items-center gap-xs">
+            <span
+              className={`self-start rounded-full px-sm py-xs text-xs font-semibold ${severityBadgeClass}`}
+            >
+              {severityLabel}
+            </span>
+            <button
+              type="button"
+              className="flex h-5 w-5 items-center justify-center rounded-full bg-primary-50 text-primary-700 transition hover:bg-primary-100"
+              aria-label="事故等級說明"
+              onClick={toggleSeverityHint}
+            >
+              <svg
+                className="h-3 w-3"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 6.75a.75.75 0 10-.75-.75.75.75 0 00.75.75zm0 10.5v-6"
+                />
+                <circle cx="12" cy="12" r="9" />
+              </svg>
+            </button>
+          </div>
+          {showSeverityHint && (
+            <div className="rounded-md border border-primary-100 bg-primary-50 px-sm py-xs text-[11px] text-primary-800 shadow-sm">
+              A1：死亡事故｜A2：有人受傷｜A3：財損或輕傷事故
+            </div>
+          )}
         </div>
         <button
           onClick={onClose}
@@ -158,21 +209,38 @@ const HotspotDetailPopup = ({ hotspot, onClose }: HotspotDetailPopupProps) => {
         </div>
 
         {/* 時間範圍 */}
-        {(hotspot.earliestAccidentAt || hotspot.latestAccidentAt) && (
+        {(detail?.analysisPeriodStart ||
+          detail?.analysisPeriodEnd ||
+          hotspot.earliestAccidentAt ||
+          hotspot.latestAccidentAt) && (
           <div className="flex flex-col gap-sm">
             <h4 className="text-sm font-semibold text-text-primary">時間範圍</h4>
             <div className="flex flex-col gap-xs text-xs text-text-secondary">
-              {hotspot.earliestAccidentAt && (
+              {detail?.analysisPeriodStart ? (
                 <p>
-                  <span className="font-semibold">最早：</span>
-                  {formatDateTime(hotspot.earliestAccidentAt)}
+                  <span className="font-semibold">分析開始：</span>
+                  {formatDateTime(detail.analysisPeriodStart)}
                 </p>
+              ) : (
+                hotspot.earliestAccidentAt && (
+                  <p>
+                    <span className="font-semibold">最早：</span>
+                    {formatDateTime(hotspot.earliestAccidentAt)}
+                  </p>
+                )
               )}
-              {hotspot.latestAccidentAt && (
+              {detail?.analysisPeriodEnd ? (
                 <p>
-                  <span className="font-semibold">最近：</span>
-                  {formatDateTime(hotspot.latestAccidentAt)}
+                  <span className="font-semibold">分析結束：</span>
+                  {formatDateTime(detail.analysisPeriodEnd)}
                 </p>
+              ) : (
+                hotspot.latestAccidentAt && (
+                  <p>
+                    <span className="font-semibold">最近：</span>
+                    {formatDateTime(hotspot.latestAccidentAt)}
+                  </p>
+                )
               )}
             </div>
           </div>
@@ -180,19 +248,62 @@ const HotspotDetailPopup = ({ hotspot, onClose }: HotspotDetailPopupProps) => {
 
         {/* 位置資訊 */}
         <div className="flex flex-col gap-sm">
-          <h4 className="text-sm font-semibold text-text-primary">位置座標</h4>
+          <h4 className="text-sm font-semibold text-text-primary">事故位置</h4>
           <div className="rounded-md bg-surface-muted px-sm py-xs text-xs text-text-secondary">
-            <p>緯度: {hotspot.centerLatitude.toFixed(6)}</p>
-            <p>經度: {hotspot.centerLongitude.toFixed(6)}</p>
+            <p>{primaryAddress}</p>
           </div>
         </div>
+
+        {/* 資料載入狀態 */}
+        {detailStatus === 'loading' && (
+          <div className="flex items-center gap-2 rounded-md bg-primary-50 px-sm py-xs text-xs text-primary-700">
+            <svg
+              className="h-4 w-4 animate-spin"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 3v3m0 12v3m9-9h-3M6 12H3m15.364-6.364l-2.121 2.121M8.757 17.243l-2.121 2.121m0-13.728l2.121 2.121m8.486 8.486l2.121 2.121"
+              />
+            </svg>
+            <span>載入詳細資料中…</span>
+          </div>
+        )}
+
+        {detailStatus === 'failed' && detailError && (
+          <div className="rounded-md bg-danger-50 px-sm py-xs text-xs text-danger-600">
+            無法取得詳細資料：{detailError}
+          </div>
+        )}
+
+        {detailStatus === 'succeeded' && detail?.accidents?.length === 0 && (
+          <div className="rounded-md bg-secondary-50 px-sm py-xs text-xs text-secondary-700">
+            近期沒有符合條件的事故紀錄。
+          </div>
+        )}
       </div>
 
-      {/* 底部提示 */}
-      <div className="border-t border-gray-100 px-md py-sm">
-        <p className="text-xs text-text-description">
-          點擊地圖上的熱點標記可查看詳細資訊
-        </p>
+      {/* 底部操作 */}
+      <div className="flex items-center justify-end gap-sm border-t border-gray-100 px-md py-sm">
+        <button
+          type="button"
+          className="rounded-md border border-gray-200 px-md py-sm text-sm font-medium text-text-secondary transition hover:bg-gray-50"
+          onClick={onClose}
+        >
+          關閉
+        </button>
+        <button
+          type="button"
+          onClick={onShowFullDetail}
+          disabled={detailStatus === 'loading' || detailStatus === 'failed'}
+          className="rounded-md bg-primary-600 px-md py-sm text-sm font-semibold text-white shadow-md transition hover:bg-primary-700 disabled:cursor-not-allowed disabled:bg-primary-400"
+        >
+          查看全部事故詳情
+        </button>
       </div>
     </div>
   )

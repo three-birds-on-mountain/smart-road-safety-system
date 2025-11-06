@@ -113,6 +113,7 @@ const HotspotLayer = ({
     const clusterLayerId = 'hotspot-clusters'
     const clusterCountLayerId = 'hotspot-cluster-count'
     const unclusteredLayerId = 'hotspot-unclustered'
+    const unclusteredLabelLayerId = 'hotspot-unclustered-label'
 
     // 建立熱點 ID -> 熱點資料的映射（用於點擊事件）
     hotspotMapRef.current.clear()
@@ -216,6 +217,25 @@ const HotspotLayer = ({
       })
     }
 
+    if (!map.getLayer(unclusteredLabelLayerId)) {
+      map.addLayer({
+        id: unclusteredLabelLayerId,
+        type: 'symbol',
+        source: sourceId,
+        filter: enableClustering ? ['!', ['has', 'point_count']] : undefined,
+        layout: {
+          'text-field': ['to-string', ['get', 'totalAccidents']],
+          'text-size': 11,
+          'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
+          'text-offset': [0, 0],
+          'text-allow-overlap': true,
+        },
+        paint: {
+          'text-color': '#1F2937',
+        },
+      })
+    }
+
     // 點擊聚合圓圈時，放大地圖
     const handleClusterClick = (e: mapboxgl.MapMouseEvent) => {
       const features = map.queryRenderedFeatures(e.point, {
@@ -250,6 +270,13 @@ const HotspotLayer = ({
       const hotspot = hotspotMapRef.current.get(hotspotId)
 
       if (hotspot) {
+        if (features[0].geometry.type === 'Point') {
+          map.easeTo({
+            center: features[0].geometry.coordinates as [number, number],
+            zoom: Math.max(map.getZoom(), 15),
+            duration: 400,
+          })
+        }
         onHotspotClick(hotspot)
       }
     }
@@ -268,12 +295,15 @@ const HotspotLayer = ({
       map.on('click', clusterLayerId, handleClusterClick)
       map.on('mouseenter', clusterLayerId, handleMouseEnter)
       map.on('mouseenter', unclusteredLayerId, handleMouseEnter)
+      map.on('mouseenter', unclusteredLabelLayerId, handleMouseEnter)
       map.on('mouseleave', clusterLayerId, handleMouseLeave)
       map.on('mouseleave', unclusteredLayerId, handleMouseLeave)
+      map.on('mouseleave', unclusteredLabelLayerId, handleMouseLeave)
     }
 
     if (onHotspotClick) {
       map.on('click', unclusteredLayerId, handleHotspotClick)
+      map.on('click', unclusteredLabelLayerId, handleHotspotClick)
     }
 
     // 清理函式：移除事件監聽器
@@ -287,12 +317,17 @@ const HotspotLayer = ({
         map.off('click', clusterLayerId, handleClusterClick)
         map.off('mouseenter', clusterLayerId, handleMouseEnter)
         map.off('mouseenter', unclusteredLayerId, handleMouseEnter)
+        map.off('mouseenter', unclusteredLabelLayerId, handleMouseEnter)
         map.off('mouseleave', clusterLayerId, handleMouseLeave)
         map.off('mouseleave', unclusteredLayerId, handleMouseLeave)
+        map.off('mouseleave', unclusteredLabelLayerId, handleMouseLeave)
       }
 
       if (onHotspotClick && map.getLayer(unclusteredLayerId)) {
         map.off('click', unclusteredLayerId, handleHotspotClick)
+      }
+      if (onHotspotClick && map.getLayer(unclusteredLabelLayerId)) {
+        map.off('click', unclusteredLabelLayerId, handleHotspotClick)
       }
     }
   }, [
@@ -325,6 +360,7 @@ const HotspotLayer = ({
         'hotspot-clusters',
         'hotspot-cluster-count',
         'hotspot-unclustered',
+        'hotspot-unclustered-label',
       ]
 
       layers.forEach((layerId) => {

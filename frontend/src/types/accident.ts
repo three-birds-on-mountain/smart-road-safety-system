@@ -7,6 +7,9 @@ export interface AccidentRecord {
   occurredAt: string;
   severity: AccidentSeverity;
   address?: string;
+  distanceMeters?: number;
+  involvedPeople?: string[];
+  involvedVehicles?: string[];
   description?: string;
 }
 

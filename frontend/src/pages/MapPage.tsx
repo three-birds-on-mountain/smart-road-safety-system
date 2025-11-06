@@ -5,13 +5,21 @@ import MapView from '../components/Map/MapView';
 import HotspotLayer from '../components/Map/HotspotLayer';
 import UserLocation from '../components/Map/UserLocation';
 import HotspotDetailPopup from '../components/Map/HotspotDetailPopup';
+import HotspotIncidentListModal from '../components/Map/HotspotIncidentListModal';
 import { useAppDispatch, useAppSelector } from '../hooks/store';
 import { createAlertService, type TriggerAlertResult } from '../services/alerts';
 import { createGeolocationService } from '../services/geolocation';
-import { fetchNearbyHotspots } from '../store/hotspotsSlice';
+import {
+  fetchHotspotDetail,
+  fetchNearbyHotspots,
+  setHotspotDetail,
+  setNearbyHotspots,
+} from '../store/hotspotsSlice';
 import { toggleIgnoredHotspot } from '../store/settingsSlice';
 import type { NearbyHotspot, HotspotSummary } from '../types/hotspot';
 import type { AlertChannel } from '../types/settings';
+import { getMockNearbyHotspots } from '../mocks/hotspots';
+import { setPermissionGranted, updateLocation } from '../store/locationSlice';
 
 interface ActiveAlertState {
   hotspot: NearbyHotspot;
@@ -39,23 +47,40 @@ const gpsStatusDescriptor = {
   },
 } as const;
 
+const ENABLE_DEV_PREVIEW =
+  import.meta.env.DEV && import.meta.env.VITE_DISABLE_MOCK_PREVIEW !== 'true';
+
+const PREVIEW_LOCATION = {
+  latitude: 25.040857,
+  longitude: 121.560036,
+};
+
+const PREVIEW_ZOOM = 14;
+
 const MapPage = () => {
   const dispatch = useAppDispatch();
   const locationState = useAppSelector((state) => state.location);
   const settings = useAppSelector((state) => state.settings.current);
   const hotspotsState = useAppSelector((state) => state.hotspots);
+  const detailedHotspot = useAppSelector((state) => state.hotspots.detailedHotspot);
+  const detailStatus = useAppSelector((state) => state.hotspots.detailStatus);
+  const detailError = useAppSelector((state) => state.hotspots.detailError);
   const currentLocation = locationState.current;
+  const locationStatus = locationState.status;
   const latitude = currentLocation?.latitude;
   const longitude = currentLocation?.longitude;
 
   const [activeAlert, setActiveAlert] = useState<ActiveAlertState | null>(null);
   const [selectedHotspot, setSelectedHotspot] = useState<HotspotSummary | null>(null);
+  const [isDetailModalOpen, setDetailModalOpen] = useState(false);
 
   const activeAlertRef = useRef<ActiveAlertState | null>(null);
   const geolocationServiceRef = useRef<ReturnType<typeof createGeolocationService> | null>(null);
   const alertServiceRef = useRef<ReturnType<typeof createAlertService> | null>(null);
   const fetchControllerRef = useRef<AbortController | null>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
+  const hasAppliedPreviewRef = useRef(false);
+  const [isMapReady, setIsMapReady] = useState(false);
 
   const fetchDependencies = useMemo(() => {
     if (latitude == null || longitude == null) {
@@ -112,6 +137,14 @@ const MapPage = () => {
     if (!fetchDependencies || locationState.status !== 'active') {
       fetchControllerRef.current?.abort();
       fetchControllerRef.current = null;
+      return;
+    }
+
+    if (
+      ENABLE_DEV_PREVIEW &&
+      hasAppliedPreviewRef.current &&
+      import.meta.env.VITE_USE_MOCK_API !== 'true'
+    ) {
       return;
     }
 
@@ -244,18 +277,26 @@ const MapPage = () => {
   const showPermissionPrompt =
     locationState.permissionGranted === false && locationState.status === 'error';
 
+  const activeHotspotDetail =
+    selectedHotspot && detailedHotspot && detailedHotspot.id === selectedHotspot.id
+      ? detailedHotspot
+      : undefined;
+
   const handleMapLoad = useCallback((map: mapboxgl.Map) => {
     mapRef.current = map;
+    setIsMapReady(true);
     map.on('remove', () => {
       if (mapRef.current === map) {
         mapRef.current = null;
       }
+      setIsMapReady(false);
     });
   }, []);
 
   useEffect(() => {
     return () => {
       mapRef.current = null;
+      setIsMapReady(false);
     };
   }, []);
 
@@ -310,6 +351,81 @@ const MapPage = () => {
       'noopener,noreferrer',
     );
   };
+
+  useEffect(() => {
+    if (!selectedHotspot) {
+      dispatch(setHotspotDetail(undefined));
+      setDetailModalOpen(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    dispatch(
+      fetchHotspotDetail({
+        hotspotId: selectedHotspot.id,
+        signal: controller.signal,
+      }),
+    );
+
+    return () => {
+      controller.abort();
+    };
+  }, [dispatch, selectedHotspot]);
+
+  useEffect(() => {
+    if (!ENABLE_DEV_PREVIEW || hasAppliedPreviewRef.current || !isMapReady) {
+      return;
+    }
+
+    const hasRealData = hotspotsState.nearby.some(
+      (hotspot) => hotspot && !hotspot.id.startsWith('mock-'),
+    );
+
+    if (hasRealData) {
+      hasAppliedPreviewRef.current = true;
+      return;
+    }
+
+    const mockResponse = getMockNearbyHotspots({
+      latitude: PREVIEW_LOCATION.latitude,
+      longitude: PREVIEW_LOCATION.longitude,
+      settings,
+    });
+
+    if (mockResponse.data.length && hotspotsState.nearby.length === 0) {
+      dispatch(setNearbyHotspots(mockResponse.data));
+    }
+
+    if (locationStatus !== 'active' || !currentLocation) {
+      dispatch(setPermissionGranted(true));
+      dispatch(
+        updateLocation({
+          latitude: PREVIEW_LOCATION.latitude,
+          longitude: PREVIEW_LOCATION.longitude,
+          accuracy: 15,
+          heading: null,
+          speed: null,
+          timestamp: Date.now(),
+        }),
+      );
+    }
+
+    if (mapRef.current) {
+      mapRef.current.jumpTo({
+        center: [PREVIEW_LOCATION.longitude, PREVIEW_LOCATION.latitude],
+        zoom: PREVIEW_ZOOM,
+      });
+    }
+
+    hasAppliedPreviewRef.current = true;
+  }, [
+    currentLocation,
+    dispatch,
+    hotspotsState.nearby,
+    isMapReady,
+    locationStatus,
+    settings,
+  ]);
 
   return (
     <div className="relative h-screen w-screen">
@@ -447,9 +563,68 @@ const MapPage = () => {
           <div className="pointer-events-auto">
             <HotspotDetailPopup
               hotspot={selectedHotspot}
+              detail={activeHotspotDetail}
+              detailStatus={detailStatus}
+              detailError={detailError}
+              onShowFullDetail={() => {
+                if (detailStatus === 'failed') return;
+                setDetailModalOpen(true);
+              }}
               onClose={() => setSelectedHotspot(null)}
             />
           </div>
+        </div>
+      )}
+
+      {isDetailModalOpen && (
+        <div className="fixed inset-0 z-[110] bg-surface-muted/70 backdrop-blur-sm">
+          {detailStatus === 'succeeded' && activeHotspotDetail ? (
+            <HotspotIncidentListModal
+              hotspot={activeHotspotDetail}
+              onClose={() => setDetailModalOpen(false)}
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center">
+              <div className="flex flex-col items-center gap-3 rounded-lg bg-white px-6 py-5 shadow-xl">
+                {detailStatus === 'failed' ? (
+                  <>
+                    <svg
+                      className="h-10 w-10 text-danger-500"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={1.8}
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M10.29 3.86L1.82 18a1 1 0 00.86 1.5h18.64a1 1 0 00.86-1.5L13.71 3.86a1 1 0 00-1.72 0z"
+                      />
+                    </svg>
+                    <p className="text-sm font-semibold text-danger-600">
+                      無法載入事故詳情
+                    </p>
+                    {detailError && (
+                      <p className="text-xs text-text-secondary text-center">{detailError}</p>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary-500 border-t-transparent" />
+                    <p className="text-sm text-text-secondary">載入事故詳情中…</p>
+                  </>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setDetailModalOpen(false)}
+                  className="rounded-md border border-gray-200 px-3 py-1 text-xs text-text-secondary transition hover:bg-gray-50"
+                >
+                  關閉
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

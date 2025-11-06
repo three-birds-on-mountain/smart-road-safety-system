@@ -65,6 +65,8 @@ const MapView = ({
   const mapContainerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<mapboxgl.Map | null>(null)
   const [mapLoaded, setMapLoaded] = useState(false)
+  const initialCenterRef = useRef<[number, number]>(center)
+  const initialZoomRef = useRef<number>(zoom)
 
   // 初始化地圖
   useEffect(() => {
@@ -86,8 +88,8 @@ const MapView = ({
     const map = new mapboxgl.Map({
       container: mapContainerRef.current,
       style: 'mapbox://styles/mapbox/streets-v12', // 使用街道地圖樣式
-      center,
-      zoom,
+      center: initialCenterRef.current,
+      zoom: initialZoomRef.current,
       attributionControl: true,
     })
 
@@ -129,7 +131,29 @@ const MapView = ({
       mapRef.current = null
       setMapLoaded(false)
     }
-  }, [center, zoom, onMapLoad, onMoveEnd, onZoomEnd])
+  }, [onMapLoad, onMoveEnd, onZoomEnd])
+
+  useEffect(() => {
+    if (!mapRef.current || !mapLoaded || !center) {
+      return
+    }
+
+    mapRef.current.easeTo({
+      center,
+      duration: 600,
+    })
+  }, [center, mapLoaded])
+
+  useEffect(() => {
+    if (!mapRef.current || !mapLoaded || typeof zoom !== 'number') {
+      return
+    }
+
+    mapRef.current.easeTo({
+      zoom,
+      duration: 400,
+    })
+  }, [zoom, mapLoaded])
 
   return (
     <div className={`relative ${className}`}>

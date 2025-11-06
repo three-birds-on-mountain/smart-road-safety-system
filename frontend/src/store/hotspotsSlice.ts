@@ -1,6 +1,6 @@
 import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { apiClient } from '../services/api';
-import { getMockNearbyHotspots } from '../mocks/hotspots';
+import { getMockNearbyHotspots, getMockHotspotDetail } from '../mocks/hotspots';
 import type {
   HotspotDetail,
   HotspotListMeta,
@@ -9,6 +9,7 @@ import type {
   NearbyHotspot,
 } from '../types/hotspot';
 import type { RootState } from '../store';
+import type { AccidentSeverity } from '../types/accident';
 import type { TimeRangeOption } from '../types/settings';
 
 interface HotspotsState {
@@ -19,6 +20,8 @@ interface HotspotsState {
   detailedHotspot?: HotspotDetail;
   status: 'idle' | 'loading' | 'succeeded' | 'failed';
   error?: string;
+  detailStatus: 'idle' | 'loading' | 'succeeded' | 'failed';
+  detailError?: string;
 }
 
 const initialState: HotspotsState = {
@@ -29,6 +32,8 @@ const initialState: HotspotsState = {
   detailedHotspot: undefined,
   status: 'idle',
   error: undefined,
+  detailStatus: 'idle',
+  detailError: undefined,
 };
 
 interface NearbyHotspotApi {
@@ -69,6 +74,11 @@ interface FetchInBoundsParams {
   signal?: AbortSignal;
 }
 
+interface FetchHotspotDetailParams {
+  hotspotId: string;
+  signal?: AbortSignal;
+}
+
 const TIME_RANGE_QUERY: Record<TimeRangeOption, string> = {
   '1Y': '12_months',
   '6M': '6_months',
@@ -103,6 +113,45 @@ const adaptHotspotSummary = (payload: NearbyHotspotApi): HotspotSummary => ({
   earliestAccidentAt: payload.earliest_accident_at,
   latestAccidentAt: payload.latest_accident_at,
   severityScore: payload.severity_score,
+});
+
+interface HotspotDetailApi extends NearbyHotspotApi {
+  analysis_date?: string;
+  analysis_period_start?: string;
+  analysis_period_end?: string;
+  accidents?: Array<{
+    id: string;
+    latitude: number;
+    longitude: number;
+    occurred_at: string;
+    severity: string;
+    address?: string;
+    distance_meters?: number;
+    involved_people?: string[];
+    involved_vehicles?: string[];
+    description?: string;
+  }>;
+}
+
+const adaptHotspotDetail = (payload: HotspotDetailApi): HotspotDetail => ({
+  ...adaptHotspotSummary(payload),
+  distanceFromUserMeters: payload.distance_from_user_meters,
+  analysisDate: payload.analysis_date,
+  analysisPeriodStart: payload.analysis_period_start,
+  analysisPeriodEnd: payload.analysis_period_end,
+  accidents:
+    payload.accidents?.map((accident) => ({
+      id: accident.id,
+      latitude: accident.latitude,
+      longitude: accident.longitude,
+      occurredAt: accident.occurred_at,
+      severity: accident.severity as AccidentSeverity,
+      address: accident.address,
+      distanceMeters: accident.distance_meters,
+      involvedPeople: accident.involved_people,
+      involvedVehicles: accident.involved_vehicles,
+      description: accident.description,
+    })) ?? [],
 });
 
 export const fetchNearbyHotspots = createAsyncThunk<
@@ -211,6 +260,36 @@ export const fetchHotspotsInBounds = createAsyncThunk<
   },
 );
 
+export const fetchHotspotDetail = createAsyncThunk<
+  HotspotDetail,
+  FetchHotspotDetailParams,
+  { state: RootState }
+>(
+  'hotspots/fetchDetail',
+  async ({ hotspotId, signal }) => {
+    if (import.meta.env.VITE_USE_MOCK_API === 'true') {
+      const mock = getMockHotspotDetail(hotspotId);
+      if (mock) return mock;
+    }
+
+    try {
+      const response = await apiClient.get<{ data: HotspotDetailApi }>(`/hotspots/${hotspotId}`, {
+        signal,
+      });
+      return adaptHotspotDetail(response.data.data);
+    } catch (error) {
+      if (
+        import.meta.env.VITE_FALLBACK_TO_MOCK === 'true' ||
+        (import.meta.env.DEV && import.meta.env.VITE_DISABLE_MOCK_PREVIEW !== 'true')
+      ) {
+        const mock = getMockHotspotDetail(hotspotId);
+        if (mock) return mock;
+      }
+      throw error;
+    }
+  },
+);
+
 const hotspotsSlice = createSlice({
   name: 'hotspots',
   initialState,
@@ -226,6 +305,8 @@ const hotspotsSlice = createSlice({
     },
     setHotspotDetail(state, action: PayloadAction<HotspotDetail | undefined>) {
       state.detailedHotspot = action.payload;
+      state.detailStatus = action.payload ? 'succeeded' : 'idle';
+      state.detailError = undefined;
     },
     resetHotspotsState() {
       return initialState;
@@ -267,6 +348,22 @@ const hotspotsSlice = createSlice({
 
         state.status = 'failed';
         state.error = action.error.message ?? 'Failed to load hotspots in bounds';
+      })
+      .addCase(fetchHotspotDetail.pending, (state) => {
+        state.detailStatus = 'loading';
+        state.detailError = undefined;
+      })
+      .addCase(fetchHotspotDetail.fulfilled, (state, action) => {
+        state.detailStatus = 'succeeded';
+        state.detailedHotspot = action.payload;
+      })
+      .addCase(fetchHotspotDetail.rejected, (state, action) => {
+        if (action.meta.aborted) {
+          state.detailStatus = 'idle';
+          return;
+        }
+        state.detailStatus = 'failed';
+        state.detailError = action.error.message ?? 'Failed to load hotspot detail';
       });
   },
 });
@@ -279,6 +376,6 @@ export const {
   resetHotspotsState,
 } = hotspotsSlice.actions;
 
-export type { FetchNearbyParams, FetchInBoundsParams };
+export type { FetchNearbyParams, FetchInBoundsParams, FetchHotspotDetailParams };
 
 export default hotspotsSlice.reducer;

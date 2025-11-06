@@ -65,7 +65,12 @@ const UserLocation = ({
 
   // 更新用戶位置標記
   useEffect(() => {
-    if (!map || latitude == null || longitude == null) {
+    const internalMap = map as mapboxgl.Map & { _removed?: boolean }
+    if (!internalMap || internalMap._removed) {
+      return
+    }
+
+    if (latitude == null || longitude == null) {
       // 移除現有標記
       if (markerRef.current) {
         try {
@@ -81,7 +86,7 @@ const UserLocation = ({
     }
 
     // 確保地圖容器存在
-    const container = map.getContainer()
+    const container = internalMap.getContainer?.()
     if (!container) {
       return
     }
@@ -143,7 +148,7 @@ const UserLocation = ({
           anchor: 'center',
         })
           .setLngLat(coordinates)
-          .addTo(map)
+          .addTo(internalMap)
 
         markerRef.current = marker
       } catch (error) {
@@ -157,9 +162,9 @@ const UserLocation = ({
 
     // 自動置中地圖
     if (autoCenter) {
-      map.easeTo({
+      internalMap.easeTo({
         center: coordinates,
-        zoom: Math.max(map.getZoom(), 13), // 至少 zoom 13
+        zoom: Math.max(internalMap.getZoom(), 13), // 至少 zoom 13
         duration: 1000,
       })
     }
@@ -217,17 +222,18 @@ const UserLocation = ({
 
   // 更新精確度圓圈
   useEffect(() => {
-    if (!map || typeof map.getStyle !== 'function') {
+    const internalMap = map as mapboxgl.Map & { _removed?: boolean }
+    if (!internalMap || internalMap._removed || typeof internalMap.getStyle !== 'function') {
       return
     }
 
     if (!showAccuracyCircle || latitude == null || longitude == null) {
       // 移除精確度圓圈
-      if (map.getLayer('user-location-accuracy')) {
-        map.removeLayer('user-location-accuracy')
+      if (internalMap.getLayer('user-location-accuracy')) {
+        internalMap.removeLayer('user-location-accuracy')
       }
-      if (map.getSource('user-location-accuracy')) {
-        map.removeSource('user-location-accuracy')
+      if (internalMap.getSource('user-location-accuracy')) {
+        internalMap.removeSource('user-location-accuracy')
       }
       return
     }
@@ -276,9 +282,22 @@ const UserLocation = ({
     // 建立或更新 source
     const primaryColor = primaryColorRef.current
     try {
-      const existingSource = map.getSource(sourceId)
+      const mapWithInternalStyle = internalMap as mapboxgl.Map & {
+        style?: {
+          _layers?: unknown
+          sources?: unknown
+        }
+      }
+
+      const style = mapWithInternalStyle.getStyle()
+      const hasSources = Boolean(style && (style.sources || mapWithInternalStyle.style?._layers))
+      if (!hasSources) {
+        return
+      }
+
+      const existingSource = internalMap.getSource(sourceId)
       if (!existingSource) {
-        map.addSource(sourceId, {
+        internalMap.addSource(sourceId, {
           type: 'geojson',
           data: {
             type: 'FeatureCollection',
@@ -294,8 +313,8 @@ const UserLocation = ({
       }
 
       // 建立或更新圖層
-      if (!map.getLayer(layerId)) {
-        map.addLayer({
+      if (!internalMap.getLayer(layerId)) {
+        internalMap.addLayer({
           id: layerId,
           type: 'fill',
           source: sourceId,
@@ -306,7 +325,7 @@ const UserLocation = ({
         })
 
         // 加入邊框
-        map.addLayer({
+        internalMap.addLayer({
           id: `${layerId}-outline`,
           type: 'line',
           source: sourceId,
@@ -323,19 +342,26 @@ const UserLocation = ({
 
     // 清理函式
     return () => {
-      if (!map || typeof map.getStyle !== 'function') {
+      if (!internalMap || internalMap._removed || typeof internalMap.getStyle !== 'function') {
         return
       }
 
       try {
-        if (map.getLayer(`${layerId}-outline`)) {
-          map.removeLayer(`${layerId}-outline`)
+        const mapWithInternalStyle = internalMap as mapboxgl.Map & {
+          style?: {
+            _layers?: unknown
+            sources?: unknown
+          }
         }
-        if (map.getLayer(layerId)) {
-          map.removeLayer(layerId)
+
+        if (mapWithInternalStyle.getLayer(`${layerId}-outline`)) {
+          mapWithInternalStyle.removeLayer(`${layerId}-outline`)
         }
-        if (map.getSource(sourceId)) {
-          map.removeSource(sourceId)
+        if (mapWithInternalStyle.getLayer(layerId)) {
+          mapWithInternalStyle.removeLayer(layerId)
+        }
+        if (mapWithInternalStyle.getSource(sourceId)) {
+          mapWithInternalStyle.removeSource(sourceId)
         }
       } catch (error) {
         console.warn('Failed to remove user accuracy circle:', error)
