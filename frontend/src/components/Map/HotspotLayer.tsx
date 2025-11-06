@@ -98,7 +98,16 @@ const HotspotLayer = ({
 
   // 更新熱點資料與圖層
   useEffect(() => {
-    if (!map) return
+    const internalStyle = (map as mapboxgl.Map & { style?: { _layers?: unknown } }).style
+    if (!map || typeof map.getStyle !== 'function' || !internalStyle) {
+      return
+    }
+
+    const style = map.getStyle()
+    const hasStyleLayers = Boolean(style && Array.isArray(style.layers))
+    if (!hasStyleLayers && !(internalStyle && internalStyle._layers)) {
+      return
+    }
 
     const sourceId = 'hotspots'
     const clusterLayerId = 'hotspot-clusters'
@@ -255,7 +264,7 @@ const HotspotLayer = ({
     }
 
     // 註冊事件監聽器
-    if (enableClustering) {
+    if (enableClustering && map.getLayer(clusterLayerId)) {
       map.on('click', clusterLayerId, handleClusterClick)
       map.on('mouseenter', clusterLayerId, handleMouseEnter)
       map.on('mouseenter', unclusteredLayerId, handleMouseEnter)
@@ -269,7 +278,12 @@ const HotspotLayer = ({
 
     // 清理函式：移除事件監聽器
     return () => {
-      if (enableClustering) {
+      const internalStyle = (map as mapboxgl.Map & { style?: { _layers?: unknown } }).style
+      if (!map || typeof map.getStyle !== 'function' || !internalStyle) {
+        return
+      }
+
+      if (enableClustering && map.getLayer(clusterLayerId)) {
         map.off('click', clusterLayerId, handleClusterClick)
         map.off('mouseenter', clusterLayerId, handleMouseEnter)
         map.off('mouseenter', unclusteredLayerId, handleMouseEnter)
@@ -277,7 +291,7 @@ const HotspotLayer = ({
         map.off('mouseleave', unclusteredLayerId, handleMouseLeave)
       }
 
-      if (onHotspotClick) {
+      if (onHotspotClick && map.getLayer(unclusteredLayerId)) {
         map.off('click', unclusteredLayerId, handleHotspotClick)
       }
     }
@@ -292,8 +306,21 @@ const HotspotLayer = ({
 
   // 清理圖層與 source（元件卸載時）
   useEffect(() => {
+    const mapInstance = map
+    const hotspotRegistry = hotspotMapRef.current
+
     return () => {
       const sourceId = 'hotspots'
+      const mapStyle = (mapInstance as mapboxgl.Map & { style?: { _layers?: unknown } }).style
+      if (!mapInstance || typeof mapInstance.getStyle !== 'function' || !mapStyle) {
+        return
+      }
+
+      const style = mapInstance.getStyle()
+      if (!style && !(mapStyle && mapStyle._layers)) {
+        hotspotRegistry.clear()
+        return
+      }
       const layers = [
         'hotspot-clusters',
         'hotspot-cluster-count',
@@ -301,16 +328,16 @@ const HotspotLayer = ({
       ]
 
       layers.forEach((layerId) => {
-        if (map.getLayer(layerId)) {
-          map.removeLayer(layerId)
+        if (mapInstance.getLayer(layerId)) {
+          mapInstance.removeLayer(layerId)
         }
       })
 
-      if (map.getSource(sourceId)) {
-        map.removeSource(sourceId)
+      if (mapInstance.getSource(sourceId)) {
+        mapInstance.removeSource(sourceId)
       }
 
-      hotspotMapRef.current.clear()
+      hotspotRegistry.clear()
     }
   }, [map])
 

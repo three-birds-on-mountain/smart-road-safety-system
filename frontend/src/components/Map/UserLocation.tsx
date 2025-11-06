@@ -104,7 +104,11 @@ const UserLocation = ({
 
   // 更新精確度圓圈
   useEffect(() => {
-    if (!map || !showAccuracyCircle || latitude == null || longitude == null) {
+    if (!map || typeof map.getStyle !== 'function') {
+      return
+    }
+
+    if (!showAccuracyCircle || latitude == null || longitude == null) {
       // 移除精確度圓圈
       if (map.getLayer('user-location-accuracy')) {
         map.removeLayer('user-location-accuracy')
@@ -201,6 +205,16 @@ const UserLocation = ({
 
     // 清理函式
     return () => {
+      if (!map || typeof map.getStyle !== 'function') {
+        return
+      }
+
+      // 檢查地圖樣式是否已載入
+      const style = map.getStyle()
+      if (!style) {
+        return
+      }
+
       if (map.getLayer(`${layerId}-outline`)) {
         map.removeLayer(`${layerId}-outline`)
       }

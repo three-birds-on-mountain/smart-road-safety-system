@@ -1,5 +1,6 @@
 import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { apiClient } from '../services/api';
+import { getMockNearbyHotspots } from '../mocks/hotspots';
 import type {
   HotspotDetail,
   HotspotListMeta,
@@ -111,6 +112,10 @@ export const fetchNearbyHotspots = createAsyncThunk<
 >(
   'hotspots/fetchNearby',
   async ({ latitude, longitude, signal }, { getState }) => {
+    if (import.meta.env.VITE_USE_MOCK_API === 'true') {
+      return getMockNearbyHotspots({ latitude, longitude, settings: getState().settings.current });
+    }
+
     const {
       settings: {
         current: { distanceMeters, severityFilter, timeRange },
@@ -132,22 +137,29 @@ export const fetchNearbyHotspots = createAsyncThunk<
       params.set('time_range', timeRangeQuery);
     }
 
-    const response = await apiClient.get<{
-      data: NearbyHotspotApi[];
-      meta: HotspotListMetaApi;
-    }>(`/hotspots/nearby`, {
-      params,
-      signal,
-    });
+    try {
+      const response = await apiClient.get<{
+        data: NearbyHotspotApi[];
+        meta: HotspotListMetaApi;
+      }>(`/hotspots/nearby`, {
+        params,
+        signal,
+      });
 
-    return {
-      data: response.data.data.map(adaptNearbyHotspot),
-      meta: {
-        totalCount: response.data.meta.total_count,
-        queryRadiusMeters: response.data.meta.query_radius_meters,
-        userLocation: response.data.meta.user_location,
-      },
-    };
+      return {
+        data: response.data.data.map(adaptNearbyHotspot),
+        meta: {
+          totalCount: response.data.meta.total_count,
+          queryRadiusMeters: response.data.meta.query_radius_meters,
+          userLocation: response.data.meta.user_location,
+        },
+      };
+    } catch (error) {
+      if (import.meta.env.VITE_FALLBACK_TO_MOCK === 'true') {
+        return getMockNearbyHotspots({ latitude, longitude, settings: getState().settings.current });
+      }
+      throw error;
+    }
   },
 );
 
