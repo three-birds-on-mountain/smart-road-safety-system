@@ -113,6 +113,7 @@ const HotspotLayer = ({
     const clusterLayerId = 'hotspot-clusters'
     const clusterCountLayerId = 'hotspot-cluster-count'
     const unclusteredLayerId = 'hotspot-unclustered'
+    const unclusteredRippleLayerId = 'hotspot-unclustered-ripple'
     const unclusteredLabelLayerId = 'hotspot-unclustered-label'
 
     // 建立熱點 ID -> 熱點資料的映射（用於點擊事件）
@@ -217,6 +218,47 @@ const HotspotLayer = ({
       })
     }
 
+    if (!map.getLayer(unclusteredRippleLayerId)) {
+      map.addLayer(
+        {
+          id: unclusteredRippleLayerId,
+          type: 'circle',
+          source: sourceId,
+          filter: enableClustering ? ['!', ['has', 'point_count']] : undefined,
+          paint: {
+            'circle-color': [
+              'match',
+              ['get', 'severity'],
+              'A1',
+              'rgba(212,82,81,0.6)',
+              'A2',
+              'rgba(253,133,58,0.55)',
+              'A3',
+              'rgba(245,186,75,0.55)',
+              'rgba(156,163,175,0.45)',
+            ],
+            'circle-radius': 12,
+            'circle-opacity': 0.5,
+            'circle-stroke-width': 1.4,
+            'circle-stroke-color': [
+              'match',
+              ['get', 'severity'],
+              'A1',
+              '#D45251',
+              'A2',
+              '#FD853A',
+              'A3',
+              '#F5BA4B',
+              '#9CA3AF',
+            ],
+            'circle-stroke-opacity': 0.9,
+            'circle-blur': 0.2,
+          },
+        },
+        unclusteredLayerId,
+      )
+    }
+
     if (!map.getLayer(unclusteredLabelLayerId)) {
       map.addLayer({
         id: unclusteredLabelLayerId,
@@ -231,7 +273,7 @@ const HotspotLayer = ({
           'text-allow-overlap': true,
         },
         paint: {
-          'text-color': '#1F2937',
+          'text-color': '#FFFFFF',
         },
       })
     }
@@ -261,7 +303,7 @@ const HotspotLayer = ({
     // 點擊個別熱點時，觸發回調
     const handleHotspotClick = (e: mapboxgl.MapMouseEvent) => {
       const features = map.queryRenderedFeatures(e.point, {
-        layers: [unclusteredLayerId],
+        layers: [unclusteredLayerId, unclusteredRippleLayerId, unclusteredLabelLayerId],
       })
 
       if (!features.length || !onHotspotClick) return
@@ -295,15 +337,43 @@ const HotspotLayer = ({
       map.on('click', clusterLayerId, handleClusterClick)
       map.on('mouseenter', clusterLayerId, handleMouseEnter)
       map.on('mouseenter', unclusteredLayerId, handleMouseEnter)
+      map.on('mouseenter', unclusteredRippleLayerId, handleMouseEnter)
       map.on('mouseenter', unclusteredLabelLayerId, handleMouseEnter)
       map.on('mouseleave', clusterLayerId, handleMouseLeave)
       map.on('mouseleave', unclusteredLayerId, handleMouseLeave)
+      map.on('mouseleave', unclusteredRippleLayerId, handleMouseLeave)
       map.on('mouseleave', unclusteredLabelLayerId, handleMouseLeave)
     }
 
     if (onHotspotClick) {
       map.on('click', unclusteredLayerId, handleHotspotClick)
+      map.on('click', unclusteredRippleLayerId, handleHotspotClick)
       map.on('click', unclusteredLabelLayerId, handleHotspotClick)
+    }
+
+    let animationFrame = 0
+    const cycleMs = 2200
+    const animateRipple = (timestamp: number) => {
+      if (!map.getLayer(unclusteredRippleLayerId)) {
+        return
+      }
+      const progress = (timestamp % cycleMs) / cycleMs
+      const eased = progress ** 1.4
+      const radius = 10 + eased * 46
+      const opacity = Math.max(0, 0.6 * (1 - eased))
+      const strokeOpacity = Math.max(0, 0.9 * (1 - eased * 0.9))
+      const blur = 0.3 + eased * 1.2
+
+      map.setPaintProperty(unclusteredRippleLayerId, 'circle-radius', radius)
+      map.setPaintProperty(unclusteredRippleLayerId, 'circle-opacity', opacity)
+      map.setPaintProperty(unclusteredRippleLayerId, 'circle-stroke-opacity', strokeOpacity)
+      map.setPaintProperty(unclusteredRippleLayerId, 'circle-blur', blur)
+
+      animationFrame = requestAnimationFrame(animateRipple)
+    }
+
+    if (map.getLayer(unclusteredRippleLayerId)) {
+      animationFrame = requestAnimationFrame(animateRipple)
     }
 
     // 清理函式：移除事件監聽器
@@ -317,17 +387,26 @@ const HotspotLayer = ({
         map.off('click', clusterLayerId, handleClusterClick)
         map.off('mouseenter', clusterLayerId, handleMouseEnter)
         map.off('mouseenter', unclusteredLayerId, handleMouseEnter)
+        map.off('mouseenter', unclusteredRippleLayerId, handleMouseEnter)
         map.off('mouseenter', unclusteredLabelLayerId, handleMouseEnter)
         map.off('mouseleave', clusterLayerId, handleMouseLeave)
         map.off('mouseleave', unclusteredLayerId, handleMouseLeave)
+        map.off('mouseleave', unclusteredRippleLayerId, handleMouseLeave)
         map.off('mouseleave', unclusteredLabelLayerId, handleMouseLeave)
       }
 
       if (onHotspotClick && map.getLayer(unclusteredLayerId)) {
         map.off('click', unclusteredLayerId, handleHotspotClick)
       }
+      if (onHotspotClick && map.getLayer(unclusteredRippleLayerId)) {
+        map.off('click', unclusteredRippleLayerId, handleHotspotClick)
+      }
       if (onHotspotClick && map.getLayer(unclusteredLabelLayerId)) {
         map.off('click', unclusteredLabelLayerId, handleHotspotClick)
+      }
+
+      if (animationFrame) {
+        cancelAnimationFrame(animationFrame)
       }
     }
   }, [
@@ -360,6 +439,7 @@ const HotspotLayer = ({
         'hotspot-clusters',
         'hotspot-cluster-count',
         'hotspot-unclustered',
+        'hotspot-unclustered-ripple',
         'hotspot-unclustered-label',
       ]
 
