@@ -64,10 +64,7 @@ export class AlertService {
   }
 
   triggerAlert({ hotspot, userLocation, settings }: TriggerAlertInput): TriggerAlertResult {
-    const distanceMeters =
-      'distanceFromUserMeters' in hotspot && typeof hotspot.distanceFromUserMeters === 'number'
-        ? hotspot.distanceFromUserMeters
-        : calculateDistanceMeters(userLocation, hotspot);
+    const distanceMeters = calculateDistanceMeters(userLocation, hotspot);
 
     if (settings.ignoredHotspotIds.includes(hotspot.id)) {
       return { triggered: false, distanceMeters, reason: 'ignored', activatedChannels: [] };

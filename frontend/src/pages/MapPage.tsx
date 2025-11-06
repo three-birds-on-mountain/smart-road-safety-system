@@ -19,7 +19,6 @@ import { toggleIgnoredHotspot } from '../store/settingsSlice';
 import type { NearbyHotspot, HotspotSummary } from '../types/hotspot';
 import type { AlertChannel } from '../types/settings';
 import { getMockNearbyHotspots } from '../mocks/hotspots';
-import { setPermissionGranted, updateLocation } from '../store/locationSlice';
 
 interface ActiveAlertState {
   hotspot: NearbyHotspot;
@@ -73,6 +72,7 @@ const MapPage = () => {
   const [activeAlert, setActiveAlert] = useState<ActiveAlertState | null>(null);
   const [selectedHotspot, setSelectedHotspot] = useState<HotspotSummary | null>(null);
   const [isDetailModalOpen, setDetailModalOpen] = useState(false);
+  const [followUser, setFollowUser] = useState(true);
 
   const activeAlertRef = useRef<ActiveAlertState | null>(null);
   const geolocationServiceRef = useRef<ReturnType<typeof createGeolocationService> | null>(null);
@@ -307,6 +307,7 @@ const MapPage = () => {
     }
 
     if (latitude != null && longitude != null) {
+      setFollowUser(true);
       mapInstance.easeTo({
         center: [longitude, latitude],
         zoom: Math.max(mapInstance.getZoom(), 15),
@@ -396,20 +397,6 @@ const MapPage = () => {
       dispatch(setNearbyHotspots(mockResponse.data));
     }
 
-    if (locationStatus !== 'active' || !currentLocation) {
-      dispatch(setPermissionGranted(true));
-      dispatch(
-        updateLocation({
-          latitude: PREVIEW_LOCATION.latitude,
-          longitude: PREVIEW_LOCATION.longitude,
-          accuracy: 15,
-          heading: null,
-          speed: null,
-          timestamp: Date.now(),
-        }),
-      );
-    }
-
     if (mapRef.current) {
       mapRef.current.jumpTo({
         center: [PREVIEW_LOCATION.longitude, PREVIEW_LOCATION.latitude],
@@ -427,14 +414,18 @@ const MapPage = () => {
     settings,
   ]);
 
+  const mapCenter =
+    followUser && latitude != null && longitude != null ? [longitude, latitude] : undefined;
+  const mapZoom = followUser ? 13 : undefined;
+
   return (
     <div className="relative h-screen w-screen">
       {/* 全螢幕地圖 */}
       <div className="absolute inset-0">
         <MapView
           className="h-full w-full"
-          center={latitude && longitude ? [longitude, latitude] : undefined}
-          zoom={13}
+          center={mapCenter}
+          zoom={mapZoom}
           onMapLoad={handleMapLoad}
         >
           {(map) =>
@@ -443,7 +434,10 @@ const MapPage = () => {
                 <HotspotLayer
                   map={map}
                   hotspots={hotspotsState.nearby}
-                  onHotspotClick={setSelectedHotspot}
+                  onHotspotClick={(hotspot) => {
+                    setFollowUser(false);
+                    setSelectedHotspot(hotspot);
+                  }}
                   enableClustering={true}
                 />
                 <UserLocation

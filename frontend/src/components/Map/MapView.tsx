@@ -58,15 +58,15 @@ const MapView = ({
   onMapLoad,
   onMoveEnd,
   onZoomEnd,
-  center = TAIWAN_CENTER,
-  zoom = DEFAULT_ZOOM,
+  center,
+  zoom,
   children,
 }: MapViewProps) => {
   const mapContainerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<mapboxgl.Map | null>(null)
   const [mapLoaded, setMapLoaded] = useState(false)
-  const initialCenterRef = useRef<[number, number]>(center)
-  const initialZoomRef = useRef<number>(zoom)
+  const initialCenterRef = useRef<[number, number]>(center ?? TAIWAN_CENTER)
+  const initialZoomRef = useRef<number>(zoom ?? DEFAULT_ZOOM)
 
   // 初始化地圖
   useEffect(() => {
@@ -145,7 +145,7 @@ const MapView = ({
   }, [center, mapLoaded])
 
   useEffect(() => {
-    if (!mapRef.current || !mapLoaded || typeof zoom !== 'number') {
+    if (!mapRef.current || !mapLoaded || zoom == null) {
       return
     }
 

@@ -52,9 +52,15 @@ const formatDistance = (distance?: number) => {
   return `${(distance / 1000).toFixed(1)} 公里`;
 };
 
-const renderInvolved = (items?: string[], placeholder?: string) => {
-  if (!items || items.length === 0) return placeholder ?? '未提供';
-  return items.join('、');
+const formatInvolved = (people?: string[], vehicles?: string[]) => {
+  const combined = [
+    ...(people ?? []).filter(Boolean),
+    ...(vehicles ?? []).filter(Boolean),
+  ];
+  if (!combined.length) {
+    return '未提供';
+  }
+  return combined.join('、');
 };
 
 const HotspotIncidentListModal = ({ hotspot, onClose }: HotspotIncidentListModalProps) => {
@@ -166,29 +172,10 @@ const HotspotIncidentListModal = ({ hotspot, onClose }: HotspotIncidentListModal
                       {severity.label}
                     </span>
                   </div>
-                  <div className="mt-3 grid gap-2 text-xs text-text-secondary md:grid-cols-2">
-                    <div className="flex items-center gap-2">
-                      <span className={`h-2.5 w-2.5 rounded-full ${severity.dotClass}`} aria-hidden />
-                      <span className="font-semibold text-text-primary">涉入人員</span>
-                      <span>{renderInvolved(accident.involvedPeople, '未提供')}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <svg
-                        className="h-4 w-4 text-text-secondary"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth={1.8}
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M4 17h16M5 17l1.5-9h11L19 17M8 12h1"
-                        />
-                      </svg>
-                      <span className="font-semibold text-text-primary">涉入車種</span>
-                      <span>{renderInvolved(accident.involvedVehicles, '未提供')}</span>
-                    </div>
+                  <div className="mt-3 flex items-center gap-2 text-xs text-text-secondary">
+                    <span className={`h-2.5 w-2.5 rounded-full ${severity.dotClass}`} aria-hidden />
+                    <span className="font-semibold text-text-primary">涉入人／車</span>
+                    <span>{formatInvolved(accident.involvedPeople, accident.involvedVehicles)}</span>
                   </div>
                   {accident.description && (
                     <p className="mt-3 rounded-md bg-surface-muted px-3 py-2 text-xs text-text-secondary">

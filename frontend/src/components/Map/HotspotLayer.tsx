@@ -353,15 +353,38 @@ const HotspotLayer = ({
 
     let animationFrame = 0
     const cycleMs = 2200
-    const animateRipple = (timestamp: number) => {
+    const baseRadius = 10
+    const grow = 46
+    let startTs = 0
+    let prevProgress = 0
+    const ease = (t: number) => t ** 1.4
+
+    const animateRipple = (ts: number) => {
       if (!map.getLayer(unclusteredRippleLayerId)) {
         return
       }
-      const progress = (timestamp % cycleMs) / cycleMs
-      const eased = progress ** 1.4
-      const radius = 10 + eased * 46
-      const opacity = Math.max(0, 0.6 * (1 - eased))
-      const strokeOpacity = Math.max(0, 0.9 * (1 - eased * 0.9))
+      if (!startTs) startTs = ts
+
+      const elapsed = ts - startTs
+      const progress = (elapsed % cycleMs) / cycleMs
+      const wrapped = progress < prevProgress
+
+      if (wrapped) {
+        map.setPaintProperty(unclusteredRippleLayerId, 'circle-opacity', 0)
+        map.setPaintProperty(unclusteredRippleLayerId, 'circle-radius', baseRadius)
+        prevProgress = progress
+        animationFrame = requestAnimationFrame(animateRipple)
+        return
+      }
+
+      const eased = ease(progress)
+      const radius = baseRadius + eased * grow
+      const fadeOut = Math.max(0, 1 - progress)
+      const fadeInWindow = 0.08
+      const fadeIn = progress < fadeInWindow ? progress / fadeInWindow : 1
+
+      const opacity = 0.6 * fadeOut * fadeIn
+      const strokeOpacity = 0.9 * Math.max(0, 1 - eased * 0.9)
       const blur = 0.3 + eased * 1.2
 
       map.setPaintProperty(unclusteredRippleLayerId, 'circle-radius', radius)
@@ -369,6 +392,7 @@ const HotspotLayer = ({
       map.setPaintProperty(unclusteredRippleLayerId, 'circle-stroke-opacity', strokeOpacity)
       map.setPaintProperty(unclusteredRippleLayerId, 'circle-blur', blur)
 
+      prevProgress = progress
       animationFrame = requestAnimationFrame(animateRipple)
     }
 
