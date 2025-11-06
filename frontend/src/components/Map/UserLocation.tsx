@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import mapboxgl from 'mapbox-gl'
 
 export interface UserLocationProps {
@@ -8,6 +8,8 @@ export interface UserLocationProps {
   latitude: number | null
   /** 用戶經度 */
   longitude: number | null
+  /** 用戶朝向（角度） */
+  heading?: number | null
   /** 是否自動置中地圖到用戶位置（預設：false） */
   autoCenter?: boolean
   /** 是否顯示精確度圓圈（預設：true） */
@@ -39,20 +41,48 @@ const UserLocation = ({
   map,
   latitude,
   longitude,
+  heading = null,
   autoCenter = false,
   showAccuracyCircle = true,
   accuracy = 20,
 }: UserLocationProps) => {
   const markerRef = useRef<mapboxgl.Marker | null>(null)
+  const markerVisualRef = useRef<HTMLDivElement | null>(null)
+  const arrowRef = useRef<HTMLDivElement | null>(null)
+  const primaryColorRef = useRef('#5AB4C5')
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+    const resolved = getComputedStyle(document.documentElement)
+      .getPropertyValue('--primary-500')
+      .trim()
+    if (resolved) {
+      primaryColorRef.current = resolved
+    }
+  }, [])
 
   // 更新用戶位置標記
   useEffect(() => {
     if (!map || latitude == null || longitude == null) {
       // 移除現有標記
       if (markerRef.current) {
-        markerRef.current.remove()
+        try {
+          markerRef.current.remove()
+        } catch (error) {
+          console.warn('Failed to remove user location marker:', error)
+        }
         markerRef.current = null
       }
+      markerVisualRef.current = null
+      arrowRef.current = null
+      return
+    }
+
+    // 確保地圖容器存在
+    const container = map.getContainer()
+    if (!container) {
       return
     }
 
@@ -62,23 +92,64 @@ const UserLocation = ({
     if (!markerRef.current) {
       // 建立自訂標記元素（藍色圓點，使用 Design System 的 Primary 色）
       const el = document.createElement('div')
-      el.style.width = '20px'
-      el.style.height = '20px'
-      el.style.borderRadius = '50%'
-      el.style.backgroundColor = '#5AB4C5' // Primary-500
-      el.style.border = '3px solid #ffffff'
-      el.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.2)'
-      el.style.cursor = 'pointer'
+      el.style.width = '28px'
+      el.style.height = '28px'
+      el.style.display = 'flex'
+      el.style.alignItems = 'center'
+      el.style.justifyContent = 'center'
+      el.style.pointerEvents = 'none'
 
-      // 建立標記實例
-      const marker = new mapboxgl.Marker({
-        element: el,
-        anchor: 'center',
-      })
-        .setLngLat(coordinates)
-        .addTo(map)
+      const visual = document.createElement('div')
+      visual.style.position = 'relative'
+      visual.style.width = '20px'
+      visual.style.height = '20px'
+      visual.style.display = 'flex'
+      visual.style.alignItems = 'center'
+      visual.style.justifyContent = 'center'
+      visual.style.transition = 'transform 0.2s ease-out'
 
-      markerRef.current = marker
+      const arrow = document.createElement('div')
+      arrow.style.position = 'absolute'
+      arrow.style.top = '-12px'
+      arrow.style.left = '50%'
+      arrow.style.width = '0'
+      arrow.style.height = '0'
+      arrow.style.borderLeft = '6px solid transparent'
+      arrow.style.borderRight = '6px solid transparent'
+      arrow.style.borderBottom = `10px solid ${primaryColorRef.current}`
+      arrow.style.transform = 'translateX(-50%)'
+      arrow.style.filter = 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25))'
+      arrow.style.display = 'none'
+
+      const dot = document.createElement('div')
+      dot.style.width = '18px'
+      dot.style.height = '18px'
+      dot.style.borderRadius = '50%'
+      dot.style.backgroundColor = primaryColorRef.current
+      dot.style.border = '3px solid #ffffff'
+      dot.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.25)'
+
+      visual.appendChild(arrow)
+      visual.appendChild(dot)
+      el.appendChild(visual)
+
+      markerVisualRef.current = visual
+      arrowRef.current = arrow
+
+      // 建立標記實例（確保在地圖載入後才添加）
+      try {
+        const marker = new mapboxgl.Marker({
+          element: el,
+          anchor: 'center',
+        })
+          .setLngLat(coordinates)
+          .addTo(map)
+
+        markerRef.current = marker
+      } catch (error) {
+        console.error('Failed to add user location marker:', error)
+        return
+      }
     } else {
       // 更新現有標記的位置
       markerRef.current.setLngLat(coordinates)
@@ -96,11 +167,53 @@ const UserLocation = ({
     // 清理函式
     return () => {
       if (markerRef.current) {
-        markerRef.current.remove()
+        try {
+          markerRef.current.remove()
+        } catch (error) {
+          console.warn('Failed to remove user location marker on cleanup:', error)
+        }
         markerRef.current = null
       }
+      markerVisualRef.current = null
+      arrowRef.current = null
     }
   }, [map, latitude, longitude, autoCenter])
+
+  const applyHeading = useCallback(() => {
+    if (!markerVisualRef.current || !arrowRef.current) {
+      return
+    }
+
+    if (heading == null || Number.isNaN(heading)) {
+      arrowRef.current.style.display = 'none'
+      markerVisualRef.current.style.transform = 'rotate(0deg)'
+      return
+    }
+
+    arrowRef.current.style.display = 'block'
+    const mapBearing = typeof map?.getBearing === 'function' ? map.getBearing() : 0
+    const rotation = heading - mapBearing
+    markerVisualRef.current.style.transform = `rotate(${rotation}deg)`
+  }, [heading, map])
+
+  useEffect(() => {
+    applyHeading()
+  }, [applyHeading])
+
+  useEffect(() => {
+    if (!map) {
+      return
+    }
+    const handleMapChange = () => {
+      applyHeading()
+    }
+    map.on('rotate', handleMapChange)
+    map.on('pitch', handleMapChange)
+    return () => {
+      map.off('rotate', handleMapChange)
+      map.off('pitch', handleMapChange)
+    }
+  }, [map, applyHeading])
 
   // 更新精確度圓圈
   useEffect(() => {
@@ -161,46 +274,51 @@ const UserLocation = ({
     const circleFeature = createAccuracyCircle(longitude, latitude, accuracy)
 
     // 建立或更新 source
-    const existingSource = map.getSource(sourceId)
-    if (!existingSource) {
-      map.addSource(sourceId, {
-        type: 'geojson',
-        data: {
+    const primaryColor = primaryColorRef.current
+    try {
+      const existingSource = map.getSource(sourceId)
+      if (!existingSource) {
+        map.addSource(sourceId, {
+          type: 'geojson',
+          data: {
+            type: 'FeatureCollection',
+            features: [circleFeature],
+          },
+        })
+      } else {
+        const source = existingSource as mapboxgl.GeoJSONSource
+        source.setData({
           type: 'FeatureCollection',
           features: [circleFeature],
-        },
-      })
-    } else {
-      const source = existingSource as mapboxgl.GeoJSONSource
-      source.setData({
-        type: 'FeatureCollection',
-        features: [circleFeature],
-      })
-    }
+        })
+      }
 
-    // 建立或更新圖層
-    if (!map.getLayer(layerId)) {
-      map.addLayer({
-        id: layerId,
-        type: 'fill',
-        source: sourceId,
-        paint: {
-          'fill-color': '#5AB4C5', // Primary-500
-          'fill-opacity': 0.15,
-        },
-      })
+      // 建立或更新圖層
+      if (!map.getLayer(layerId)) {
+        map.addLayer({
+          id: layerId,
+          type: 'fill',
+          source: sourceId,
+          paint: {
+            'fill-color': primaryColor,
+            'fill-opacity': 0.15,
+          },
+        })
 
-      // 加入邊框
-      map.addLayer({
-        id: `${layerId}-outline`,
-        type: 'line',
-        source: sourceId,
-        paint: {
-          'line-color': '#5AB4C5', // Primary-500
-          'line-opacity': 0.4,
-          'line-width': 2,
-        },
-      })
+        // 加入邊框
+        map.addLayer({
+          id: `${layerId}-outline`,
+          type: 'line',
+          source: sourceId,
+          paint: {
+            'line-color': primaryColor,
+            'line-opacity': 0.4,
+            'line-width': 2,
+          },
+        })
+      }
+    } catch (error) {
+      console.error('Failed to render user accuracy circle:', error)
     }
 
     // 清理函式
@@ -209,20 +327,18 @@ const UserLocation = ({
         return
       }
 
-      // 檢查地圖樣式是否已載入
-      const style = map.getStyle()
-      if (!style) {
-        return
-      }
-
-      if (map.getLayer(`${layerId}-outline`)) {
-        map.removeLayer(`${layerId}-outline`)
-      }
-      if (map.getLayer(layerId)) {
-        map.removeLayer(layerId)
-      }
-      if (map.getSource(sourceId)) {
-        map.removeSource(sourceId)
+      try {
+        if (map.getLayer(`${layerId}-outline`)) {
+          map.removeLayer(`${layerId}-outline`)
+        }
+        if (map.getLayer(layerId)) {
+          map.removeLayer(layerId)
+        }
+        if (map.getSource(sourceId)) {
+          map.removeSource(sourceId)
+        }
+      } catch (error) {
+        console.warn('Failed to remove user accuracy circle:', error)
       }
     }
   }, [map, latitude, longitude, showAccuracyCircle, accuracy])

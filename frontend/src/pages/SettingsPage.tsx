@@ -76,8 +76,8 @@ const SettingsPage = ({ onClose }: SettingsPageProps) => {
       <div className="flex-1 px-4 py-6">
         <div className="mx-auto max-w-2xl space-y-6">
           {/* 當前設定摘要（手機優先顯示） */}
-          <div className="rounded-lg border border-primary-100 bg-primary-50/60 p-4">
-            <div className="mb-2 text-sm font-semibold text-primary-700">
+          <div className="rounded-lg bg-surface-white p-4 shadow-md">
+            <div className="mb-2 text-sm font-semibold text-text-primary">
               當前設定
             </div>
             <div className="flex flex-wrap gap-2 text-xs">
@@ -90,7 +90,7 @@ const SettingsPage = ({ onClose }: SettingsPageProps) => {
               <span className="rounded-full bg-gray-600 px-3 py-1 text-white">
                 {TIME_RANGE_TEXT[settings.timeRange]}
               </span>
-              <span className="rounded-full bg-warning-600 px-3 py-1 text-white">
+              <span className="rounded-full bg-warning-50 px-3 py-1 text-text-secondary">
                 {channelSummary}
               </span>
             </div>
@@ -116,8 +116,17 @@ const SettingsPage = ({ onClose }: SettingsPageProps) => {
           </div>
 
           {/* 提示訊息 */}
-          <div className="rounded-lg bg-gray-50 p-3 text-xs text-text-secondary">
-            設定會即時生效並自動儲存至裝置
+          <div className="flex items-center gap-2 rounded-lg bg-gray-50 p-3 text-xs text-text-secondary">
+            <svg
+              className="h-4 w-4 text-warning-500"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden="true"
+            >
+              <path d="M9.049 2.927c.3-.614 1.102-.614 1.402 0l7.274 14.878A.75.75 0 0117.049 19H2.951a.75.75 0 01-.676-1.195L9.049 2.927zM11 15a1 1 0 10-2 0 1 1 0 002 0zm-.25-6.25a.75.75 0 00-1.5 0v3.5a.75.75 0 101.5 0v-3.5z" />
+            </svg>
+            <span>設定會即時生效並自動儲存至裝置</span>
           </div>
         </div>
       </div>

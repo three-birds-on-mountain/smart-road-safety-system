@@ -47,15 +47,23 @@ const TimeRangeFilter = () => {
               ].join(' ')}
             >
               <div className="flex items-center gap-sm">
-                <input
-                  type="radio"
-                  className="h-4 w-4 accent-primary-500"
-                  name="time-range"
-                  value={option.value}
-                  checked={isSelected}
-                  onChange={() => handleChange(option.value)}
-                  aria-label={`選擇 ${option.label}`}
-                />
+                <span className="flex items-center gap-xs">
+                  <input
+                    type="radio"
+                    className="peer sr-only"
+                    name="time-range"
+                    value={option.value}
+                    checked={isSelected}
+                    onChange={() => handleChange(option.value)}
+                    aria-label={`選擇 ${option.label}`}
+                  />
+                  <span
+                    className="flex h-4 w-4 items-center justify-center rounded-full border border-primary-500 bg-white transition peer-checked:bg-primary-500 peer-focus-visible:ring-2 peer-focus-visible:ring-primary-500"
+                    aria-hidden="true"
+                  >
+                    <span className="h-2 w-2 rounded-full bg-white opacity-0 transition peer-checked:opacity-100" />
+                  </span>
+                </span>
                 <span className="text-sm font-semibold">{option.label}</span>
               </div>
               <span className="text-xs text-text-description">

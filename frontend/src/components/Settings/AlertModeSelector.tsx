@@ -88,14 +88,40 @@ const AlertModeSelector = () => {
                   : '',
               ].join(' ')}
             >
-              <input
-                type="checkbox"
-                className="mt-xs h-4 w-4 accent-primary-500"
-                checked={isChecked && !isVisualOnly}
-                disabled={isVisualOnly}
-                onChange={() => toggleChannel(option.value)}
-                aria-label={option.label}
-              />
+              <div className="flex items-start gap-sm">
+                <input
+                  type="checkbox"
+                  className="peer sr-only"
+                  checked={isChecked && !isVisualOnly}
+                  disabled={isVisualOnly}
+                  onChange={() => toggleChannel(option.value)}
+                  aria-label={option.label}
+                />
+                <span
+                  className={[
+                    'mt-[2px] flex h-4 w-4 items-center justify-center rounded border border-primary-500 bg-white text-transparent transition',
+                    'peer-checked:bg-primary-500 peer-checked:text-white',
+                    'peer-disabled:border-gray-300 peer-disabled:bg-gray-100 peer-disabled:text-transparent peer-disabled:opacity-80',
+                    'peer-focus-visible:ring-2 peer-focus-visible:ring-primary-500',
+                  ].join(' ')}
+                  aria-hidden="true"
+                >
+                  <svg
+                    className="h-3 w-3"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={3}
+                    viewBox="0 0 12 10"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M1 5l3 3 7-7"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </span>
+              </div>
               <div className="flex flex-col gap-xs">
                 <span className="flex items-center gap-xs text-sm font-semibold">
                   <span aria-hidden>{option.icon}</span>

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type mapboxgl from 'mapbox-gl'
 import AlertOverlay from '../components/Alert/AlertOverlay'
 import MapView from '../components/Map/MapView'
 import HotspotLayer from '../components/Map/HotspotLayer'
@@ -60,6 +61,7 @@ const MapPage = () => {
     null,
   )
   const fetchControllerRef = useRef<AbortController | null>(null)
+  const mapRef = useRef<mapboxgl.Map | null>(null)
 
   const fetchDependencies = useMemo(() => {
     if (latitude == null || longitude == null) {
@@ -252,6 +254,78 @@ const MapPage = () => {
 
   const gpsDescriptor =
     gpsStatusDescriptor[locationState.status] ?? gpsStatusDescriptor.idle
+  const shouldShowGpsBadge =
+    locationState.status !== 'active' && gpsDescriptor.label.length > 0
+  const showPermissionPrompt =
+    locationState.permissionGranted === false &&
+    locationState.status === 'error'
+
+  const handleMapLoad = useCallback((map: mapboxgl.Map) => {
+    mapRef.current = map
+    map.on('remove', () => {
+      if (mapRef.current === map) {
+        mapRef.current = null
+      }
+    })
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      mapRef.current = null
+    }
+  }, [])
+
+  const handleRecenter = useCallback(() => {
+    const mapInstance = mapRef.current
+    if (!mapInstance) {
+      return
+    }
+
+    if (latitude != null && longitude != null) {
+      mapInstance.easeTo({
+        center: [longitude, latitude],
+        zoom: Math.max(mapInstance.getZoom(), 15),
+        duration: 800,
+      })
+      return
+    }
+
+    geolocationServiceRef.current?.startWatching()
+  }, [latitude, longitude])
+
+  const handleOpenLocationSettings = () => {
+    geolocationServiceRef.current?.startWatching()
+
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    const userAgent = window.navigator?.userAgent ?? ''
+
+    try {
+      if (/android/i.test(userAgent)) {
+        window.location.href =
+          'intent://settings/location#Intent;scheme=android-app;package=com.android.settings;end'
+        return
+      }
+
+      if (/iphone|ipad|ipod/i.test(userAgent)) {
+        window.location.href = 'App-Prefs:root=Privacy&path=LOCATION_SERVICES'
+        window.setTimeout(() => {
+          window.location.href = 'app-settings:'
+        }, 200)
+        return
+      }
+    } catch (error) {
+      console.warn('Failed to open system settings automatically:', error)
+    }
+
+    window.open(
+      'https://support.google.com/chrome/answer/142065?hl=zh-Hant',
+      '_blank',
+      'noopener,noreferrer',
+    )
+  }
 
   return (
     <div className="relative h-screen w-screen">
@@ -261,6 +335,7 @@ const MapPage = () => {
           className="h-full w-full"
           center={latitude && longitude ? [longitude, latitude] : undefined}
           zoom={13}
+          onMapLoad={handleMapLoad}
         >
           {(map) =>
             map && (
@@ -276,6 +351,8 @@ const MapPage = () => {
                   latitude={latitude ?? null}
                   longitude={longitude ?? null}
                   showAccuracyCircle={true}
+                  heading={currentLocation?.heading ?? null}
+                  accuracy={currentLocation?.accuracy ?? 20}
                 />
               </>
             )
@@ -283,16 +360,59 @@ const MapPage = () => {
         </MapView>
       </div>
 
+      {/* 回到定位按鈕 */}
+      <div className="pointer-events-none absolute right-4 top-24 z-10">
+        <button
+          type="button"
+          onClick={handleRecenter}
+          className="pointer-events-auto flex h-11 w-11 items-center justify-center rounded-md bg-surface-white text-text-primary shadow-md transition hover:bg-primary-50 hover:text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500 active:shadow-sm"
+          aria-label="回到我的位置"
+        >
+          <svg
+            className="h-5 w-5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M12 6v3m0 6v3m3-9h3m-9 0H6m6-9a9 9 0 109 9 9 9 0 00-9-9zm0 4.5a4.5 4.5 0 11-4.5 4.5A4.5 4.5 0 0112 6z"
+            />
+          </svg>
+        </button>
+      </div>
+
       {/* GPS 狀態指示器（左上角） */}
       <div className="pointer-events-none absolute left-4 top-4 z-10 flex flex-col gap-2">
-        <span
-          className={[
-            'pointer-events-auto rounded-full px-3 py-1.5 text-xs font-semibold shadow-md',
-            gpsDescriptor.className,
-          ].join(' ')}
-        >
-          {gpsDescriptor.label}
-        </span>
+        {shouldShowGpsBadge && (
+          <span
+            className={[
+              'pointer-events-auto rounded-full px-3 py-1.5 text-xs font-semibold shadow-md',
+              gpsDescriptor.className,
+            ].join(' ')}
+          >
+            {gpsDescriptor.label}
+          </span>
+        )}
+
+        {showPermissionPrompt && (
+          <div className="pointer-events-auto flex flex-col gap-2 rounded-md bg-surface-white px-3 py-2 text-xs text-text-secondary shadow-md">
+            <span className="font-semibold text-text-primary">
+              定位權限未啟用
+            </span>
+            <button
+              type="button"
+              onClick={handleOpenLocationSettings}
+              className="inline-flex w-full items-center justify-center gap-1 rounded-md bg-primary-500 px-3 py-1 text-xs font-semibold text-white shadow-sm transition hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500/60"
+            >
+              開啟系統定位設定
+            </button>
+          </div>
+        )}
 
         {locationState.error && (
           <div className="pointer-events-auto rounded-md border border-danger-500 bg-danger-500/95 px-3 py-2 text-xs text-white shadow-md">

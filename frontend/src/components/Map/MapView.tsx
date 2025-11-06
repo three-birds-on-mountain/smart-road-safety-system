@@ -100,9 +100,6 @@ const MapView = ({
       'top-right'
     )
 
-    // 加入全螢幕控制
-    map.addControl(new mapboxgl.FullscreenControl(), 'top-right')
-
     // 地圖載入完成事件
     map.on('load', () => {
       console.log('Mapbox 地圖已載入')

@@ -21,13 +21,13 @@ const SettingsIconButton = ({
         // 尺寸與形狀
         'h-14 w-14 rounded-full',
         // 設計系統色彩
-        'bg-primary-600 hover:bg-primary-700 active:bg-primary-800',
+        'bg-primary-500 hover:bg-primary-600 active:bg-primary-700',
         // 陰影效果
         'shadow-lg hover:shadow-xl',
         // 過渡動畫
         'transition-all duration-200',
         // 無障礙與互動
-        'focus:outline-none focus:ring-4 focus:ring-primary-500/50',
+        'focus:outline-none focus:ring-4 focus:ring-primary-500/40',
         // 確保在手機上易於點擊
         'touch-manipulation',
         className,

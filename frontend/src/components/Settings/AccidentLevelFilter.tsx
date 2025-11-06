@@ -81,13 +81,30 @@ const AccidentLevelFilter = () => {
                 >
                   {option.value}
                 </span>
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 accent-primary-500"
-                  checked={isChecked}
-                  onChange={() => handleToggle(option.value)}
-                  aria-label={`切換 ${option.label}`}
-                />
+                <div className="flex items-center gap-xs">
+                  <input
+                    type="checkbox"
+                    className="peer sr-only"
+                    checked={isChecked}
+                    onChange={() => handleToggle(option.value)}
+                    aria-label={`切換 ${option.label}`}
+                  />
+                  <span
+                    className="flex h-4 w-4 items-center justify-center rounded border border-primary-500 bg-white text-transparent shadow-sm transition peer-checked:bg-primary-500 peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-primary-500"
+                    aria-hidden="true"
+                  >
+                    <svg
+                      className="h-3 w-3"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={3}
+                      viewBox="0 0 12 10"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path d="M1 5l3 3 7-7" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </span>
+                </div>
               </div>
               <div className="flex flex-col gap-xs">
                 <span className="text-sm font-semibold">{option.label}</span>
