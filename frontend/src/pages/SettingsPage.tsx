@@ -13,85 +13,115 @@ const TIME_RANGE_TEXT: Record<TimeRangeOption, string> = {
   '1M': '一個月內',
 }
 
-const SettingsPage = () => {
+interface SettingsPageProps {
+  onClose: () => void
+}
+
+/**
+ * 設定頁：全屏 Modal 顯示
+ * 提供 X 關閉按鈕回到地圖主畫面
+ */
+const SettingsPage = ({ onClose }: SettingsPageProps) => {
   const settings = useAppSelector((state) => state.settings.current)
 
-  const severitySummary = useMemo(() => settings.severityFilter.join(' / '), [settings.severityFilter])
+  const severitySummary = useMemo(
+    () => settings.severityFilter.join(' / '),
+    [settings.severityFilter],
+  )
   const channelSummary = useMemo(() => {
     if (settings.alertChannels.length === 0) {
       return '僅視覺提示'
     }
 
-    const mapping: Record<string, string> = { sound: '音效', vibration: '震動' }
-    return settings.alertChannels.map((channel) => mapping[channel] ?? channel).join(' + ')
+    const mapping: Record<string, string> = {
+      sound: '音效',
+      vibration: '震動',
+    }
+    return settings.alertChannels
+      .map((channel) => mapping[channel] ?? channel)
+      .join(' + ')
   }, [settings.alertChannels])
 
   return (
-    <section className="flex flex-1 flex-col gap-xl">
-      <header className="flex flex-col gap-sm">
-        <h1 className="text-3xl font-semibold text-primary-700">警示設定</h1>
-        <p className="max-w-2xl text-base text-text-secondary">
-          客製化提醒距離、事故等級、警示方式與事故時間範圍，打造最符合行車習慣的安全系統。
-          變更會即時套用在警示流程上。
-        </p>
-
-        <div className="flex flex-wrap items-center gap-sm text-sm">
-          <span className="rounded-full bg-primary-50 px-sm py-xs text-primary-700">
-            距離：{settings.distanceMeters} 公尺
-          </span>
-          <span className="rounded-full bg-secondary-50 px-sm py-xs text-secondary-700">
-            等級：{severitySummary}
-          </span>
-          <span className="rounded-full bg-gray-50 px-sm py-xs text-text-secondary">
-            時間範圍：{TIME_RANGE_TEXT[settings.timeRange]}
-          </span>
-          <span className="rounded-full bg-warning-100 px-sm py-xs text-warning-500">
-            警示方式：{channelSummary}
-          </span>
-        </div>
+    <div className="flex h-screen w-screen flex-col overflow-y-auto bg-surface-muted">
+      {/* 標題列 + 關閉按鈕 */}
+      <header className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 bg-surface-white px-4 py-3 shadow-sm">
+        <h1 className="text-xl font-semibold text-primary-700">警示設定</h1>
+        <button
+          onClick={onClose}
+          className="flex h-10 w-10 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-gray-100 hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500"
+          aria-label="關閉設定"
+          type="button"
+        >
+          {/* X 圖標 */}
+          <svg
+            className="h-6 w-6"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </button>
       </header>
 
-      <div className="grid gap-xl lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-        <div className="flex flex-col gap-xl">
-          <div className="rounded-lg bg-surface-white p-lg shadow-md">
-            <DistanceSelector />
+      {/* 設定內容區域 */}
+      <div className="flex-1 px-4 py-6">
+        <div className="mx-auto max-w-2xl space-y-6">
+          {/* 當前設定摘要（手機優先顯示） */}
+          <div className="rounded-lg border border-primary-100 bg-primary-50/60 p-4">
+            <div className="mb-2 text-sm font-semibold text-primary-700">
+              當前設定
+            </div>
+            <div className="flex flex-wrap gap-2 text-xs">
+              <span className="rounded-full bg-primary-600 px-3 py-1 text-white">
+                {settings.distanceMeters}m
+              </span>
+              <span className="rounded-full bg-secondary-600 px-3 py-1 text-white">
+                {severitySummary}
+              </span>
+              <span className="rounded-full bg-gray-600 px-3 py-1 text-white">
+                {TIME_RANGE_TEXT[settings.timeRange]}
+              </span>
+              <span className="rounded-full bg-warning-600 px-3 py-1 text-white">
+                {channelSummary}
+              </span>
+            </div>
           </div>
 
-          <div className="rounded-lg bg-surface-white p-lg shadow-md">
-            <AccidentLevelFilter />
+          {/* 設定項目 */}
+          <div className="space-y-4">
+            <div className="rounded-lg bg-surface-white p-4 shadow-md">
+              <DistanceSelector />
+            </div>
+
+            <div className="rounded-lg bg-surface-white p-4 shadow-md">
+              <AccidentLevelFilter />
+            </div>
+
+            <div className="rounded-lg bg-surface-white p-4 shadow-md">
+              <TimeRangeFilter />
+            </div>
+
+            <div className="rounded-lg bg-surface-white p-4 shadow-md">
+              <AlertModeSelector />
+            </div>
           </div>
 
-          <div className="rounded-lg bg-surface-white p-lg shadow-md">
-            <TimeRangeFilter />
-          </div>
-
-          <div className="rounded-lg bg-surface-white p-lg shadow-md">
-            <AlertModeSelector />
+          {/* 提示訊息 */}
+          <div className="rounded-lg bg-gray-50 p-3 text-xs text-text-secondary">
+            設定會即時生效並自動儲存至裝置
           </div>
         </div>
-
-        <aside className="flex flex-col gap-md rounded-lg bg-surface-white p-lg shadow-md">
-          <h2 className="text-lg font-semibold text-text-primary">設定摘要</h2>
-          <p className="text-sm text-text-secondary">
-            調整會即時生效並自動儲存至裝置，下次開啟仍會沿用最新偏好設定。
-          </p>
-
-          <div className="flex flex-col gap-sm rounded-lg border border-primary-100 bg-primary-50/60 px-md py-md text-sm text-primary-700">
-            <span className="font-semibold">提醒概要</span>
-            <ul className="list-disc space-y-xs pl-lg">
-              <li>距離：{settings.distanceMeters} 公尺</li>
-              <li>事故等級：{severitySummary}</li>
-              <li>時間範圍：{TIME_RANGE_TEXT[settings.timeRange]}</li>
-              <li>提醒方式：{channelSummary}</li>
-            </ul>
-          </div>
-
-          <p className="text-xs text-text-description">
-            提醒：若需清除設定，可於瀏覽器清除網站資料或使用「重置設定」功能（稍後提供）。
-          </p>
-        </aside>
       </div>
-    </section>
+    </div>
   )
 }
 

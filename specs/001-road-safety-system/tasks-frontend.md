@@ -6,7 +6,28 @@
 
 本文件僅列出前端相關任務，方便前端開發者專注執行。
 
-## ⚠️ 重要：UI 設計規範
+## 🎯 重要：手機版 APP 設計原則
+
+**此專案以手機版 APP 微服務為目標開發**
+
+### 核心 UI 設計目標
+
+1. **全螢幕地圖優先**：主畫面 = 全螢幕地圖，最大化地圖可視區域
+2. **設定最小化**：設定功能縮小為浮動 icon（固定在地圖上方角落）
+3. **全屏設定頁**：點擊設定 icon → 全屏顯示設定頁（覆蓋地圖）
+4. **快速關閉**：設定頁提供 X 關閉按鈕，點擊後回到地圖主畫面
+5. **簡潔至上**：移除多餘說明文字、標題、導航欄，只保留必要功能
+
+### 架構變更重點
+
+- **移除 Header/Footer**：App.tsx 不需要頂部導航與底部版權資訊
+- **移除路由切換**：只保留單一主畫面（地圖），設定頁以 Modal/全屏覆蓋方式呈現
+- **浮動設定按鈕**：使用 fixed positioning 的圖標按鈕（右上角或右下角）
+- **警示覆蓋層優化**：確保警示訊息在全屏地圖上清晰可見但不遮擋過多內容
+
+---
+
+## ⚠️ UI 設計規範
 
 **所有 UI 相關任務都必須嚴格遵守 Town Pass Design System**
 
@@ -28,14 +49,18 @@
 以下任務在實作時必須參考 Design System：
 
 - **T029**: 配置 Tailwind CSS（需整合 Design System 的色彩與間距 tokens）
-- **T030**: 基礎佈局元件（需使用 Design System 的佈局規範）
+- **T030**: 基礎佈局元件 → **🔄 調整為全螢幕地圖佈局（移除 Header/Footer）**
 - **T045-T046**: AlertOverlay 與 AlertIcon（需使用 Design System 的警示色彩與圖標）
 - **T056-T059**: 設定元件（需使用 Design System 的表單元件樣式）
-- **T060**: SettingsPage（需使用 Design System 的卡片與按鈕樣式）
-- **T082-T084**: 地圖元件（需使用 Design System 的圖標與色彩）
+- **T060**: SettingsPage → **🔄 調整為全屏 Modal（附 X 關閉按鈕）**
+- **T082-T084**: 地圖元件 → **🔄 調整為全螢幕地圖（100vh）**
 - **T087**: HotspotDetailPopup（需使用 Design System 的彈窗樣式）
 - **T091**: 載入指示器（需使用 Design System 的 spinner 樣式）
 - **T119-T120**: 錯誤提示與警告訊息（需使用 Design System 的 Alert 元件）
+- **NEW T200**: 建立浮動設定按鈕元件（SettingsIconButton）
+- **NEW T201**: 實作設定頁全屏 Modal 顯示邏輯
+- **NEW T202**: 移除 App.tsx 的 Header/Footer/路由導航
+- **NEW T203**: 調整 MapPage 為 100vh 全螢幕地圖佈局
 
 ---
 
@@ -177,7 +202,7 @@
 
 ## Frontend Task Summary
 
-- **總前端任務數**: 54 個任務
+- **總前端任務數**: 66 個任務（原 54 個 + 新增 12 個）
 - **分布**:
   - Setup: 5 個任務
   - Foundational: 6 個任務
@@ -185,6 +210,7 @@
   - User Story 2: 16 個任務
   - User Story 3: 13 個任務
   - Polish: 4 個任務
+  - **Phase 8 (NEW) 手機版 APP 改造: 12 個任務**
 
 ---
 
@@ -197,6 +223,9 @@
    - US2 (T051-T071) → 可與 US1 並行開發元件
    - US3 (T075-T093) → 等待後端 API T077-T081 完成後開始整合
 4. **Phase 7: Polish** (T117-T132) → 最後完善
+5. **Phase 8 (NEW): 手機版 APP 改造** (T200-T211) → 所有基礎功能完成後執行
+   - 建議在 User Stories 1-3 完成後再進行 UI/UX 架構調整
+   - 這個階段會重構 App.tsx、MapPage、SettingsPage 的佈局與互動邏輯
 
 ---
 
@@ -206,6 +235,8 @@
 - T041, T042, T045, T046（US1 Services 與元件）可並行
 - T056, T057, T058, T059（US2 設定元件）可並行
 - T082, T083, T084（US3 地圖元件）可並行
+- **T200, T201**（Phase 8: 浮動設定按鈕 + Modal 狀態管理）可並行
+- **T206, T207, T208**（Phase 8: 響應式優化任務）可並行
 
 ---
 
@@ -221,6 +252,35 @@
 
 ---
 
+---
+
+## Phase 8: 手機版 APP 全螢幕地圖改造 (NEW)
+
+**目標**: 將桌面版 Web 介面改造為手機版 APP 微服務的全螢幕地圖設計
+
+### UI/UX 架構調整
+
+- [X] T200 [P] 建立浮動設定按鈕元件 in frontend/src/components/Settings/SettingsIconButton.tsx（固定於右下角、使用 Design System 的齒輪圖標）
+- [X] T201 [P] 實作設定頁 Modal 狀態管理 in frontend/src/store/uiSlice.ts（isSettingsModalOpen, toggleSettingsModal actions）
+- [X] T202 重構 App.tsx：移除 Header、Footer、路由導航，改為單一全螢幕地圖 + 條件式設定 Modal in frontend/src/App.tsx
+- [X] T203 重構 MapPage：調整為 100vh 全螢幕地圖佈局，移除外層 padding/margin/說明文字 in frontend/src/pages/MapPage.tsx
+- [X] T204 重構 SettingsPage：改為全屏 Modal 顯示，添加 X 關閉按鈕（右上角），移除多餘說明文字 in frontend/src/pages/SettingsPage.tsx
+- [X] T205 調整 AlertOverlay 位置與大小：確保在全螢幕地圖上清晰可見但不過度遮擋 in frontend/src/components/Alert/AlertOverlay.tsx
+
+### 響應式優化（手機優先）
+
+- [X] T206 優化設定頁 Modal 在手機上的滾動與排版 in frontend/src/pages/SettingsPage.tsx（確保小螢幕上可正常使用）
+- [X] T207 調整 HotspotDetailPopup 在手機上的顯示方式 in frontend/src/components/Map/HotspotDetailPopup.tsx（避免超出螢幕範圍）
+- [X] T208 測試並調整 GPS 狀態指示器在全螢幕地圖上的位置 in frontend/src/pages/MapPage.tsx（固定於左上角或右上角）
+
+### 驗證與測試
+
+- [ ] T209 手動測試：在手機模擬器或實體手機上驗證全螢幕地圖體驗
+- [ ] T210 手動測試：驗證設定 Modal 的開啟/關閉流程順暢
+- [ ] T211 手動測試：驗證警示覆蓋層在全螢幕地圖上的可讀性與互動性
+
+---
+
 ## Notes
 
 - 標記 **[P]** 的任務可平行執行
@@ -228,3 +288,4 @@
 - **TDD 建議**: 前端測試可用 Vitest + React Testing Library
 - 完整專案脈絡請參閱 [tasks.md](tasks.md)
 - 前後端整合測試建議在 User Story 完成後執行
+- **Phase 8 (NEW)**: 手機版 APP 全螢幕地圖改造任務，建議在所有基礎功能完成後執行

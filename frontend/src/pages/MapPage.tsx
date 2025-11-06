@@ -254,121 +254,95 @@ const MapPage = () => {
     gpsStatusDescriptor[locationState.status] ?? gpsStatusDescriptor.idle
 
   return (
-    <section className="flex flex-1 flex-col gap-lg">
-      <header className="flex flex-col gap-sm">
-        <h1 className="text-3xl font-semibold text-primary-700">
-          即時危險區域警示
-        </h1>
-        <p className="max-w-2xl text-base text-text-secondary">
-          持續監測您的 GPS 位置，當進入高風險熱點時即時觸發警示。地圖顯示事故熱點分布與您的當前位置。
-        </p>
-      </header>
+    <div className="relative h-screen w-screen">
+      {/* 全螢幕地圖 */}
+      <div className="absolute inset-0">
+        <MapView
+          className="h-full w-full"
+          center={latitude && longitude ? [longitude, latitude] : undefined}
+          zoom={13}
+        >
+          {(map) =>
+            map && (
+              <>
+                <HotspotLayer
+                  map={map}
+                  hotspots={hotspotsState.nearby}
+                  onHotspotClick={setSelectedHotspot}
+                  enableClustering={true}
+                />
+                <UserLocation
+                  map={map}
+                  latitude={latitude ?? null}
+                  longitude={longitude ?? null}
+                  showAccuracyCircle={true}
+                />
+              </>
+            )
+          }
+        </MapView>
+      </div>
 
-      <div className="flex flex-1 flex-col gap-md rounded-lg bg-surface-white p-lg shadow-md">
-        <div className="flex flex-wrap items-center gap-sm text-sm">
-          <span
-            className={[
-              'rounded-full px-sm py-xs font-semibold',
-              gpsDescriptor.className,
-            ].join(' ')}
-          >
-            {gpsDescriptor.label}
-          </span>
-          <span className="rounded-full bg-primary-50 px-sm py-xs text-primary-700">
-            提醒距離：{settings.distanceMeters} 公尺
-          </span>
-          <span className="rounded-full bg-secondary-50 px-sm py-xs text-secondary-700">
-            事故等級：{settings.severityFilter.join(' / ')}
-          </span>
-          <span className="rounded-full bg-gray-50 px-sm py-xs text-text-secondary">
-            時間範圍：{settings.timeRange}
-          </span>
-        </div>
+      {/* GPS 狀態指示器（左上角） */}
+      <div className="pointer-events-none absolute left-4 top-4 z-10 flex flex-col gap-2">
+        <span
+          className={[
+            'pointer-events-auto rounded-full px-3 py-1.5 text-xs font-semibold shadow-md',
+            gpsDescriptor.className,
+          ].join(' ')}
+        >
+          {gpsDescriptor.label}
+        </span>
 
         {locationState.error && (
-          <p className="rounded-md border border-danger-500 bg-danger-500/10 px-md py-sm text-sm text-danger-500">
+          <div className="pointer-events-auto rounded-md border border-danger-500 bg-danger-500/95 px-3 py-2 text-xs text-white shadow-md">
             {locationState.error}
-          </p>
+          </div>
         )}
 
-        <div className="relative mt-sm h-[500px] overflow-hidden rounded-lg border border-gray-100">
-          <MapView
-            className="h-full w-full"
-            center={
-              latitude && longitude ? [longitude, latitude] : undefined
-            }
-            zoom={13}
-          >
-            {(map) =>
-              map && (
-                <>
-                  <HotspotLayer
-                    map={map}
-                    hotspots={hotspotsState.nearby}
-                    onHotspotClick={setSelectedHotspot}
-                    enableClustering={true}
-                  />
-                  <UserLocation
-                    map={map}
-                    latitude={latitude ?? null}
-                    longitude={longitude ?? null}
-                    showAccuracyCircle={true}
-                  />
-                </>
-              )
-            }
-          </MapView>
+        {hotspotsState.status === 'loading' && (
+          <span className="pointer-events-auto rounded-md bg-primary-600/95 px-3 py-1.5 text-xs text-white shadow-md">
+            取得附近熱點中…
+          </span>
+        )}
 
-          {/* 警示覆蓋層（置於地圖上方） */}
-          {activeAlert && (
-            <div className="pointer-events-auto absolute left-1/2 top-4 w-full max-w-[90%] -translate-x-1/2 md:left-4 md:right-auto md:top-4 md:max-w-sm md:translate-x-0">
-              <AlertOverlay
-                hotspot={activeAlert.hotspot}
-                distanceMeters={activeAlert.distanceMeters}
-                isMuted={activeAlert.muted}
-                channels={activeAlert.channels}
-                unsupportedChannels={activeAlert.unsupportedChannels}
-                reason={activeAlert.reason}
-                onDismiss={handleDismissAlert}
-                onIgnore={handleIgnoreHotspot}
-              />
-            </div>
-          )}
-
-          {/* 熱點詳情彈窗（置於地圖上方） */}
-          {selectedHotspot && (
-            <div className="pointer-events-auto absolute right-4 top-4 max-w-sm">
-              <HotspotDetailPopup
-                hotspot={selectedHotspot}
-                onClose={() => setSelectedHotspot(null)}
-              />
-            </div>
-          )}
-        </div>
-
-        <div className="flex flex-wrap items-center gap-sm text-sm text-text-secondary">
-          {hotspotsState.status === 'loading' && (
-            <span className="rounded-md bg-primary-50 px-sm py-xs text-primary-700">
-              取得附近熱點中…
-            </span>
-          )}
-          {hotspotsState.status === 'failed' && hotspotsState.error && (
-            <span className="rounded-md bg-danger-500/10 px-sm py-xs text-danger-500">
-              熱點資料載入失敗：{hotspotsState.error}
-            </span>
-          )}
-          {hotspotsState.nearbyMeta?.totalCount !== undefined && (
-            <span className="rounded-md bg-secondary-50 px-sm py-xs text-secondary-700">
-              近距離熱點數：{hotspotsState.nearbyMeta.totalCount}
-            </span>
-          )}
-        </div>
-
-        <p className="text-xs text-text-description">
-          地圖整合已完成！點擊地圖上的熱點標記可查看詳細資訊。地圖會自動追蹤您的 GPS 位置並顯示附近的事故熱點。
-        </p>
+        {hotspotsState.status === 'failed' && hotspotsState.error && (
+          <span className="pointer-events-auto rounded-md bg-danger-500/95 px-3 py-1.5 text-xs text-white shadow-md">
+            載入失敗
+          </span>
+        )}
       </div>
-    </section>
+
+      {/* 警示覆蓋層（置於地圖上方，置中顯示） */}
+      {activeAlert && (
+        <div className="pointer-events-none absolute left-1/2 top-4 z-20 w-full max-w-[90%] -translate-x-1/2 px-4 md:max-w-md">
+          <div className="pointer-events-auto">
+            <AlertOverlay
+              hotspot={activeAlert.hotspot}
+              distanceMeters={activeAlert.distanceMeters}
+              isMuted={activeAlert.muted}
+              channels={activeAlert.channels}
+              unsupportedChannels={activeAlert.unsupportedChannels}
+              reason={activeAlert.reason}
+              onDismiss={handleDismissAlert}
+              onIgnore={handleIgnoreHotspot}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* 熱點詳情彈窗（置於地圖上方，右上角） */}
+      {selectedHotspot && (
+        <div className="pointer-events-none absolute right-4 top-4 z-20 max-w-[90%] md:max-w-sm">
+          <div className="pointer-events-auto">
+            <HotspotDetailPopup
+              hotspot={selectedHotspot}
+              onClose={() => setSelectedHotspot(null)}
+            />
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
 

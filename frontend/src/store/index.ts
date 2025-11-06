@@ -7,11 +7,13 @@ import settingsReducer, {
   hydrateSettings,
 } from './settingsSlice';
 import locationReducer from './locationSlice';
+import uiReducer from './uiSlice';
 
 type RootReducerState = {
   hotspots: ReturnType<typeof hotspotsReducer>;
   settings: ReturnType<typeof settingsReducer>;
   location: ReturnType<typeof locationReducer>;
+  ui: ReturnType<typeof uiReducer>;
 };
 
 export const createAppStore = (preloadedState?: Partial<RootReducerState>) => {
@@ -20,6 +22,7 @@ export const createAppStore = (preloadedState?: Partial<RootReducerState>) => {
       hotspots: hotspotsReducer,
       settings: settingsReducer,
       location: locationReducer,
+      ui: uiReducer,
     },
     preloadedState: preloadedState as RootReducerState | undefined,
   });
