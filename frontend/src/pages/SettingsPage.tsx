@@ -4,7 +4,15 @@ import AccidentLevelFilter from '../components/Settings/AccidentLevelFilter'
 import DistanceSelector from '../components/Settings/DistanceSelector'
 import TimeRangeFilter from '../components/Settings/TimeRangeFilter'
 import { useAppSelector } from '../hooks/store'
-import type { TimeRangeOption } from '../types/settings'
+import type { AlertChannel, TimeRangeOption } from '../types/settings'
+import type { AccidentSeverity } from '../types/accident'
+
+const SEVERITY_ORDER: AccidentSeverity[] = ['A1', 'A2', 'A3']
+const CHANNEL_ORDER: AlertChannel[] = ['sound', 'vibration']
+const CHANNEL_LABELS: Record<AlertChannel, string> = {
+  sound: '音效',
+  vibration: '震動',
+}
 
 const TIME_RANGE_TEXT: Record<TimeRangeOption, string> = {
   '1Y': '一年內',
@@ -24,21 +32,24 @@ interface SettingsPageProps {
 const SettingsPage = ({ onClose }: SettingsPageProps) => {
   const settings = useAppSelector((state) => state.settings.current)
 
+
   const severitySummary = useMemo(
-    () => settings.severityFilter.join(' / '),
+    () =>
+      SEVERITY_ORDER.filter((severity) =>
+        settings.severityFilter.includes(severity),
+      ).join(' / '),
     [settings.severityFilter],
   )
+
   const channelSummary = useMemo(() => {
     if (settings.alertChannels.length === 0) {
       return '僅視覺提示'
     }
 
-    const mapping: Record<string, string> = {
-      sound: '音效',
-      vibration: '震動',
-    }
-    return settings.alertChannels
-      .map((channel) => mapping[channel] ?? channel)
+    return CHANNEL_ORDER.filter((channel) =>
+      settings.alertChannels.includes(channel),
+    )
+      .map((channel) => CHANNEL_LABELS[channel])
       .join(' + ')
   }, [settings.alertChannels])
 
@@ -75,6 +86,20 @@ const SettingsPage = ({ onClose }: SettingsPageProps) => {
       {/* 設定內容區域 */}
       <div className="flex-1 px-4 py-6">
         <div className="mx-auto max-w-2xl space-y-6">
+          {/* 設定生效提示 */}
+          <div className="flex items-center gap-2 rounded-lg bg-gray-50 text-xs text-text-secondary">
+            <svg
+              className="h-4 w-4 text-warning-500"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden="true"
+            >
+              <path d="M9.049 2.927c.3-.614 1.102-.614 1.402 0l7.274 14.878A.75.75 0 0117.049 19H2.951a.75.75 0 01-.676-1.195L9.049 2.927zM11 15a1 1 0 10-2 0 1 1 0 002 0zm-.25-6.25a.75.75 0 00-1.5 0v3.5a.75.75 0 101.5 0v-3.5z" />
+            </svg>
+            <span>設定會即時生效並自動儲存至裝置</span>
+          </div>
+
           {/* 當前設定摘要（手機優先顯示） */}
           <div className="rounded-lg bg-surface-white p-4 shadow-md">
             <div className="mb-2 text-sm font-semibold text-text-primary">
@@ -113,20 +138,6 @@ const SettingsPage = ({ onClose }: SettingsPageProps) => {
             <div className="rounded-lg bg-surface-white p-4 shadow-md">
               <AlertModeSelector />
             </div>
-          </div>
-
-          {/* 提示訊息 */}
-          <div className="flex items-center gap-2 rounded-lg bg-gray-50 p-3 text-xs text-text-secondary">
-            <svg
-              className="h-4 w-4 text-warning-500"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-              xmlns="http://www.w3.org/2000/svg"
-              aria-hidden="true"
-            >
-              <path d="M9.049 2.927c.3-.614 1.102-.614 1.402 0l7.274 14.878A.75.75 0 0117.049 19H2.951a.75.75 0 01-.676-1.195L9.049 2.927zM11 15a1 1 0 10-2 0 1 1 0 002 0zm-.25-6.25a.75.75 0 00-1.5 0v3.5a.75.75 0 101.5 0v-3.5z" />
-            </svg>
-            <span>設定會即時生效並自動儲存至裝置</span>
           </div>
         </div>
       </div>

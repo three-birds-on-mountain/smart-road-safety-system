@@ -361,11 +361,11 @@ const MapPage = () => {
       </div>
 
       {/* 回到定位按鈕 */}
-      <div className="pointer-events-none absolute right-4 top-24 z-10">
+      <div className="pointer-events-none absolute right-4 top-[120px] z-10">
         <button
           type="button"
           onClick={handleRecenter}
-          className="pointer-events-auto flex h-11 w-11 items-center justify-center rounded-md bg-surface-white text-text-primary shadow-md transition hover:bg-primary-50 hover:text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500 active:shadow-sm"
+          className="pointer-events-auto flex h-11 w-11 items-center justify-center rounded-md bg-surface-white p-1.5 text-text-primary shadow-md transition hover:bg-primary-50 hover:text-primary-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 active:shadow-sm"
           aria-label="回到我的位置"
         >
           <svg

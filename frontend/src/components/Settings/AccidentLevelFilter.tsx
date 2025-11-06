@@ -90,11 +90,15 @@ const AccidentLevelFilter = () => {
                     aria-label={`切換 ${option.label}`}
                   />
                   <span
-                    className="flex h-4 w-4 items-center justify-center rounded border border-primary-500 bg-white text-transparent shadow-sm transition peer-checked:bg-primary-500 peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-primary-500"
+                    className={[
+                      'pointer-events-none flex h-4 w-4 items-center justify-center rounded border border-primary-500 bg-white transition',
+                      'peer-checked:bg-primary-500 peer-focus-visible:ring-2 peer-focus-visible:ring-primary-500',
+                      'peer-checked:[&>svg]:opacity-100',
+                    ].join(' ')}
                     aria-hidden="true"
                   >
                     <svg
-                      className="h-3 w-3"
+                      className="h-3 w-3 text-white opacity-0 transition"
                       fill="none"
                       stroke="currentColor"
                       strokeWidth={3}

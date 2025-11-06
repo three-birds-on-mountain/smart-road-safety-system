@@ -99,15 +99,16 @@ const AlertModeSelector = () => {
                 />
                 <span
                   className={[
-                    'mt-[2px] flex h-4 w-4 items-center justify-center rounded border border-primary-500 bg-white text-transparent transition',
-                    'peer-checked:bg-primary-500 peer-checked:text-white',
-                    'peer-disabled:border-gray-300 peer-disabled:bg-gray-100 peer-disabled:text-transparent peer-disabled:opacity-80',
+                    'mt-[2px] pointer-events-none flex h-4 w-4 items-center justify-center rounded border border-primary-500 bg-white transition',
+                    'peer-checked:bg-primary-500',
+                    'peer-disabled:border-gray-300 peer-disabled:bg-gray-100 peer-disabled:opacity-80',
                     'peer-focus-visible:ring-2 peer-focus-visible:ring-primary-500',
+                    'peer-checked:[&>svg]:opacity-100 peer-disabled:[&>svg]:opacity-0',
                   ].join(' ')}
                   aria-hidden="true"
                 >
                   <svg
-                    className="h-3 w-3"
+                    className="h-3 w-3 text-white opacity-0 transition"
                     fill="none"
                     stroke="currentColor"
                     strokeWidth={3}

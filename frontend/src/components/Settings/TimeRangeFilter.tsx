@@ -58,10 +58,14 @@ const TimeRangeFilter = () => {
                     aria-label={`選擇 ${option.label}`}
                   />
                   <span
-                    className="flex h-4 w-4 items-center justify-center rounded-full border border-primary-500 bg-white transition peer-checked:bg-primary-500 peer-focus-visible:ring-2 peer-focus-visible:ring-primary-500"
+                    className={[
+                      'pointer-events-none flex h-4 w-4 items-center justify-center rounded-full border border-primary-500 bg-white transition',
+                      'peer-checked:bg-primary-500 peer-focus-visible:ring-2 peer-focus-visible:ring-primary-500',
+                      'peer-checked:[&>span]:opacity-100',
+                    ].join(' ')}
                     aria-hidden="true"
                   >
-                    <span className="h-2 w-2 rounded-full bg-white opacity-0 transition peer-checked:opacity-100" />
+                    <span className="h-2 w-2 rounded-full bg-white opacity-0 transition" />
                   </span>
                 </span>
                 <span className="text-sm font-semibold">{option.label}</span>
