@@ -41,11 +41,11 @@
 
 ## Phase 1: Setup (Frontend)
 
-- [ ] T001 根據 plan.md 建立專案目錄結構（frontend/）
-- [ ] T003 [P] 初始化前端專案：建立 frontend/package.json 並安裝 React, Vite, Tailwind, Redux Toolkit, Mapbox GL JS
-- [ ] T005 [P] 配置前端 linting 工具：設定 ESLint, Prettier 於 frontend/.eslintrc.json 與 frontend/.prettierrc
-- [ ] T006 建立 Docker Compose 配置：docker-compose.yml（frontend 開發伺服器）
-- [ ] T008 [P] 建立前端環境變數範本：frontend/.env.example（VITE_API_BASE_URL, VITE_MAPBOX_ACCESS_TOKEN）
+- [x] T001 根據 plan.md 建立專案目錄結構（frontend/）
+- [x] T003 [P] 初始化前端專案：建立 frontend/package.json 並安裝 React, Vite, Tailwind, Redux Toolkit, Mapbox GL JS
+- [x] T005 [P] 配置前端 linting 工具：設定 ESLint, Prettier 於 frontend/.eslintrc.json 與 frontend/.prettierrc
+- [x] T006 建立 Docker Compose 配置：docker-compose.yml（frontend 開發伺服器）
+- [x] T008 [P] 建立前端環境變數範本：frontend/.env.example（VITE_API_BASE_URL, VITE_MAPBOX_ACCESS_TOKEN）
 
 ---
 
