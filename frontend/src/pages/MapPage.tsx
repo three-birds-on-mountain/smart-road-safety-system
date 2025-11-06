@@ -1,25 +1,25 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type mapboxgl from 'mapbox-gl'
-import AlertOverlay from '../components/Alert/AlertOverlay'
-import MapView from '../components/Map/MapView'
-import HotspotLayer from '../components/Map/HotspotLayer'
-import UserLocation from '../components/Map/UserLocation'
-import HotspotDetailPopup from '../components/Map/HotspotDetailPopup'
-import { useAppDispatch, useAppSelector } from '../hooks/store'
-import { createAlertService, type TriggerAlertResult } from '../services/alerts'
-import { createGeolocationService } from '../services/geolocation'
-import { fetchNearbyHotspots } from '../store/hotspotsSlice'
-import { toggleIgnoredHotspot } from '../store/settingsSlice'
-import type { NearbyHotspot, HotspotSummary } from '../types/hotspot'
-import type { AlertChannel } from '../types/settings'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type mapboxgl from 'mapbox-gl';
+import AlertOverlay from '../components/Alert/AlertOverlay';
+import MapView from '../components/Map/MapView';
+import HotspotLayer from '../components/Map/HotspotLayer';
+import UserLocation from '../components/Map/UserLocation';
+import HotspotDetailPopup from '../components/Map/HotspotDetailPopup';
+import { useAppDispatch, useAppSelector } from '../hooks/store';
+import { createAlertService, type TriggerAlertResult } from '../services/alerts';
+import { createGeolocationService } from '../services/geolocation';
+import { fetchNearbyHotspots } from '../store/hotspotsSlice';
+import { toggleIgnoredHotspot } from '../store/settingsSlice';
+import type { NearbyHotspot, HotspotSummary } from '../types/hotspot';
+import type { AlertChannel } from '../types/settings';
 
 interface ActiveAlertState {
-  hotspot: NearbyHotspot
-  distanceMeters: number
-  muted: boolean
-  channels: AlertChannel[]
-  unsupportedChannels: AlertChannel[]
-  reason?: TriggerAlertResult['reason']
+  hotspot: NearbyHotspot;
+  distanceMeters: number;
+  muted: boolean;
+  channels: AlertChannel[];
+  unsupportedChannels: AlertChannel[];
+  reason?: TriggerAlertResult['reason'];
 }
 
 const gpsStatusDescriptor = {
@@ -37,35 +37,29 @@ const gpsStatusDescriptor = {
     label: '裝置不支援定位',
     className: 'bg-danger-500 text-white',
   },
-} as const
+} as const;
 
 const MapPage = () => {
-  const dispatch = useAppDispatch()
-  const locationState = useAppSelector((state) => state.location)
-  const settings = useAppSelector((state) => state.settings.current)
-  const hotspotsState = useAppSelector((state) => state.hotspots)
-  const currentLocation = locationState.current
-  const latitude = currentLocation?.latitude
-  const longitude = currentLocation?.longitude
+  const dispatch = useAppDispatch();
+  const locationState = useAppSelector((state) => state.location);
+  const settings = useAppSelector((state) => state.settings.current);
+  const hotspotsState = useAppSelector((state) => state.hotspots);
+  const currentLocation = locationState.current;
+  const latitude = currentLocation?.latitude;
+  const longitude = currentLocation?.longitude;
 
-  const [activeAlert, setActiveAlert] = useState<ActiveAlertState | null>(null)
-  const [selectedHotspot, setSelectedHotspot] = useState<HotspotSummary | null>(
-    null,
-  )
+  const [activeAlert, setActiveAlert] = useState<ActiveAlertState | null>(null);
+  const [selectedHotspot, setSelectedHotspot] = useState<HotspotSummary | null>(null);
 
-  const activeAlertRef = useRef<ActiveAlertState | null>(null)
-  const geolocationServiceRef = useRef<ReturnType<
-    typeof createGeolocationService
-  > | null>(null)
-  const alertServiceRef = useRef<ReturnType<typeof createAlertService> | null>(
-    null,
-  )
-  const fetchControllerRef = useRef<AbortController | null>(null)
-  const mapRef = useRef<mapboxgl.Map | null>(null)
+  const activeAlertRef = useRef<ActiveAlertState | null>(null);
+  const geolocationServiceRef = useRef<ReturnType<typeof createGeolocationService> | null>(null);
+  const alertServiceRef = useRef<ReturnType<typeof createAlertService> | null>(null);
+  const fetchControllerRef = useRef<AbortController | null>(null);
+  const mapRef = useRef<mapboxgl.Map | null>(null);
 
   const fetchDependencies = useMemo(() => {
     if (latitude == null || longitude == null) {
-      return null
+      return null;
     }
     return {
       latitude,
@@ -73,63 +67,57 @@ const MapPage = () => {
       distance: settings.distanceMeters,
       severity: settings.severityFilter.join(','),
       timeRange: settings.timeRange,
-    }
-  }, [
-    latitude,
-    longitude,
-    settings.distanceMeters,
-    settings.severityFilter,
-    settings.timeRange,
-  ])
+    };
+  }, [latitude, longitude, settings.distanceMeters, settings.severityFilter, settings.timeRange]);
 
   const updateActiveAlert = useCallback((next: ActiveAlertState | null) => {
-    activeAlertRef.current = next
-    setActiveAlert(next)
-  }, [])
+    activeAlertRef.current = next;
+    setActiveAlert(next);
+  }, []);
 
   useEffect(() => {
-    const service = createGeolocationService(dispatch)
-    geolocationServiceRef.current = service
+    const service = createGeolocationService(dispatch);
+    geolocationServiceRef.current = service;
 
     service.startWatching({
       onError: () => {
         // no-op: slice already handles error state
       },
-    })
+    });
 
     return () => {
-      service.reset()
-      geolocationServiceRef.current = null
-    }
-  }, [dispatch])
+      service.reset();
+      geolocationServiceRef.current = null;
+    };
+  }, [dispatch]);
 
   useEffect(() => {
-    const previousService = alertServiceRef.current
-    previousService?.stop()
+    const previousService = alertServiceRef.current;
+    previousService?.stop();
 
     const service = createAlertService({
       minIntervalMs: Math.max(settings.autoSilenceSeconds * 1000, 30_000),
-    })
-    alertServiceRef.current = service
+    });
+    alertServiceRef.current = service;
 
     return () => {
-      service.stop()
+      service.stop();
       if (alertServiceRef.current === service) {
-        alertServiceRef.current = null
+        alertServiceRef.current = null;
       }
-    }
-  }, [settings.autoSilenceSeconds])
+    };
+  }, [settings.autoSilenceSeconds]);
 
   useEffect(() => {
     if (!fetchDependencies || locationState.status !== 'active') {
-      fetchControllerRef.current?.abort()
-      fetchControllerRef.current = null
-      return
+      fetchControllerRef.current?.abort();
+      fetchControllerRef.current = null;
+      return;
     }
 
-    const controller = new AbortController()
-    fetchControllerRef.current?.abort()
-    fetchControllerRef.current = controller
+    const controller = new AbortController();
+    fetchControllerRef.current?.abort();
+    fetchControllerRef.current = controller;
 
     dispatch(
       fetchNearbyHotspots({
@@ -137,50 +125,50 @@ const MapPage = () => {
         longitude: fetchDependencies.longitude,
         signal: controller.signal,
       }),
-    )
+    );
 
     return () => {
-      controller.abort()
-    }
-  }, [dispatch, fetchDependencies, locationState.status])
+      controller.abort();
+    };
+  }, [dispatch, fetchDependencies, locationState.status]);
 
   useEffect(() => {
-    const alertService = alertServiceRef.current
-    const currentLocation = locationState.current
+    const alertService = alertServiceRef.current;
+    const currentLocation = locationState.current;
 
     if (!alertService || !currentLocation) {
       if (activeAlertRef.current) {
-        alertService?.silence()
-        updateActiveAlert(null)
+        alertService?.silence();
+        updateActiveAlert(null);
       }
-      return
+      return;
     }
 
-    const nearby = hotspotsState.nearby
+    const nearby = hotspotsState.nearby;
 
     if (!nearby.length) {
       if (activeAlertRef.current) {
-        alertService.silence()
-        updateActiveAlert(null)
+        alertService.silence();
+        updateActiveAlert(null);
       }
-      return
+      return;
     }
 
-    let triggered: ActiveAlertState | null = null
-    const previous = activeAlertRef.current
+    let triggered: ActiveAlertState | null = null;
+    const previous = activeAlertRef.current;
 
     for (const hotspot of nearby) {
       const result = alertService.triggerAlert({
         hotspot,
         userLocation: currentLocation,
         settings,
-      })
+      });
 
       if (result.triggered) {
         const muted =
           result.activatedChannels.length === 0 ||
           result.reason === 'channels-disabled' ||
-          result.reason === 'unsupported'
+          result.reason === 'unsupported';
 
         triggered = {
           hotspot,
@@ -189,8 +177,8 @@ const MapPage = () => {
           channels: result.activatedChannels,
           unsupportedChannels: result.unsupportedChannels ?? [],
           reason: result.reason,
-        }
-        break
+        };
+        break;
       }
 
       if (result.reason === 'cooldown' && previous?.hotspot.id === hotspot.id) {
@@ -201,84 +189,80 @@ const MapPage = () => {
           channels: previous.channels,
           unsupportedChannels: previous.unsupportedChannels,
           reason: result.reason,
-        }
-        break
+        };
+        break;
       }
     }
 
     if (triggered) {
-      const prev = activeAlertRef.current
-      const isSameHotspot = prev?.hotspot.id === triggered.hotspot.id
+      const prev = activeAlertRef.current;
+      const isSameHotspot = prev?.hotspot.id === triggered.hotspot.id;
       const sameChannels =
         prev &&
         prev.channels.length === triggered.channels.length &&
-        prev.channels.every((channel, index) => channel === triggered.channels[index])
+        prev.channels.every((channel, index) => channel === triggered.channels[index]);
       const sameUnsupported =
         prev &&
         prev.unsupportedChannels.length === triggered.unsupportedChannels.length &&
         prev.unsupportedChannels.every(
           (channel, index) => channel === triggered.unsupportedChannels[index],
-        )
+        );
       const hasChanges =
         !isSameHotspot ||
-        Math.round(prev?.distanceMeters ?? -1) !==
-          Math.round(triggered.distanceMeters) ||
+        Math.round(prev?.distanceMeters ?? -1) !== Math.round(triggered.distanceMeters) ||
         prev?.muted !== triggered.muted ||
         !sameChannels ||
         !sameUnsupported ||
-        prev?.reason !== triggered.reason
+        prev?.reason !== triggered.reason;
 
       if (hasChanges) {
-        updateActiveAlert(triggered)
+        updateActiveAlert(triggered);
       }
-      return
+      return;
     }
 
     if (activeAlertRef.current) {
-      alertService.silence()
-      updateActiveAlert(null)
+      alertService.silence();
+      updateActiveAlert(null);
     }
-  }, [hotspotsState, locationState, settings, updateActiveAlert])
+  }, [hotspotsState, locationState, settings, updateActiveAlert]);
 
   const handleDismissAlert = () => {
-    alertServiceRef.current?.silence()
-    updateActiveAlert(null)
-  }
+    alertServiceRef.current?.silence();
+    updateActiveAlert(null);
+  };
 
   const handleIgnoreHotspot = (hotspotId: string) => {
-    dispatch(toggleIgnoredHotspot(hotspotId))
-    alertServiceRef.current?.clearHotspotCooldown(hotspotId)
-    alertServiceRef.current?.silence()
-    updateActiveAlert(null)
-  }
+    dispatch(toggleIgnoredHotspot(hotspotId));
+    alertServiceRef.current?.clearHotspotCooldown(hotspotId);
+    alertServiceRef.current?.silence();
+    updateActiveAlert(null);
+  };
 
-  const gpsDescriptor =
-    gpsStatusDescriptor[locationState.status] ?? gpsStatusDescriptor.idle
-  const shouldShowGpsBadge =
-    locationState.status !== 'active' && gpsDescriptor.label.length > 0
+  const gpsDescriptor = gpsStatusDescriptor[locationState.status] ?? gpsStatusDescriptor.idle;
+  const shouldShowGpsBadge = locationState.status !== 'active' && gpsDescriptor.label.length > 0;
   const showPermissionPrompt =
-    locationState.permissionGranted === false &&
-    locationState.status === 'error'
+    locationState.permissionGranted === false && locationState.status === 'error';
 
   const handleMapLoad = useCallback((map: mapboxgl.Map) => {
-    mapRef.current = map
+    mapRef.current = map;
     map.on('remove', () => {
       if (mapRef.current === map) {
-        mapRef.current = null
+        mapRef.current = null;
       }
-    })
-  }, [])
+    });
+  }, []);
 
   useEffect(() => {
     return () => {
-      mapRef.current = null
-    }
-  }, [])
+      mapRef.current = null;
+    };
+  }, []);
 
   const handleRecenter = useCallback(() => {
-    const mapInstance = mapRef.current
+    const mapInstance = mapRef.current;
     if (!mapInstance) {
-      return
+      return;
     }
 
     if (latitude != null && longitude != null) {
@@ -286,46 +270,46 @@ const MapPage = () => {
         center: [longitude, latitude],
         zoom: Math.max(mapInstance.getZoom(), 15),
         duration: 800,
-      })
-      return
+      });
+      return;
     }
 
-    geolocationServiceRef.current?.startWatching()
-  }, [latitude, longitude])
+    geolocationServiceRef.current?.startWatching();
+  }, [latitude, longitude]);
 
   const handleOpenLocationSettings = () => {
-    geolocationServiceRef.current?.startWatching()
+    geolocationServiceRef.current?.startWatching();
 
     if (typeof window === 'undefined') {
-      return
+      return;
     }
 
-    const userAgent = window.navigator?.userAgent ?? ''
+    const userAgent = window.navigator?.userAgent ?? '';
 
     try {
       if (/android/i.test(userAgent)) {
         window.location.href =
-          'intent://settings/location#Intent;scheme=android-app;package=com.android.settings;end'
-        return
+          'intent://settings/location#Intent;scheme=android-app;package=com.android.settings;end';
+        return;
       }
 
       if (/iphone|ipad|ipod/i.test(userAgent)) {
-        window.location.href = 'App-Prefs:root=Privacy&path=LOCATION_SERVICES'
+        window.location.href = 'App-Prefs:root=Privacy&path=LOCATION_SERVICES';
         window.setTimeout(() => {
-          window.location.href = 'app-settings:'
-        }, 200)
-        return
+          window.location.href = 'app-settings:';
+        }, 200);
+        return;
       }
     } catch (error) {
-      console.warn('Failed to open system settings automatically:', error)
+      console.warn('Failed to open system settings automatically:', error);
     }
 
     window.open(
       'https://support.google.com/chrome/answer/142065?hl=zh-Hant',
       '_blank',
       'noopener,noreferrer',
-    )
-  }
+    );
+  };
 
   return (
     <div className="relative h-screen w-screen">
@@ -370,18 +354,26 @@ const MapPage = () => {
         >
           <svg
             className="h-5 w-5"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
             viewBox="0 0 24 24"
             xmlns="http://www.w3.org/2000/svg"
             aria-hidden="true"
           >
             <path
+              d="M12 3v2.75M12 18.25V21M3 12h2.75M18.25 12H21"
+              fill="none"
+              stroke="currentColor"
               strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M12 6v3m0 6v3m3-9h3m-9 0H6m6-9a9 9 0 109 9 9 9 0 00-9-9zm0 4.5a4.5 4.5 0 11-4.5 4.5A4.5 4.5 0 0112 6z"
+              strokeWidth={1.8}
             />
+            <circle
+              cx="12"
+              cy="12"
+              r="6.5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.8}
+            />
+            <circle cx="12" cy="12" r="2.5" fill="currentColor" />
           </svg>
         </button>
       </div>
@@ -401,9 +393,7 @@ const MapPage = () => {
 
         {showPermissionPrompt && (
           <div className="pointer-events-auto flex flex-col gap-2 rounded-md bg-surface-white px-3 py-2 text-xs text-text-secondary shadow-md">
-            <span className="font-semibold text-text-primary">
-              定位權限未啟用
-            </span>
+            <span className="font-semibold text-text-primary">定位權限未啟用</span>
             <button
               type="button"
               onClick={handleOpenLocationSettings}
@@ -433,10 +423,10 @@ const MapPage = () => {
         )}
       </div>
 
-      {/* 警示覆蓋層（置於地圖上方，置中顯示） */}
+      {/* 警示覆蓋層（簡化版：底部浮動顯示） */}
       {activeAlert && (
-        <div className="pointer-events-none absolute left-1/2 top-4 z-20 w-full max-w-[90%] -translate-x-1/2 px-4 md:max-w-md">
-          <div className="pointer-events-auto">
+        <div className="pointer-events-none absolute bottom-24 left-4 right-4 z-20 flex justify-center">
+          <div className="pointer-events-auto w-full max-w-md">
             <AlertOverlay
               hotspot={activeAlert.hotspot}
               distanceMeters={activeAlert.distanceMeters}
@@ -463,7 +453,7 @@ const MapPage = () => {
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default MapPage
+export default MapPage;
