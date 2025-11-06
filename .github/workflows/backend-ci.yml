@@ -1,0 +1,95 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [ main, develop, '*-road-safety-system' ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-ci.yml'
+
+jobs:
+  test:
+    name: Backend Tests
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgis/postgis:15-3.4
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: road_safety_db_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: |
+          uv pip install -e ".[dev]"
+
+      - name: Run linting
+        working-directory: ./backend
+        run: |
+          uv run ruff check src/
+          uv run black --check src/
+
+      - name: Run type checking
+        working-directory: ./backend
+        run: |
+          uv run mypy src/
+        continue-on-error: true
+
+      - name: Run migrations
+        working-directory: ./backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/road_safety_db_test
+        run: |
+          uv run alembic upgrade head
+
+      - name: Run tests
+        working-directory: ./backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/road_safety_db_test
+        run: |
+          uv run pytest tests/ -v
+
+      - name: Generate coverage report
+        working-directory: ./backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/road_safety_db_test
+        run: |
+          uv run pytest --cov=src --cov-report=html --cov-report=term-missing tests/
+        continue-on-error: true
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./backend/coverage.xml
+          flags: backend
+          name: backend-coverage
+        continue-on-error: true
+
