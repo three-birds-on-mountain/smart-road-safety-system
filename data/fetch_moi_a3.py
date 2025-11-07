@@ -1,4 +1,4 @@
-"""Download the weekly MOI A3 accident dataset (already CSV) and overwrite local copies."""
+"""Download (or reuse local) MOI A3 accident CSV files and load them into PostgreSQL."""
 
 from __future__ import annotations
 
@@ -12,23 +12,41 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from io import BytesIO, StringIO, TextIOWrapper
 from pathlib import Path
-from typing import Any
-
-import httpx
-import psycopg2
-from psycopg2 import sql
-from psycopg2.extras import execute_batch
+from typing import Any, Iterable
 
 DATA_ROOT = Path(__file__).resolve().parent
+if str(DATA_ROOT) not in sys.path:
+    sys.path.insert(0, str(DATA_ROOT))
+
+import httpx
+
+try:
+    import psycopg2
+    from psycopg2 import sql
+    from psycopg2.extras import execute_batch
+except ModuleNotFoundError as exc:  # pragma: no cover - runtime guard
+    psycopg2 = None  # type: ignore[assignment]
+    sql = None  # type: ignore[assignment]
+    execute_batch = None  # type: ignore[assignment]
+    IMPORT_ERROR = exc
+else:
+    IMPORT_ERROR = None
+
+from moi_schema import CHINESE_COLUMNS, normalize_column_name, translate_columns
+
 DEFAULT_SOURCE_URL = "https://data.moi.gov.tw/MoiOD/System/DownloadFile.aspx?DATA=6EC4380A-0F8A-4D68-809B-2218930F08FB"
 DEFAULT_DATASET_SUBDIR = "moi_a3"
 CSV_FILENAME = "records.csv"
 RAW_FILENAME = "source.csv"
 METADATA_FILENAME = "metadata.json"
 DEFAULT_TABLE_NAME = "raw_moi_a3"
+DEFAULT_ACCIDENT_LEVEL = "A3"
+DEFAULT_LOCAL_CSV = Path.home() / "moi_a3" / "A3_2025.csv"
+DB_EXTRA_COLUMNS = ["accident_level", "etl_dt"]
+EXPECTED_COLUMNS = CHINESE_COLUMNS
 
 
-@dataclass(slots=True)
+@dataclass
 class CollectorConfig:
     source_url: str = DEFAULT_SOURCE_URL
     dataset_subdir: str = DEFAULT_DATASET_SUBDIR
@@ -36,11 +54,20 @@ class CollectorConfig:
     timeout: float = 60.0
     database_url: str | None = os.environ.get("DATABASE_URL")
     table_name: str = DEFAULT_TABLE_NAME
+    accident_level: str = DEFAULT_ACCIDENT_LEVEL
+    local_csv_path: Path | None = None
+    local_csv_requested: bool = False
 
     def __post_init__(self) -> None:
         self.output_root = self.output_root.expanduser().resolve()
         self.source_url = self.source_url.strip()
         self.table_name = self.table_name.strip()
+        self.accident_level = self.accident_level.strip() or DEFAULT_ACCIDENT_LEVEL
+
+        if self.local_csv_path is not None:
+            self.local_csv_path = self.local_csv_path.expanduser().resolve()
+        elif DEFAULT_LOCAL_CSV.exists():
+            self.local_csv_path = DEFAULT_LOCAL_CSV
 
     @property
     def dataset_dir(self) -> Path:
@@ -64,6 +91,30 @@ class A3DatasetFetcher:
         self.config = config
         self.config.dataset_dir.mkdir(parents=True, exist_ok=True)
 
+    def run(self) -> None:
+        csv_text = self._obtain_csv_text()
+        row_count, header = self.save_files(csv_text)
+        english_header = translate_columns(header)
+        self.write_metadata(row_count, header, english_header)
+        self.load_into_database(header, english_header)
+
+        if header and header != EXPECTED_COLUMNS:
+            print("⚠️ CSV header differs from EXPECTED_COLUMNS; check metadata for details.")
+
+        print(
+            f"Fetched {row_count} rows from A3 dataset and saved to {self.config.csv_path} "
+            f"(metadata: {self.config.metadata_path})."
+        )
+
+    def _obtain_csv_text(self) -> str:
+        local_path = self.config.local_csv_path
+        if local_path and local_path.exists():
+            print(f"Using local CSV: {local_path}")
+            return local_path.read_text(encoding="utf-8-sig")
+        if local_path and self.config.local_csv_requested:
+            raise SystemExit(f"Local CSV file not found: {local_path}")
+        return self.download_csv_text()
+
     def download_csv_text(self) -> str:
         with httpx.Client(timeout=httpx.Timeout(self.config.timeout, connect=10.0)) as client:
             response = client.get(self.config.source_url)
@@ -85,7 +136,6 @@ class A3DatasetFetcher:
                 return wrapper.read()
 
     def save_files(self, csv_text: str) -> tuple[int, list[str]]:
-        # Preserve a copy of the raw CSV exactly as downloaded
         self.config.raw_path.write_text(csv_text, encoding="utf-8")
 
         reader = csv.reader(StringIO(csv_text))
@@ -93,74 +143,83 @@ class A3DatasetFetcher:
         if not rows:
             return 0, []
 
+        header = [normalize_column_name(col) for col in rows[0]]
         with self.config.csv_path.open("w", newline="", encoding="utf-8") as fh:
             writer = csv.writer(fh)
-            writer.writerows(rows)
+            writer.writerow(header)
+            writer.writerows(rows[1:])
 
-        return max(len(rows) - 1, 0), rows[0]
+        return max(len(rows) - 1, 0), header
 
-    def write_metadata(self, row_count: int, header: list[str]) -> None:
+    def write_metadata(self, row_count: int, header: list[str], english_header: list[str]) -> None:
         metadata: dict[str, Any] = {
             "source_url": self.config.source_url,
             "record_count": row_count,
-            "columns": header,
+            "expected_columns": EXPECTED_COLUMNS,
+            "actual_columns": header,
+            "english_columns": english_header,
             "csv_path": str(self.config.csv_path),
             "raw_path": str(self.config.raw_path),
+            "local_csv_path": str(self.config.local_csv_path) if self.config.local_csv_path else None,
             "downloaded_at": datetime.now(timezone.utc).isoformat(),
+            "accident_level": self.config.accident_level,
         }
         self.config.metadata_path.write_text(json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    def load_into_database(self, header: list[str]) -> None:
+    def load_into_database(self, header: list[str], english_header: list[str]) -> None:
         if not self.config.database_url:
             print("Skipping database load because DATABASE_URL is not set.")
             return
+
+        if IMPORT_ERROR is not None:
+            raise SystemExit(
+                "psycopg2 (or psycopg2-binary) is required to load data into PostgreSQL; install it and retry."
+            ) from IMPORT_ERROR
 
         rows = self._read_rows(header)
         if not rows:
             print("No rows available for database load.")
             return
 
+        db_columns = english_header + DB_EXTRA_COLUMNS
         with psycopg2.connect(self.config.database_url) as conn:
             with conn.cursor() as cur:
-                self._ensure_table(cur, header)
+                self._ensure_table(cur, db_columns)
                 cur.execute(sql.SQL("TRUNCATE TABLE {}").format(sql.Identifier(self.config.table_name)))
                 insert_query = sql.SQL("INSERT INTO {} ({}) VALUES ({})").format(
                     sql.Identifier(self.config.table_name),
-                    sql.SQL(", ").join(sql.Identifier(col) for col in header),
-                    sql.SQL(", ").join(sql.Placeholder() for _ in header),
+                    sql.SQL(", ").join(sql.Identifier(col) for col in db_columns),
+                    sql.SQL(", ").join(sql.Placeholder() for _ in db_columns),
                 )
                 execute_batch(cur, insert_query.as_string(conn), rows, page_size=1000)
 
         print(f"Loaded {len(rows)} rows into table {self.config.table_name}.")
 
-    def _ensure_table(self, cur, header: list[str]) -> None:
-        columns_sql = sql.SQL(", ").join(
-            sql.SQL("{} TEXT").format(sql.Identifier(col)) for col in header
-        )
+    def _ensure_table(self, cur, db_columns: Iterable[str]) -> None:
+        columns_sql = []
+        for column in db_columns:
+            if column == "etl_dt":
+                columns_sql.append(sql.SQL("{} TIMESTAMPTZ NOT NULL").format(sql.Identifier(column)))
+            else:
+                columns_sql.append(sql.SQL("{} TEXT").format(sql.Identifier(column)))
         cur.execute(
             sql.SQL("CREATE TABLE IF NOT EXISTS {} ({})").format(
                 sql.Identifier(self.config.table_name),
-                columns_sql,
+                sql.SQL(", ").join(columns_sql),
             )
         )
 
-    def _read_rows(self, header: list[str]) -> list[list[str]]:
-        rows: list[list[str]] = []
-        with self.config.csv_path.open("r", encoding="utf-8") as fh:
+    def _read_rows(self, header: list[str]) -> list[list[Any]]:
+        rows: list[list[Any]] = []
+        etl_timestamp = datetime.now(timezone.utc)
+        with self.config.csv_path.open("r", encoding="utf-8-sig") as fh:
             reader = csv.DictReader(fh)
             for line in reader:
-                rows.append([line.get(col, "") for col in header])
+                record = [line.get(col, "") or "" for col in header]
+                record.append(self.config.accident_level)
+                record.append(etl_timestamp)
+                rows.append(record)
         return rows
-
-    def run(self) -> None:
-        csv_text = self.download_csv_text()
-        row_count, header = self.save_files(csv_text)
-        self.write_metadata(row_count, header)
-        self.load_into_database(header)
-        print(
-            f"Fetched {row_count} rows from A3 dataset and saved to {self.config.csv_path} "
-            f"(metadata: {self.config.metadata_path})."
-        )
 
 
 def parse_args() -> argparse.Namespace:
@@ -185,6 +244,18 @@ def parse_args() -> argparse.Namespace:
         default=DEFAULT_TABLE_NAME,
         help="儲存 A3 資料的資料表名稱（預設 raw_moi_a3）",
     )
+    parser.add_argument(
+        "--accident-level",
+        type=str,
+        default=DEFAULT_ACCIDENT_LEVEL,
+        help="儲存到資料庫的事故等級欄位值（預設 A3）",
+    )
+    parser.add_argument(
+        "--local-csv",
+        type=Path,
+        default=None,
+        help="優先使用的本地 CSV 檔案路徑（例如 ~/moi_a3/A3_2025.csv）",
+    )
     return parser.parse_args()
 
 
@@ -197,6 +268,9 @@ def main() -> None:
         timeout=args.timeout,
         database_url=args.database_url,
         table_name=args.table_name,
+        accident_level=args.accident_level,
+        local_csv_path=args.local_csv,
+        local_csv_requested=bool(args.local_csv),
     )
     fetcher = A3DatasetFetcher(config)
     try:

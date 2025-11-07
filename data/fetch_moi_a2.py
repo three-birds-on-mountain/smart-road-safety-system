@@ -1,4 +1,4 @@
-"""Download (or reuse local) MOI A1 accident CSV files and load them into PostgreSQL."""
+"""Download (or reuse local) MOI A2 accident CSV files and load them into PostgreSQL."""
 
 from __future__ import annotations
 
@@ -33,14 +33,15 @@ else:
     IMPORT_ERROR = None
 
 from moi_schema import CHINESE_COLUMNS, normalize_column_name, translate_columns
-DEFAULT_SOURCE_URL = "https://data.moi.gov.tw/MoiOD/System/DownloadFile.aspx?DATA=402E554F-10E7-42C9-BAAF-DF7C431E3F18"
-DEFAULT_DATASET_SUBDIR = "moi_a1"
+
+DEFAULT_SOURCE_URL = ""
+DEFAULT_DATASET_SUBDIR = "moi_a2"
 CSV_FILENAME = "records.csv"
 RAW_FILENAME = "source.csv"
 METADATA_FILENAME = "metadata.json"
-DEFAULT_TABLE_NAME = "raw_moi_a1"
-DEFAULT_ACCIDENT_LEVEL = "A1"
-DEFAULT_LOCAL_CSV = Path.home() / "moi_a1" / "A1_2025.csv"
+DEFAULT_TABLE_NAME = "raw_moi_a2"
+DEFAULT_ACCIDENT_LEVEL = "A2"
+AUTO_LOCAL_PATTERN = "A2_*.csv"
 DB_EXTRA_COLUMNS = ["accident_level", "etl_dt"]
 EXPECTED_COLUMNS = CHINESE_COLUMNS
 
@@ -65,8 +66,10 @@ class CollectorConfig:
 
         if self.local_csv_path is not None:
             self.local_csv_path = self.local_csv_path.expanduser().resolve()
-        elif DEFAULT_LOCAL_CSV.exists():
-            self.local_csv_path = DEFAULT_LOCAL_CSV
+        else:
+            candidate = self._auto_discover_local_csv()
+            if candidate is not None:
+                self.local_csv_path = candidate
 
     @property
     def dataset_dir(self) -> Path:
@@ -84,8 +87,15 @@ class CollectorConfig:
     def metadata_path(self) -> Path:
         return self.dataset_dir / METADATA_FILENAME
 
+    def _auto_discover_local_csv(self) -> Path | None:
+        folder = self.dataset_dir
+        if not folder.exists():
+            return None
+        files = sorted(folder.glob(AUTO_LOCAL_PATTERN))
+        return files[-1] if files else None
 
-class A1DatasetFetcher:
+
+class A2DatasetFetcher:
     def __init__(self, config: CollectorConfig):
         self.config = config
         self.config.dataset_dir.mkdir(parents=True, exist_ok=True)
@@ -101,10 +111,9 @@ class A1DatasetFetcher:
             print("⚠️ CSV header differs from EXPECTED_COLUMNS; check metadata for details.")
 
         print(
-            f"Fetched {row_count} rows from A1 dataset and saved to {self.config.csv_path} "
+            f"Fetched {row_count} rows from A2 dataset and saved to {self.config.csv_path} "
             f"(metadata: {self.config.metadata_path})."
-)
-
+        )
 
     def _obtain_csv_text(self) -> str:
         local_path = self.config.local_csv_path
@@ -113,6 +122,8 @@ class A1DatasetFetcher:
             return local_path.read_text(encoding="utf-8-sig")
         if local_path and self.config.local_csv_requested:
             raise SystemExit(f"Local CSV file not found: {local_path}")
+        if not self.config.source_url:
+            raise SystemExit("No local CSV available and --source-url not provided.")
         return self.download_csv_text()
 
     def download_csv_text(self) -> str:
@@ -224,11 +235,11 @@ class A1DatasetFetcher:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Download the weekly MOI A1 accident dataset (CSV) and store it locally."
+        description="Fetch or load stored MOI A2 accident dataset (CSV) and store it locally."
     )
-    parser.add_argument("--source-url", type=str, default=DEFAULT_SOURCE_URL, help="資料集下載 URL")
+    parser.add_argument("--source-url", type=str, default=DEFAULT_SOURCE_URL, help="資料集下載 URL（預設停用）")
     parser.add_argument(
-        "--dataset-subdir", type=str, default=DEFAULT_DATASET_SUBDIR, help="輸出子資料夾（預設 data/moi_a1）"
+        "--dataset-subdir", type=str, default=DEFAULT_DATASET_SUBDIR, help="輸出子資料夾（預設 data/moi_a2）"
     )
     parser.add_argument("--output-dir", type=Path, default=DATA_ROOT, help="輸出根目錄（預設 data/）")
     parser.add_argument("--timeout", type=float, default=60.0, help="HTTP 逾時秒數（預設 60 秒）")
@@ -242,19 +253,19 @@ def parse_args() -> argparse.Namespace:
         "--table-name",
         type=str,
         default=DEFAULT_TABLE_NAME,
-        help="儲存 A1 資料的資料表名稱（預設 raw_moi_a1）",
+        help="儲存 A2 資料的資料表名稱（預設 raw_moi_a2）",
     )
     parser.add_argument(
         "--accident-level",
         type=str,
         default=DEFAULT_ACCIDENT_LEVEL,
-        help="儲存到資料庫的事故等級欄位值（預設 A1）",
+        help="儲存到資料庫的事故等級欄位值（預設 A2）",
     )
     parser.add_argument(
         "--local-csv",
         type=Path,
         default=None,
-        help="優先使用的本地 CSV 檔案路徑（例如 ~/moi_a1/A1_2025.csv）",
+        help="優先使用的本地 CSV 檔案路徑（例如 data/moi_a2/A2_202501.csv）",
     )
     return parser.parse_args()
 
@@ -272,7 +283,7 @@ def main() -> None:
         local_csv_path=args.local_csv,
         local_csv_requested=bool(args.local_csv),
     )
-    fetcher = A1DatasetFetcher(config)
+    fetcher = A2DatasetFetcher(config)
     try:
         fetcher.run()
     except httpx.HTTPError as exc:
