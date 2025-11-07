@@ -12,7 +12,7 @@ from src.core.errors import (
     sqlalchemy_error_handler,
     generic_exception_handler,
 )
-from src.core.logging import setup_logging
+from src.core.logging import RequestTimingMiddleware, setup_logging
 from src.core.middleware import RateLimitMiddleware
 from src.api import api_router
 from sqlalchemy.exc import SQLAlchemyError
@@ -48,6 +48,8 @@ app.add_middleware(
 
 # 設定速率限制（每分鐘 60 個請求）
 app.add_middleware(RateLimitMiddleware, requests_per_minute=60, burst_size=10)
+# 記錄請求耗時
+app.add_middleware(RequestTimingMiddleware)
 
 # 註冊錯誤處理器
 from fastapi.exceptions import HTTPException
@@ -73,4 +75,3 @@ app.include_router(api_router, prefix=settings.api_v1_prefix)
 async def root():
     """根路徑"""
     return {"message": "智慧道路守護系統 API", "version": "1.0.0"}
-

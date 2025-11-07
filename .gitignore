@@ -3,3 +3,4 @@ specs/.DS_Store
 
 *.env
 *.pyc
+**/.venv/

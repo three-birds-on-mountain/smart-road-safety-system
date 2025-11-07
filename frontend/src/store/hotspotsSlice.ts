@@ -1,6 +1,7 @@
 import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { apiClient } from '../services/api';
 import { getMockNearbyHotspots, getMockHotspotDetail } from '../mocks/hotspots';
+import { mapSeverityLevelsToApi, mapTimeRangeToApi } from '../utils/mappers';
 import type {
   HotspotDetail,
   HotspotListMeta,
@@ -67,10 +68,10 @@ interface FetchNearbyParams {
 }
 
 interface FetchInBoundsParams {
-  minLatitude: number;
-  maxLatitude: number;
-  minLongitude: number;
-  maxLongitude: number;
+  swLatitude: number;
+  swLongitude: number;
+  neLatitude: number;
+  neLongitude: number;
   signal?: AbortSignal;
 }
 
@@ -79,14 +80,7 @@ interface FetchHotspotDetailParams {
   signal?: AbortSignal;
 }
 
-const TIME_RANGE_QUERY: Record<TimeRangeOption, string> = {
-  '1Y': '12_months',
-  '6M': '6_months',
-  '3M': '3_months',
-  '1M': '1_month',
-};
-
-const adaptNearbyHotspot = (payload: NearbyHotspotApi): NearbyHotspot => ({
+export const adaptNearbyHotspot = (payload: NearbyHotspotApi): NearbyHotspot => ({
   id: payload.id,
   centerLatitude: payload.center_latitude,
   centerLongitude: payload.center_longitude,
@@ -101,7 +95,7 @@ const adaptNearbyHotspot = (payload: NearbyHotspotApi): NearbyHotspot => ({
   distanceFromUserMeters: payload.distance_from_user_meters,
 });
 
-const adaptHotspotSummary = (payload: NearbyHotspotApi): HotspotSummary => ({
+export const adaptHotspotSummary = (payload: NearbyHotspotApi): HotspotSummary => ({
   id: payload.id,
   centerLatitude: payload.center_latitude,
   centerLongitude: payload.center_longitude,
@@ -133,7 +127,7 @@ interface HotspotDetailApi extends NearbyHotspotApi {
   }>;
 }
 
-const adaptHotspotDetail = (payload: HotspotDetailApi): HotspotDetail => ({
+export const adaptHotspotDetail = (payload: HotspotDetailApi): HotspotDetail => ({
   ...adaptHotspotSummary(payload),
   distanceFromUserMeters: payload.distance_from_user_meters,
   analysisDate: payload.analysis_date,
@@ -177,11 +171,12 @@ export const fetchNearbyHotspots = createAsyncThunk<
       distance: distanceMeters.toString(),
     });
 
-    if (severityFilter.length) {
-      params.set('severity_levels', severityFilter.join(','));
+    const severityParam = mapSeverityLevelsToApi(severityFilter);
+    if (severityParam) {
+      params.set('severity_levels', severityParam);
     }
 
-    const timeRangeQuery = TIME_RANGE_QUERY[timeRange];
+    const timeRangeQuery = mapTimeRangeToApi(timeRange);
     if (timeRangeQuery) {
       params.set('time_range', timeRangeQuery);
     }
@@ -218,7 +213,7 @@ export const fetchHotspotsInBounds = createAsyncThunk<
   { state: RootState }
 >(
   'hotspots/fetchInBounds',
-  async ({ minLatitude, maxLatitude, minLongitude, maxLongitude, signal }, { getState }) => {
+  async ({ swLatitude, swLongitude, neLatitude, neLongitude, signal }, { getState }) => {
     const {
       settings: {
         current: { severityFilter, timeRange },
@@ -226,17 +221,18 @@ export const fetchHotspotsInBounds = createAsyncThunk<
     } = getState();
 
     const params = new URLSearchParams({
-      min_latitude: minLatitude.toString(),
-      max_latitude: maxLatitude.toString(),
-      min_longitude: minLongitude.toString(),
-      max_longitude: maxLongitude.toString(),
+      sw_lat: swLatitude.toString(),
+      sw_lng: swLongitude.toString(),
+      ne_lat: neLatitude.toString(),
+      ne_lng: neLongitude.toString(),
     });
 
-    if (severityFilter.length) {
-      params.set('severity_levels', severityFilter.join(','));
+    const severityParam = mapSeverityLevelsToApi(severityFilter);
+    if (severityParam) {
+      params.set('severity_levels', severityParam);
     }
 
-    const timeRangeQuery = TIME_RANGE_QUERY[timeRange];
+    const timeRangeQuery = mapTimeRangeToApi(timeRange);
     if (timeRangeQuery) {
       params.set('time_range', timeRangeQuery);
     }

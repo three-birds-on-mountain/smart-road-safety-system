@@ -1,10 +1,7 @@
-import { useEffect, useRef } from 'react'
-import mapboxgl from 'mapbox-gl'
+import { useEffect, useMemo, useRef } from 'react'
+import type mapboxgl from 'mapbox-gl'
 import type { HotspotSummary } from '../../types/hotspot'
 import { getHighestSeverityLevel } from '../../types/hotspot'
-
-// 確保 mapboxgl 被視為已使用（TypeScript 值引用）
-void mapboxgl
 
 export interface HotspotLayerProps {
   /** Mapbox 地圖實例 */
@@ -86,6 +83,26 @@ const getSeverityColor = (severity: string): string => {
  * />
  * ```
  */
+const MAX_RENDERABLE_HOTSPOTS = 500
+
+const pickHighPriorityHotspots = (hotspots: HotspotSummary[]): HotspotSummary[] => {
+  if (hotspots.length <= MAX_RENDERABLE_HOTSPOTS) {
+    return hotspots
+  }
+
+  const critical = hotspots.filter((hotspot) => hotspot.a1Count > 0)
+  if (critical.length >= MAX_RENDERABLE_HOTSPOTS) {
+    return critical.slice(0, MAX_RENDERABLE_HOTSPOTS)
+  }
+
+  const remainingSlots = MAX_RENDERABLE_HOTSPOTS - critical.length
+  const sortedBySeverity = [...hotspots]
+    .filter((hotspot) => hotspot.a1Count === 0)
+    .sort((a, b) => b.totalAccidents - a.totalAccidents)
+
+  return [...critical, ...sortedBySeverity.slice(0, remainingSlots)]
+}
+
 const HotspotLayer = ({
   map,
   hotspots,
@@ -95,6 +112,7 @@ const HotspotLayer = ({
   clusterRadius = 50,
 }: HotspotLayerProps) => {
   const hotspotMapRef = useRef<Map<string, HotspotSummary>>(new Map())
+  const renderableHotspots = useMemo(() => pickHighPriorityHotspots(hotspots), [hotspots])
 
   // 更新熱點資料與圖層
   useEffect(() => {
@@ -118,7 +136,7 @@ const HotspotLayer = ({
 
     // 建立熱點 ID -> 熱點資料的映射（用於點擊事件）
     hotspotMapRef.current.clear()
-    hotspots.forEach((hotspot) => {
+    renderableHotspots.forEach((hotspot) => {
       hotspotMapRef.current.set(hotspot.id, hotspot)
     })
 
@@ -127,7 +145,7 @@ const HotspotLayer = ({
     if (!existingSource) {
       map.addSource(sourceId, {
         type: 'geojson',
-        data: createGeoJSON(hotspots),
+        data: createGeoJSON(renderableHotspots),
         cluster: enableClustering,
         clusterMaxZoom,
         clusterRadius,
@@ -135,7 +153,7 @@ const HotspotLayer = ({
     } else {
       // 更新現有 source 的資料
       const source = existingSource as mapboxgl.GeoJSONSource
-      source.setData(createGeoJSON(hotspots))
+      source.setData(createGeoJSON(renderableHotspots))
     }
 
     // === 圖層 1: 聚合圓圈 ===
@@ -435,7 +453,7 @@ const HotspotLayer = ({
     }
   }, [
     map,
-    hotspots,
+    renderableHotspots,
     onHotspotClick,
     enableClustering,
     clusterMaxZoom,

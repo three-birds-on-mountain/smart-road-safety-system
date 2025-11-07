@@ -1,18 +1,45 @@
 """管理端點 API"""
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from pydantic import BaseModel
 import uuid
 
 from src.db.session import get_db
+from src.core.auth import decode_hs256_jwt
+from src.core.config import get_settings
 from src.core.errors import UnauthorizedError
 from src.core.logging import get_logger
 from src.services.data_ingestion import DataIngestionService
 from src.services.hotspot_analysis import HotspotAnalysisService
 
 logger = get_logger(__name__)
-router = APIRouter()
+settings = get_settings()
+bearer_scheme = HTTPBearer(auto_error=False)
+
+
+def require_admin(
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+) -> Dict[str, Any]:
+    """驗證管理員 JWT（僅接受 HS256 Bearer Token）"""
+    if credentials is None or credentials.scheme.lower() != "bearer":
+        raise UnauthorizedError("此端點需要 Bearer Token")
+
+    payload = decode_hs256_jwt(credentials.credentials, settings.admin_jwt_secret)
+    role = payload.get("role")
+    scope = payload.get("scope")
+
+    # 允許 role=admin 或 scope 內含 admin 字樣
+    if role != "admin":
+        scope_values = str(scope).split() if scope else []
+        if "admin" not in scope_values:
+            raise UnauthorizedError("此端點需要管理員權限")
+
+    return payload
+
+
+router = APIRouter(dependencies=[Depends(require_admin)])
 
 
 class DataIngestionRequest(BaseModel):
@@ -38,10 +65,6 @@ async def trigger_data_ingestion(
 
     注意: 此端點應受到認證保護，僅供管理員使用。
     """
-    # TODO: 實作認證檢查
-    # if not is_admin():
-    #     raise UnauthorizedError("此端點需要管理員權限")
-
     try:
         logger.info("觸發資料擷取")
         service = DataIngestionService(db)
@@ -75,10 +98,6 @@ async def trigger_hotspot_analysis(
 
     注意: 此端點應受到認證保護，僅供管理員使用。
     """
-    # TODO: 實作認證檢查
-    # if not is_admin():
-    #     raise UnauthorizedError("此端點需要管理員權限")
-
     try:
         logger.info("觸發熱點分析")
         service = HotspotAnalysisService(db)
@@ -101,5 +120,3 @@ async def trigger_hotspot_analysis(
     except Exception as e:
         logger.error(f"熱點分析失敗: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="熱點分析失敗")
-
-

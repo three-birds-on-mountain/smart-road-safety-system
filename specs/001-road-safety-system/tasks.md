@@ -33,7 +33,7 @@
 - [x] T004 [P] 配置後端 linting 工具：設定 Black, Ruff 於 backend/pyproject.toml
 - [x] T005 [P] 配置前端 linting 工具：設定 ESLint, Prettier 於 frontend/.eslintrc.json 與 frontend/.prettierrc
 - [x] T006 建立 Docker Compose 配置：docker-compose.yml（PostgreSQL + PostGIS + backend + frontend）
-- [ ] T007 [P] 建立後端環境變數範本：backend/.env.example（DATABASE_URL, GOOGLE_MAPS_API_KEY）
+- [x] T007 [P] 建立後端環境變數範本：backend/.env.example（DATABASE_URL, GOOGLE_MAPS_API_KEY）
 - [x] T008 [P] 建立前端環境變數範本：frontend/.env.example（VITE_API_BASE_URL, VITE_MAPBOX_ACCESS_TOKEN）
 
 ---
@@ -310,15 +310,15 @@
 ### 效能優化
 
 - [x] T116 [P] 後端效能優化：加入 API response caching（Redis, 快取 5 分鐘）in backend/src/core/cache.py
-- [ ] T117 [P] 前端效能優化：實作 Code Splitting in frontend/vite.config.ts（Mapbox SDK lazy loading）
+- [x] T117 [P] 前端效能優化：實作 Code Splitting in frontend/vite.config.ts（Mapbox SDK lazy loading）
 - [x] T118 [P] 資料庫查詢優化：驗證所有 PostGIS 索引正確使用（EXPLAIN ANALYZE 分析）in backend/docs/performance-tuning.md
 
 ### 錯誤處理與邊界案例
 
 - [x] T119 [P] 實作 GPS 訊號弱處理 in frontend/src/services/geolocation.ts（顯示警告訊息、暫停警示功能）
-- [ ] T120 [P] 實作資料更新中提示 in frontend/src/pages/MapPage.tsx（當 hotspots 資料為空時顯示「資料更新中」）
+- [x] T120 [P] 實作資料更新中提示 in frontend/src/pages/MapPage.tsx（當 hotspots 資料為空時顯示「資料更新中」）
 - [x] T121 [P] 實作多個重疊熱點處理 in backend/src/services/hotspot_service.py（優先顯示最高嚴重程度 A1 > A2 > A3）
-- [ ] T122 [P] 實作地圖熱點過多聚合邏輯 in frontend/src/components/Map/HotspotLayer.tsx（超過 500 個熱點時只顯示高優先級）
+- [x] T122 [P] 實作地圖熱點過多聚合邏輯 in frontend/src/components/Map/HotspotLayer.tsx（超過 500 個熱點時只顯示高優先級）
 
 ### 文件與測試覆蓋率
 
@@ -331,8 +331,8 @@
 ### 安全性強化
 
 - [x] T128 [P] 加入 API rate limiting in backend/src/core/middleware.py（每 IP 每分鐘 60 次請求）
-- [ ] T129 [P] 實作管理端點認證 in backend/src/api/admin.py（JWT token 驗證、Bearer Auth）
-- [ ] T130 [P] 前端環境變數驗證 in frontend/src/main.tsx（VITE_API_BASE_URL, VITE_MAPBOX_ACCESS_TOKEN 必填檢查）
+- [x] T129 [P] 實作管理端點認證 in backend/src/api/admin.py（JWT token 驗證、Bearer Auth）
+- [x] T130 [P] 前端環境變數驗證 in frontend/src/main.tsx（VITE_API_BASE_URL, VITE_MAPBOX_ACCESS_TOKEN 必填檢查）
 
 ### CI/CD 設定
 
@@ -350,45 +350,45 @@
 ### 文件修正與格式統一
 
 - [ ] T200 [P] 更新 spec.md 移除「忽略熱點」相關功能 in specs/001-road-safety-system/spec.md（User Story 1 Scenario 3, FR-013, Key Entities）
-- [ ] T201 [P] 建立格式映射文件 in specs/001-road-safety-system/contracts/format-mapping.md（時間範圍、警示方式、距離、事故等級的前後端格式對照）
+- [x] T201 [P] 建立格式映射文件 in specs/001-road-safety-system/contracts/format-mapping.md（時間範圍、警示方式、距離、事故等級的前後端格式對照）
 - [ ] T202 驗證 OpenAPI 契約與實作一致性 in specs/001-road-safety-system/contracts/openapi.yaml（檢查所有端點、參數、回應格式）
 
 ### Flutter WebView 整合
 
-- [ ] T203 [P] 建立 Flutter JS Bridge 通訊層 in frontend/src/services/flutterBridge.ts（實作 postMessage 與事件監聽器）
-- [ ] T204 [P] 實作定位請求函式 in frontend/src/services/flutterBridge.ts（requestLocation() 返回 Promise<Position>）
-- [ ] T205 [P] 實作通知觸發函式 in frontend/src/services/flutterBridge.ts（sendNotification(title, content)）
-- [ ] T206 [P] 加入 Flutter bridge 可用性檢查 in frontend/src/services/flutterBridge.ts（isFlutterBridgeAvailable()）
-- [ ] T207 [P] 撰寫 Flutter bridge 單元測試 in frontend/tests/unit/services/test_flutter_bridge.spec.ts
-- [ ] T208 更新 geolocation.ts 使用 Flutter bridge in frontend/src/services/geolocation.ts（移除瀏覽器原生 Geolocation API）
-- [ ] T209 加入優雅降級處理 in frontend/src/services/geolocation.ts（bridge 不可用時顯示錯誤訊息）
-- [ ] T210 更新 alerts.ts 通知邏輯 in frontend/src/services/alerts.ts（使用 Flutter bridge 觸發通知）
-- [ ] T211 [P] 撰寫定位服務整合測試 in frontend/tests/integration/test_flutter_location.spec.ts
+- [x] T203 [P] 建立 Flutter JS Bridge 通訊層 in frontend/src/services/flutterBridge.ts（實作 postMessage 與事件監聽器）
+- [x] T204 [P] 實作定位請求函式 in frontend/src/services/flutterBridge.ts（requestLocation() 返回 Promise<Position>）
+- [x] T205 [P] 實作通知觸發函式 in frontend/src/services/flutterBridge.ts（sendNotification(title, content)）
+- [x] T206 [P] 加入 Flutter bridge 可用性檢查 in frontend/src/services/flutterBridge.ts（isFlutterBridgeAvailable()）
+- [x] T207 [P] 撰寫 Flutter bridge 單元測試 in frontend/tests/unit/services/test_flutter_bridge.spec.ts
+- [x] T208 更新 geolocation.ts 使用 Flutter bridge in frontend/src/services/geolocation.ts（移除瀏覽器原生 Geolocation API）
+- [x] T209 加入優雅降級處理 in frontend/src/services/geolocation.ts（bridge 不可用時顯示錯誤訊息）
+- [x] T210 更新 alerts.ts 通知邏輯 in frontend/src/services/alerts.ts（使用 Flutter bridge 觸發通知）
+- [x] T211 [P] 撰寫定位服務整合測試 in frontend/tests/integration/test_flutter_location.spec.ts
 
 ### 前端格式轉換實作
 
-- [ ] T212 修正前端時間範圍轉換錯誤 in frontend/src/store/hotspotsSlice.ts（'1Y' 應對應 '1_year' 而非 '12_months'）
-- [ ] T213 修正前端地圖邊界參數名稱 in frontend/src/store/hotspotsSlice.ts（使用 sw_lat, sw_lng, ne_lat, ne_lng 而非 min/max）
-- [ ] T214 [P] 建立格式轉換工具函式 in frontend/src/utils/mappers.ts（mapTimeRangeToApi, mapSeverityLevelsToApi）
-- [ ] T215 [P] 撰寫格式轉換函式的單元測試 in frontend/tests/unit/utils/test_mappers.spec.ts
-- [ ] T216 更新 hotspotsSlice 使用轉換工具函式 in frontend/src/store/hotspotsSlice.ts（抽取轉換邏輯到 mappers.ts）
+- [x] T212 修正前端時間範圍轉換錯誤 in frontend/src/store/hotspotsSlice.ts（'1Y' 應對應 '1_year' 而非 '12_months'）
+- [x] T213 修正前端地圖邊界參數名稱 in frontend/src/store/hotspotsSlice.ts（使用 sw_lat, sw_lng, ne_lat, ne_lng 而非 min/max）
+- [x] T214 [P] 建立格式轉換工具函式 in frontend/src/utils/mappers.ts（mapTimeRangeToApi, mapSeverityLevelsToApi）
+- [x] T215 [P] 撰寫格式轉換函式的單元測試 in frontend/tests/unit/utils/test_mappers.spec.ts
+- [x] T216 更新 hotspotsSlice 使用轉換工具函式 in frontend/src/store/hotspotsSlice.ts（抽取轉換邏輯到 mappers.ts）
 
 ### 後端參數驗證統一
 
-- [ ] T217 統一後端 distance 參數驗證 in backend/src/api/hotspots.py（明確只接受 [100, 500, 1000, 3000]，回傳 422 錯誤）
-- [ ] T218 統一後端 time_range 參數驗證 in backend/src/api/hotspots.py（驗證 enum 值，回傳 422 錯誤）
-- [ ] T219 [P] 加入參數驗證的單元測試 in backend/tests/unit/test_parameter_validation.py
-- [ ] T220 驗證錯誤訊息使用繁體中文 in backend/src/core/errors.py（檢查所有錯誤訊息）
+- [x] T217 統一後端 distance 參數驗證 in backend/src/api/hotspots.py（明確只接受 [100, 500, 1000, 3000]，回傳 422 錯誤）
+- [x] T218 統一後端 time_range 參數驗證 in backend/src/api/hotspots.py（驗證 enum 值，回傳 422 錯誤）
+- [x] T219 [P] 加入參數驗證的單元測試 in backend/tests/unit/test_parameter_validation.py
+- [x] T220 驗證錯誤訊息使用繁體中文 in backend/src/core/errors.py（檢查所有錯誤訊息）
 
 ### 前後端整合測試
 
 - [ ] T221 建立整合測試環境設定 in tests/integration/（docker-compose, 測試資料庫設定）
-- [ ] T222 [P] 撰寫 /hotspots/nearby 端點整合測試 in tests/integration/test_hotspots_nearby_integration.py（測試完整請求-回應流程）
-- [ ] T223 [P] 撰寫 /hotspots/in-bounds 端點整合測試 in tests/integration/test_hotspots_in_bounds_integration.py
-- [ ] T224 [P] 撰寫 /hotspots/{id} 端點整合測試 in tests/integration/test_hotspot_detail_integration.py
-- [ ] T225 測試時間範圍篩選功能 in tests/integration/test_time_range_filter.py（驗證各種時間範圍參數）
-- [ ] T226 測試事故等級篩選功能 in tests/integration/test_severity_filter.py（驗證 A1/A2/A3 組合）
-- [ ] T227 測試無效參數的錯誤處理 in tests/integration/test_error_handling.py（422, 400, 404 錯誤回應）
+- [x] T222 [P] 撰寫 /hotspots/nearby 端點整合測試 in tests/integration/test_hotspots_nearby_integration.py（測試完整請求-回應流程）
+- [x] T223 [P] 撰寫 /hotspots/in-bounds 端點整合測試 in tests/integration/test_hotspots_in_bounds_integration.py
+- [x] T224 [P] 撰寫 /hotspots/{id} 端點整合測試 in tests/integration/test_hotspot_detail_integration.py
+- [x] T225 測試時間範圍篩選功能 in tests/integration/test_time_range_filter.py（驗證各種時間範圍參數）
+- [x] T226 測試事故等級篩選功能 in tests/integration/test_severity_filter.py（驗證 A1/A2/A3 組合）
+- [x] T227 測試無效參數的錯誤處理 in tests/integration/test_error_handling.py（422, 400, 404 錯誤回應）
 
 ### API 文件更新
 
@@ -398,8 +398,8 @@
 ### 前端型別定義與 API 客戶端
 
 - [ ] T230 驗證前端型別定義與 API 契約一致 in frontend/src/types/（hotspot.ts, settings.ts, accident.ts）
-- [ ] T231 [P] 更新前端 API 錯誤處理 in frontend/src/services/api.ts（處理 422 錯誤，顯示中文錯誤訊息）
-- [ ] T232 [P] 建立 API 回應適配器測試 in frontend/tests/unit/adapters/test_hotspot_adapters.spec.ts
+- [x] T231 [P] 更新前端 API 錯誤處理 in frontend/src/services/api.ts（處理 422 錯誤，顯示中文錯誤訊息）
+- [x] T232 [P] 建立 API 回應適配器測試 in frontend/tests/unit/adapters/test_hotspot_adapters.spec.ts
 
 ### 測試覆蓋率驗證
 
@@ -409,9 +409,9 @@
 
 ### 效能監控設定
 
-- [ ] T236 [P] 設定前端 Bundle Size 監控 in frontend/vite.config.ts（使用 rollup-plugin-visualizer）
+- [x] T236 [P] 設定前端 Bundle Size 監控 in frontend/vite.config.ts（使用 rollup-plugin-visualizer）
 - [ ] T237 [P] 驗證 Mapbox SDK bundle size < 500KB in frontend/（執行 npm run build 並檢查輸出）
-- [ ] T238 [P] 設定 API 回應時間監控 in backend/src/core/logging.py（記錄每個請求的處理時間）
+- [x] T238 [P] 設定 API 回應時間監控 in backend/src/core/logging.py（記錄每個請求的處理時間）
 
 ### E2E 測試（可選）
 

@@ -417,6 +417,8 @@ const MapPage = () => {
   const mapCenter =
     followUser && latitude != null && longitude != null ? [longitude, latitude] : undefined;
   const mapZoom = followUser ? 13 : undefined;
+  const showDataUpdatingOverlay =
+    hotspotsState.status === 'loading' && hotspotsState.nearby.length === 0;
 
   return (
     <div className="relative h-screen w-screen">
@@ -452,6 +454,13 @@ const MapPage = () => {
             )
           }
         </MapView>
+        {showDataUpdatingOverlay && (
+          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+            <div className="rounded-xl bg-surface-white/90 px-4 py-3 text-sm font-semibold text-text-secondary shadow-xl">
+              資料更新中，請稍候...
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 回到定位按鈕 */}

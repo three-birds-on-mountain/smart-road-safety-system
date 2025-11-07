@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import mapboxgl from 'mapbox-gl'
+import type mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
+import { loadMapboxModule } from '../../lib/mapbox'
 
 // Mapbox Access Token （從環境變數載入）
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN
@@ -70,65 +71,73 @@ const MapView = ({
 
   // 初始化地圖
   useEffect(() => {
-    if (!mapContainerRef.current) return
-    if (mapRef.current) return // 避免重複初始化
+    let isMounted = true
 
-    // 檢查 Mapbox Token
-    if (!MAPBOX_TOKEN) {
-      console.error(
-        'Mapbox Access Token 未設定！請在 .env 檔案中設定 VITE_MAPBOX_ACCESS_TOKEN'
+    const mountMap = async () => {
+      if (!mapContainerRef.current || mapRef.current) {
+        return
+      }
+
+      if (!MAPBOX_TOKEN) {
+        console.error(
+          'Mapbox Access Token 未設定！請在 .env 檔案中設定 VITE_MAPBOX_ACCESS_TOKEN'
+        )
+        return
+      }
+
+      const module = await loadMapboxModule()
+      if (!isMounted || !mapContainerRef.current) {
+        return
+      }
+
+      const mapbox = module.default
+      mapbox.accessToken = MAPBOX_TOKEN
+
+      const map = new mapbox.Map({
+        container: mapContainerRef.current,
+        style: 'mapbox://styles/mapbox/streets-v12',
+        center: initialCenterRef.current,
+        zoom: initialZoomRef.current,
+        attributionControl: true,
+      })
+
+      map.addControl(
+        new mapbox.NavigationControl({
+          showCompass: true,
+          showZoom: true,
+        }),
+        'top-right'
       )
-      return
-    }
 
-    // 設定 Mapbox Access Token
-    mapboxgl.accessToken = MAPBOX_TOKEN
-
-    // 初始化地圖實例
-    const map = new mapboxgl.Map({
-      container: mapContainerRef.current,
-      style: 'mapbox://styles/mapbox/streets-v12', // 使用街道地圖樣式
-      center: initialCenterRef.current,
-      zoom: initialZoomRef.current,
-      attributionControl: true,
-    })
-
-    // 加入導航控制（縮放與旋轉按鈕）
-    map.addControl(
-      new mapboxgl.NavigationControl({
-        showCompass: true,
-        showZoom: true,
-      }),
-      'top-right'
-    )
-
-    // 地圖載入完成事件
-    map.on('load', () => {
-      console.log('Mapbox 地圖已載入')
-      setMapLoaded(true)
-      onMapLoad?.(map)
-    })
-
-    // 地圖移動結束事件（用於載入新的熱點資料）
-    if (onMoveEnd) {
-      map.on('moveend', () => {
-        onMoveEnd(map)
+      map.on('load', () => {
+        if (!isMounted) return
+        setMapLoaded(true)
+        onMapLoad?.(map)
       })
+
+      if (onMoveEnd) {
+        map.on('moveend', () => {
+          onMoveEnd(map)
+        })
+      }
+
+      if (onZoomEnd) {
+        map.on('zoomend', () => {
+          onZoomEnd(map)
+        })
+      }
+
+      mapRef.current = map
     }
 
-    // 地圖縮放結束事件
-    if (onZoomEnd) {
-      map.on('zoomend', () => {
-        onZoomEnd(map)
-      })
-    }
+    void mountMap()
 
-    mapRef.current = map
-
-    // 清理函式：卸載元件時移除地圖
     return () => {
-      map.remove()
-      mapRef.current = null
+      isMounted = false
+      if (mapRef.current) {
+        mapRef.current.remove()
+        mapRef.current = null
+      }
       setMapLoaded(false)
     }
   }, [onMapLoad, onMoveEnd, onZoomEnd])

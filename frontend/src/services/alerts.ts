@@ -2,6 +2,7 @@ import type { NearbyHotspot } from '../types/hotspot';
 import type { AlertSettings, AlertChannel } from '../types/settings';
 import type { Coordinates } from '../store/locationSlice';
 import { getHighestSeverityLevel } from '../types/hotspot';
+import { isFlutterBridgeAvailable, sendNotification } from './flutterBridge';
 
 export interface AlertServiceOptions {
   audioSrc?: string;
@@ -115,21 +116,31 @@ export class AlertService {
     const activatedChannels: AlertChannel[] = [];
     const unsupportedChannels: AlertChannel[] = [];
 
-    if (settings.alertChannels.includes('sound')) {
-      const played = this.playSound(settings.autoSilenceSeconds);
-      if (played || !this.audio) {
-        activatedChannels.push('sound');
-      } else {
-        unsupportedChannels.push('sound');
-      }
-    }
+    const bridgeHandled = this.triggerViaBridge({
+      hotspot,
+      distanceMeters,
+      channels: settings.alertChannels,
+    });
 
-    if (settings.alertChannels.includes('vibration')) {
-      if (this.triggerVibration()) {
-        activatedChannels.push('vibration');
-      } else {
-        unsupportedChannels.push('vibration');
+    if (!bridgeHandled) {
+      if (settings.alertChannels.includes('sound')) {
+        const played = this.playSound(settings.autoSilenceSeconds);
+        if (played || !this.audio) {
+          activatedChannels.push('sound');
+        } else {
+          unsupportedChannels.push('sound');
+        }
       }
+
+      if (settings.alertChannels.includes('vibration')) {
+        if (this.triggerVibration()) {
+          activatedChannels.push('vibration');
+        } else {
+          unsupportedChannels.push('vibration');
+        }
+      }
+    } else {
+      activatedChannels.push(...settings.alertChannels);
     }
 
     if (activatedChannels.length === 0) {
@@ -216,6 +227,28 @@ export class AlertService {
     } catch {
       return false;
     }
+  }
+
+  private triggerViaBridge({
+    hotspot,
+    distanceMeters,
+    channels,
+  }: {
+    hotspot: NearbyHotspot;
+    distanceMeters: number;
+    channels: AlertChannel[];
+  }): boolean {
+    if (!isFlutterBridgeAvailable() || channels.length === 0) {
+      return false;
+    }
+
+    const highestSeverity = getHighestSeverityLevel(hotspot);
+    const title = highestSeverity === 'A1' ? '⚠️ 致命事故熱點' : '⚠️ 事故熱點提醒';
+    const content = `前方約 ${Math.round(
+      distanceMeters,
+    )} 公尺存在 ${hotspot.totalAccidents} 起事故記錄，請降低車速並保持注意。`;
+
+    return sendNotification(title, content, channels);
   }
 }
 

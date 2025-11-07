@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react'
-import mapboxgl from 'mapbox-gl'
+import type mapboxgl from 'mapbox-gl'
+import { loadMapboxModule } from '../../lib/mapbox'
 
 export interface UserLocationProps {
   /** Mapbox 地圖實例 */
@@ -50,6 +51,14 @@ const UserLocation = ({
   const markerVisualRef = useRef<HTMLDivElement | null>(null)
   const arrowRef = useRef<HTMLDivElement | null>(null)
   const primaryColorRef = useRef('#5AB4C5')
+  const mapboxLibRef = useRef<typeof import('mapbox-gl') | null>(null)
+
+  const getMapbox = useCallback(async () => {
+    if (!mapboxLibRef.current) {
+      mapboxLibRef.current = await loadMapboxModule()
+    }
+    return mapboxLibRef.current
+  }, [])
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -65,112 +74,113 @@ const UserLocation = ({
 
   // 更新用戶位置標記
   useEffect(() => {
+    let isMounted = true
     const internalMap = map as mapboxgl.Map & { _removed?: boolean }
     if (!internalMap || internalMap._removed) {
       return
     }
 
-    if (latitude == null || longitude == null) {
-      // 移除現有標記
-      if (markerRef.current) {
-        try {
-          markerRef.current.remove()
-        } catch (error) {
-          console.warn('Failed to remove user location marker:', error)
+    const syncLocation = async () => {
+      if (latitude == null || longitude == null) {
+        if (markerRef.current) {
+          try {
+            markerRef.current.remove()
+          } catch (error) {
+            console.warn('Failed to remove user location marker:', error)
+          }
+          markerRef.current = null
         }
-        markerRef.current = null
-      }
-      markerVisualRef.current = null
-      arrowRef.current = null
-      return
-    }
-
-    // 確保地圖容器存在
-    const container = internalMap.getContainer?.()
-    if (!container) {
-      return
-    }
-
-    const coordinates: [number, number] = [longitude, latitude]
-
-    // 如果標記不存在，建立新的標記
-    if (!markerRef.current) {
-      // 建立自訂標記元素（藍色圓點，使用 Design System 的 Primary 色）
-      const el = document.createElement('div')
-      el.style.width = '28px'
-      el.style.height = '28px'
-      el.style.display = 'flex'
-      el.style.alignItems = 'center'
-      el.style.justifyContent = 'center'
-      el.style.pointerEvents = 'none'
-
-      const visual = document.createElement('div')
-      visual.style.position = 'relative'
-      visual.style.width = '20px'
-      visual.style.height = '20px'
-      visual.style.display = 'flex'
-      visual.style.alignItems = 'center'
-      visual.style.justifyContent = 'center'
-      visual.style.transition = 'transform 0.2s ease-out'
-
-      const arrow = document.createElement('div')
-      arrow.style.position = 'absolute'
-      arrow.style.top = '-12px'
-      arrow.style.left = '50%'
-      arrow.style.width = '0'
-      arrow.style.height = '0'
-      arrow.style.borderLeft = '6px solid transparent'
-      arrow.style.borderRight = '6px solid transparent'
-      arrow.style.borderBottom = `10px solid ${primaryColorRef.current}`
-      arrow.style.transform = 'translateX(-50%)'
-      arrow.style.filter = 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25))'
-      arrow.style.display = 'none'
-
-      const dot = document.createElement('div')
-      dot.style.width = '18px'
-      dot.style.height = '18px'
-      dot.style.borderRadius = '50%'
-      dot.style.backgroundColor = primaryColorRef.current
-      dot.style.border = '3px solid #ffffff'
-      dot.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.25)'
-
-      visual.appendChild(arrow)
-      visual.appendChild(dot)
-      el.appendChild(visual)
-
-      markerVisualRef.current = visual
-      arrowRef.current = arrow
-
-      // 建立標記實例（確保在地圖載入後才添加）
-      try {
-        const marker = new mapboxgl.Marker({
-          element: el,
-          anchor: 'center',
-        })
-          .setLngLat(coordinates)
-          .addTo(internalMap)
-
-        markerRef.current = marker
-      } catch (error) {
-        console.error('Failed to add user location marker:', error)
+        markerVisualRef.current = null
+        arrowRef.current = null
         return
       }
-    } else {
-      // 更新現有標記的位置
-      markerRef.current.setLngLat(coordinates)
+
+      const module = await getMapbox()
+      if (!isMounted) return
+
+      const container = internalMap.getContainer?.()
+      if (!container) {
+        return
+      }
+
+      const coordinates: [number, number] = [longitude, latitude]
+
+      if (!markerRef.current) {
+        const el = document.createElement('div')
+        el.style.width = '28px'
+        el.style.height = '28px'
+        el.style.display = 'flex'
+        el.style.alignItems = 'center'
+        el.style.justifyContent = 'center'
+        el.style.pointerEvents = 'none'
+
+        const visual = document.createElement('div')
+        visual.style.position = 'relative'
+        visual.style.width = '20px'
+        visual.style.height = '20px'
+        visual.style.display = 'flex'
+        visual.style.alignItems = 'center'
+        visual.style.justifyContent = 'center'
+        visual.style.transition = 'transform 0.2s ease-out'
+
+        const arrow = document.createElement('div')
+        arrow.style.position = 'absolute'
+        arrow.style.top = '-12px'
+        arrow.style.left = '50%'
+        arrow.style.width = '0'
+        arrow.style.height = '0'
+        arrow.style.borderLeft = '6px solid transparent'
+        arrow.style.borderRight = '6px solid transparent'
+        arrow.style.borderBottom = `10px solid ${primaryColorRef.current}`
+        arrow.style.transform = 'translateX(-50%)'
+        arrow.style.filter = 'drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25))'
+        arrow.style.display = 'none'
+
+        const dot = document.createElement('div')
+        dot.style.width = '18px'
+        dot.style.height = '18px'
+        dot.style.borderRadius = '50%'
+        dot.style.backgroundColor = primaryColorRef.current
+        dot.style.border = '3px solid #ffffff'
+        dot.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.25)'
+
+        visual.appendChild(arrow)
+        visual.appendChild(dot)
+        el.appendChild(visual)
+
+        markerVisualRef.current = visual
+        arrowRef.current = arrow
+
+        try {
+          const marker = new module.default.Marker({
+            element: el,
+            anchor: 'center',
+          })
+            .setLngLat(coordinates)
+            .addTo(internalMap)
+
+          markerRef.current = marker
+        } catch (error) {
+          console.error('Failed to add user location marker:', error)
+          return
+        }
+      } else {
+        markerRef.current.setLngLat(coordinates)
+      }
+
+      if (autoCenter) {
+        internalMap.easeTo({
+          center: coordinates,
+          zoom: Math.max(internalMap.getZoom(), 13),
+          duration: 1000,
+        })
+      }
     }
 
-    // 自動置中地圖
-    if (autoCenter) {
-      internalMap.easeTo({
-        center: coordinates,
-        zoom: Math.max(internalMap.getZoom(), 13), // 至少 zoom 13
-        duration: 1000,
-      })
-    }
+    void syncLocation()
 
-    // 清理函式
     return () => {
+      isMounted = false
       if (markerRef.current) {
         try {
           markerRef.current.remove()
@@ -182,7 +192,7 @@ const UserLocation = ({
       markerVisualRef.current = null
       arrowRef.current = null
     }
-  }, [map, latitude, longitude, autoCenter])
+  }, [map, latitude, longitude, autoCenter, getMapbox])
 
   const applyHeading = useCallback(() => {
     if (!markerVisualRef.current || !arrowRef.current) {

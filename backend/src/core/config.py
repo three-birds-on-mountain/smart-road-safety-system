@@ -11,6 +11,8 @@ class Settings(BaseSettings):
 
     # Google Maps API 設定
     google_maps_api_key: str = ""
+    admin_jwt_secret: str = "change-me"
+    admin_jwt_algorithm: str = "HS256"
 
     # 應用程式設定
     environment: str = "development"
@@ -31,4 +33,3 @@ class Settings(BaseSettings):
 def get_settings() -> Settings:
     """取得設定單例"""
     return Settings()
-

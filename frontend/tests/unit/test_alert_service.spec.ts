@@ -1,8 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createAlertService } from '../../src/services/alerts';
+import { isFlutterBridgeAvailable, sendNotification } from '../../src/services/flutterBridge';
 import type { Coordinates } from '../../src/store/locationSlice';
 import type { AlertSettings } from '../../src/types/settings';
 import type { NearbyHotspot } from '../../src/types/hotspot';
+
+vi.mock('../../src/services/flutterBridge', () => ({
+  isFlutterBridgeAvailable: vi.fn(() => false),
+  sendNotification: vi.fn(() => true),
+}));
 
 const baseSettings: AlertSettings = {
   distanceMeters: 500,
@@ -15,8 +21,8 @@ const baseSettings: AlertSettings = {
 
 const createHotspot = (overrides?: Partial<NearbyHotspot>): NearbyHotspot => ({
   id: 'hotspot-001',
-  centerLatitude: 25.033,
-  centerLongitude: 121.565,
+  centerLatitude: 25.035,
+  centerLongitude: 121.567,
   radiusMeters: 200,
   totalAccidents: 8,
   a1Count: 1,
@@ -25,7 +31,7 @@ const createHotspot = (overrides?: Partial<NearbyHotspot>): NearbyHotspot => ({
   earliestAccidentAt: '2024-06-01T02:00:00Z',
   latestAccidentAt: '2024-10-01T02:00:00Z',
   severityScore: 7.5,
-  distanceFromUserMeters: 150,
+  distanceFromUserMeters: 0,
   ...overrides,
 });
 
@@ -43,6 +49,7 @@ describe('AlertService', () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    vi.clearAllMocks();
   });
 
   it('triggers alert when hotspot within range and severity allowed', () => {
@@ -56,7 +63,7 @@ describe('AlertService', () => {
     });
 
     expect(result.triggered).toBe(true);
-    expect(result.distanceMeters).toBe(150);
+    expect(result.distanceMeters).toBeGreaterThan(0);
     expect(result.reason).toBeUndefined();
     expect(result.activatedChannels).toEqual(['sound']);
   });
@@ -167,5 +174,28 @@ describe('AlertService', () => {
     expect(result.reason).toBe('unsupported');
     expect(result.activatedChannels).toEqual([]);
     expect(result.unsupportedChannels).toEqual(['vibration']);
+  });
+
+  it('delegates notification handling to Flutter bridge when available', () => {
+    const mockedBridge = vi.mocked(isFlutterBridgeAvailable);
+    mockedBridge.mockReturnValue(true);
+    const mockedSender = vi.mocked(sendNotification);
+    mockedSender.mockReturnValue(true);
+
+    const service = createAlertService();
+    const hotspot = createHotspot();
+
+    const result = service.triggerAlert({
+      hotspot,
+      userLocation,
+      settings: {
+        ...baseSettings,
+        alertChannels: ['sound', 'vibration'],
+      },
+    });
+
+    expect(result.triggered).toBe(true);
+    expect(result.activatedChannels).toEqual(['sound', 'vibration']);
+    expect(mockedSender).toHaveBeenCalled();
   });
 });

@@ -41,6 +41,7 @@ services:
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/road_safety_db
       GOOGLE_MAPS_API_KEY: ${GOOGLE_MAPS_API_KEY:-}
+      ADMIN_JWT_SECRET: ${ADMIN_JWT_SECRET:-change-me}
       ENVIRONMENT: development
       LOG_LEVEL: INFO
     ports:
@@ -54,5 +55,4 @@ services:
 
 volumes:
   postgres_data:
-
 

@@ -1,7 +1,11 @@
-"""日誌設定：結構化日誌"""
+"""日誌設定：結構化日誌與請求耗時監控"""
 import logging
 import sys
+from time import perf_counter
 from typing import Any
+
+from fastapi import Request
+from starlette.middleware.base import BaseHTTPMiddleware
 
 
 def setup_logging(log_level: str = "INFO") -> None:
@@ -30,3 +34,25 @@ def get_logger(name: str) -> logging.Logger:
     """取得日誌記錄器"""
     return logging.getLogger(name)
 
+
+class RequestTimingMiddleware(BaseHTTPMiddleware):
+    """量測並記錄 HTTP 請求耗時的中介層"""
+
+    def __init__(self, app) -> None:
+        super().__init__(app)
+        self.logger = logging.getLogger("api.request")
+
+    async def dispatch(self, request: Request, call_next):
+        start = perf_counter()
+        response = await call_next(request)
+        duration_ms = (perf_counter() - start) * 1000
+
+        self.logger.info(
+            "API 請求 %s %s 完成，狀態碼=%s，耗時=%.2fms",
+            request.method,
+            request.url.path,
+            response.status_code,
+            duration_ms,
+        )
+        response.headers["X-Response-Time-ms"] = f"{duration_ms:.2f}"
+        return response

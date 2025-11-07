@@ -6,19 +6,10 @@ import {
   updateLocation,
   type Coordinates,
 } from '../store/locationSlice';
+import { isFlutterBridgeAvailable, postMessage, requestLocation, subscribeToBridgeEvent } from './flutterBridge';
 import type { AppDispatch } from '../store';
 import type { GPSStatus } from '../types/settings';
-
-export interface GeolocationServiceOptions extends PositionOptions {
-  onLocationUpdate?: (coordinates: Coordinates) => void;
-  onStatusChange?: (status: GPSStatus) => void;
-  onError?: (error: GeolocationPositionError | Error) => void;
-}
-
-interface WatchState {
-  watchId: number | null;
-  isWatching: boolean;
-}
+import type { BridgePosition } from './flutterBridge';
 
 const defaultOptions: PositionOptions = {
   enableHighAccuracy: true,
@@ -27,21 +18,38 @@ const defaultOptions: PositionOptions = {
 };
 
 const permissionDeniedMessage = '定位權限被拒絕，請於瀏覽器設定中允許定位權限。';
-const unsupportedMessage = '此裝置不支援地理定位功能。';
+
+export interface GeolocationServiceOptions {
+  onLocationUpdate?: (coordinates: Coordinates) => void;
+  onStatusChange?: (status: GPSStatus) => void;
+  onError?: (error: Error) => void;
+}
+
+interface WatchState {
+  isWatching: boolean;
+  unsubscribe?: () => void;
+  nativeWatchId: number | null;
+}
+
+const unsupportedMessage =
+  'Flutter 裝置尚未連線，無法取得定位資料。請確認 App 以 WebView 執行並授予定位權限。';
+
+const bridgeNotReadyError = new Error(unsupportedMessage);
+
+const adaptBridgePosition = (position: BridgePosition): Coordinates => ({
+  latitude: position.latitude,
+  longitude: position.longitude,
+  accuracy: position.accuracy,
+  heading: position.heading ?? null,
+  speed: position.speed ?? null,
+  timestamp: position.timestamp ?? Date.now(),
+});
 
 export const createGeolocationService = (dispatch: AppDispatch) => {
   const state: WatchState = {
-    watchId: null,
     isWatching: false,
-  };
-
-  const stopWatching = () => {
-    if (typeof navigator !== 'undefined' && state.watchId !== null) {
-      navigator.geolocation.clearWatch(state.watchId);
-    }
-    state.watchId = null;
-    state.isWatching = false;
-    dispatch(setGPSStatus('idle'));
+    unsubscribe: undefined,
+    nativeWatchId: null,
   };
 
   const emitStatus = (status: GPSStatus, options?: GeolocationServiceOptions) => {
@@ -49,72 +57,28 @@ export const createGeolocationService = (dispatch: AppDispatch) => {
     options?.onStatusChange?.(status);
   };
 
-  const handleSuccess =
-    (options?: GeolocationServiceOptions) =>
-    ({ coords, timestamp }: GeolocationPosition) => {
-      const coordinates: Coordinates = {
-        latitude: coords.latitude,
-        longitude: coords.longitude,
-        accuracy: coords.accuracy,
-        heading: 'heading' in coords ? (coords as GeolocationCoordinates).heading ?? null : null,
-        speed: 'speed' in coords ? (coords as GeolocationCoordinates).speed ?? null : null,
-        timestamp,
-      };
+  const handleLocationUpdate = (position: BridgePosition, options?: GeolocationServiceOptions) => {
+    const normalized = adaptBridgePosition(position);
+    dispatch(setPermissionGranted(true));
+    dispatch(updateLocation(normalized));
 
-      dispatch(setPermissionGranted(true));
-      dispatch(updateLocation(coordinates));
-
-      // T119: GPS 訊號弱處理
-      // 根據 accuracy (精確度) 判斷訊號強度
-      // accuracy 單位為公尺，值越大表示越不準確
-      const isWeakSignal = coords.accuracy > 50 // 精確度 > 50 公尺視為訊號弱
-
-      if (isWeakSignal) {
-        dispatch(
-          setLocationError(
-            `GPS 訊號較弱（精確度: ${Math.round(coords.accuracy)} 公尺），警示功能可能受影響。`
-          )
-        );
-      } else {
-        // 訊號正常，清除錯誤訊息
-        dispatch(setLocationError(undefined));
-      }
-
-      emitStatus('active', options);
-      options?.onLocationUpdate?.(coordinates);
-    };
-
-  const handleError =
-    (options?: GeolocationServiceOptions) =>
-    (error: GeolocationPositionError) => {
-      dispatch(setLocationError(error.message));
-
-      switch (error.code) {
-        case error.PERMISSION_DENIED:
-          dispatch(setPermissionGranted(false));
-          emitStatus('error', options);
-          options?.onError?.(error);
-          dispatch(setLocationError(permissionDeniedMessage));
-          stopWatching();
-          break;
-        case error.POSITION_UNAVAILABLE:
-        case error.TIMEOUT:
-        default:
-          emitStatus('error', options);
-          options?.onError?.(error);
-          break;
-      }
-    };
-
-  const startWatching = (options?: GeolocationServiceOptions) => {
-    if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      dispatch(setPermissionGranted(false));
-      dispatch(setLocationError(unsupportedMessage));
-      emitStatus('unsupported', options);
-      options?.onError?.(new Error(unsupportedMessage));
-      return;
+    if (normalized.accuracy && normalized.accuracy > 50) {
+      dispatch(
+        setLocationError(
+          `GPS 訊號較弱（精確度: ${Math.round(
+            normalized.accuracy,
+          )} 公尺），警示功能可能受影響。`,
+        ),
+      );
+    } else {
+      dispatch(setLocationError(undefined));
     }
 
+    emitStatus('active', options);
+    options?.onLocationUpdate?.(normalized);
+  };
+
+  const startBridgeWatcher = (options?: GeolocationServiceOptions) => {
     if (state.isWatching) {
       return;
     }
@@ -122,17 +86,113 @@ export const createGeolocationService = (dispatch: AppDispatch) => {
     emitStatus('locating', options);
     dispatch(setLocationError(undefined));
 
+    state.unsubscribe = subscribeToBridgeEvent('location', (payload) => {
+      if (!payload || typeof payload !== 'object') {
+        return;
+      }
+      handleLocationUpdate(payload as BridgePosition, options);
+    });
+
+    state.isWatching = true;
+    postMessage({ name: 'location:start' });
+
+    requestLocation()
+      .then((position) => handleLocationUpdate(position, options))
+      .catch((error: Error) => {
+        dispatch(setLocationError(error.message));
+        emitStatus('error', options);
+        options?.onError?.(error);
+      });
+  };
+
+  const startNativeWatcher = (options?: GeolocationServiceOptions) => {
+    if (state.nativeWatchId) {
+      return;
+    }
+
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      dispatch(setPermissionGranted(false));
+      dispatch(setLocationError(unsupportedMessage));
+      emitStatus('unsupported', options);
+      options?.onError?.(bridgeNotReadyError);
+      return;
+    }
+
+    emitStatus('locating', options);
+    dispatch(setLocationError(undefined));
+
     const watchId = navigator.geolocation.watchPosition(
-      handleSuccess(options),
-      handleError(options),
-      {
-        ...defaultOptions,
-        ...(options ?? {}),
+      ({ coords, timestamp }) => {
+        const position: Coordinates = {
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+          accuracy: coords.accuracy,
+          heading: 'heading' in coords ? (coords as GeolocationCoordinates).heading ?? null : null,
+          speed: 'speed' in coords ? (coords as GeolocationCoordinates).speed ?? null : null,
+          timestamp,
+        };
+
+        dispatch(setPermissionGranted(true));
+        dispatch(updateLocation(position));
+
+        if (coords.accuracy > 50) {
+          dispatch(
+            setLocationError(
+              `GPS 訊號較弱（精確度: ${Math.round(
+                coords.accuracy,
+              )} 公尺），警示功能可能受影響。`,
+            ),
+          );
+        } else {
+          dispatch(setLocationError(undefined));
+        }
+
+        emitStatus('active', options);
+        options?.onLocationUpdate?.(position);
       },
+      (error) => {
+        dispatch(setLocationError(error.message));
+
+        if (error.code === error.PERMISSION_DENIED) {
+          dispatch(setPermissionGranted(false));
+          emitStatus('error', options);
+          options?.onError?.(new Error(permissionDeniedMessage));
+          stopNativeWatcher();
+          return;
+        }
+
+        emitStatus('error', options);
+        options?.onError?.(error);
+      },
+      defaultOptions,
     );
 
-    state.watchId = watchId;
+    state.nativeWatchId = watchId;
     state.isWatching = true;
+  };
+
+  const startWatching = (options?: GeolocationServiceOptions) => {
+    if (isFlutterBridgeAvailable()) {
+      startBridgeWatcher(options);
+      return;
+    }
+    startNativeWatcher(options);
+  };
+
+  const stopWatching = () => {
+    if (state.unsubscribe) {
+      state.unsubscribe();
+      state.unsubscribe = undefined;
+    }
+    if (isFlutterBridgeAvailable()) {
+      postMessage({ name: 'location:stop' });
+    }
+    if (state.nativeWatchId && typeof navigator !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.clearWatch(state.nativeWatchId);
+      state.nativeWatchId = null;
+    }
+    state.isWatching = false;
+    dispatch(setGPSStatus('idle'));
   };
 
   const reset = () => {
@@ -140,34 +200,17 @@ export const createGeolocationService = (dispatch: AppDispatch) => {
     dispatch(resetLocation());
   };
 
-  const getCurrentPosition = (
-    options?: PositionOptions,
-  ): Promise<Coordinates | undefined> => {
-    if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      return Promise.resolve(undefined);
+  const getCurrentPosition = async (): Promise<Coordinates | undefined> => {
+    if (!isFlutterBridgeAvailable()) {
+      return undefined;
     }
-
-    return new Promise((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(
-        ({ coords, timestamp }) => {
-          const coordinates: Coordinates = {
-            latitude: coords.latitude,
-            longitude: coords.longitude,
-            accuracy: coords.accuracy,
-            heading:
-              'heading' in coords ? (coords as GeolocationCoordinates).heading ?? null : null,
-            speed: 'speed' in coords ? (coords as GeolocationCoordinates).speed ?? null : null,
-            timestamp,
-          };
-
-          resolve(coordinates);
-        },
-        (error) => {
-          reject(error);
-        },
-        { ...defaultOptions, ...(options ?? {}) },
-      );
-    });
+    try {
+      const position = await requestLocation();
+      return adaptBridgePosition(position);
+    } catch (error) {
+      console.warn('Failed to request single location update:', error);
+      return undefined;
+    }
   };
 
   return {
