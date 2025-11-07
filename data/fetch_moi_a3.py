@@ -1,7 +1,7 @@
-"""Incremental collector for MOI A1 accident data (suitable for weekly schedules).
+"""Incremental collector for MOI A3 accident data (suitable for weekly schedules).
 
 The API keeps appending rows to the same dataset. This script remembers the last processed
-offset (stored in `data/moi_a1/metadata.json` by default), resumes from there on each run,
+offset (stored in `data/moi_a3/metadata.json` by default), resumes from there on each run,
 and appends only the newly available rows to `records.jsonl` or `records.csv`.
 """
 
@@ -20,7 +20,7 @@ import httpx
 DATA_ROOT = Path(__file__).resolve().parent
 BASE_API_URL = "https://od.moi.gov.tw/api/v1/rest/datastore/A01010000C-001309-001"
 DEFAULT_LIMIT = 3000
-DEFAULT_DATASET_SUBDIR = "moi_a1"
+DEFAULT_DATASET_SUBDIR = "moi_a3"
 STATE_FILENAME = "metadata.json"
 JSONL_FILENAME = "records.jsonl"
 CSV_FILENAME = "records.csv"
@@ -226,7 +226,7 @@ class MoiDatasetCollector:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Incrementally download MOI A1 accident data with offset tracking.",
+        description="Incrementally download MOI A3 accident data with offset tracking.",
     )
     parser.add_argument("--base-url", type=str, default=BASE_API_URL, help="完整 API URL")
     parser.add_argument("--limit", type=int, default=DEFAULT_LIMIT, help="每次拉取的筆數")
@@ -234,7 +234,7 @@ def parse_args() -> argparse.Namespace:
         "--dataset-subdir",
         type=str,
         default=DEFAULT_DATASET_SUBDIR,
-        help="資料輸出子資料夾（預設 data/moi_a1）",
+        help="資料輸出子資料夾（預設 data/moi_a3）",
     )
     parser.add_argument(
         "--output-dir",
