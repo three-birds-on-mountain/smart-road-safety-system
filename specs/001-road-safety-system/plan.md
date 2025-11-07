@@ -32,10 +32,15 @@
 - **狀態管理**: Redux Toolkit
 - **地圖SDK**: Mapbox GL JS v2.16+
 - **HTTP請求**: Axios
-- **定位功能**: Geolocation API (瀏覽器原生)
+- **定位功能**: Flutter JS Bridge (TownPass WebView 整合)
 - **圖示套件**: Lucide Icons, Heroicons
 
-**專案類型**: Web應用 (frontend + backend)
+**專案類型**: Web應用 (frontend + backend)，透過 Flutter WebView 內嵌於 TownPass App
+
+**部署模式**：
+- **前端**: 部署為 HTTPS Web 服務，透過 TownPass App 的 WebView 載入
+- **後端**: 獨立 API 服務
+- **整合方式**: Flutter JS Bridge 用於定位與通知功能
 
 **效能目標**：
 - API回應時間 p95 < 200ms
@@ -55,6 +60,11 @@
 - A3資料無經緯度（需透過地理編碼轉換）
 - 前端僅支援App在前景執行時的GPS監控
 - 用戶設定儲存於本地（無需帳號系統）
+- **Flutter WebView 限制**：
+  - 必須透過 `window.flutterObject.postMessage()` 取得定位資訊
+  - 不可使用瀏覽器原生 Geolocation API
+  - 需處理 Flutter bridge 不可用的情境（優雅降級）
+  - 通知功能需透過 Flutter bridge 觸發（格式：`{ name: 'notify', data: { title, content } }`）
 
 ## Constitution 檢查
 
@@ -184,7 +194,8 @@ frontend/
 │   │   └── SettingsPage.tsx
 │   ├── services/               # 服務層
 │   │   ├── api.ts              # Axios API客戶端
-│   │   ├── geolocation.ts      # GPS定位服務
+│   │   ├── geolocation.ts      # GPS定位服務（透過 Flutter JS Bridge）
+│   │   ├── flutterBridge.ts    # Flutter WebView 通訊層
 │   │   └── alerts.ts           # 警示邏輯服務
 │   ├── store/                  # Redux狀態管理
 │   │   ├── index.ts
@@ -253,12 +264,19 @@ README.md                       # 專案說明（繁體中文）
    - 效能優化（tile caching、vector tiles）
    - 離線地圖支援可行性
 
-5. **即時GPS監控與警示觸發**
-   - Geolocation API輪詢頻率 vs watchPosition
-   - 前端位置比對演算法（避免過度API請求）
-   - 震動API (Vibration API) 瀏覽器支援度
+5. **Flutter WebView JS Bridge 整合**
+   - Flutter JS Bridge 通訊協定實作（`window.flutterObject.postMessage()`）
+   - 定位請求與回應處理（`{ name: 'location', data: null }` → Position JSON）
+   - 通知觸發格式（`{ name: 'notify', data: { title, content } }`）
+   - 優雅降級策略（bridge 不可用時的 fallback）
+   - 錯誤處理（權限被拒、資料格式錯誤）
 
-6. **Docker多階段建置**
+6. **即時GPS監控與警示觸發**
+   - Flutter bridge 定位更新頻率策略
+   - 前端位置比對演算法（避免過度API請求）
+   - 震動與音效警示實作（透過 Flutter bridge 或 Web Audio API）
+
+7. **Docker多階段建置**
    - Python 3.12 + uv 的Docker最佳實踐
    - Vite前端建置優化
    - 多服務docker-compose設定（backend + frontend + postgres + redis?）
