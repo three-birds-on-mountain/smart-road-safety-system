@@ -1,4 +1,4 @@
-"""Download the weekly MOI A3 accident dataset (already CSV) and overwrite local copies."""
+"""Download the weekly MOI A1 accident dataset (CSV) and overwrite local copies."""
 
 from __future__ import annotations
 
@@ -20,12 +20,66 @@ from psycopg2 import sql
 from psycopg2.extras import execute_batch
 
 DATA_ROOT = Path(__file__).resolve().parent
-DEFAULT_SOURCE_URL = "https://data.moi.gov.tw/MoiOD/System/DownloadFile.aspx?DATA=6EC4380A-0F8A-4D68-809B-2218930F08FB"
-DEFAULT_DATASET_SUBDIR = "moi_a3"
+DEFAULT_SOURCE_URL = "https://data.moi.gov.tw/MoiOD/System/DownloadFile.aspx?DATA=402E554F-10E7-42C9-BAAF-DF7C431E3F18"
+DEFAULT_DATASET_SUBDIR = "moi_a1"
 CSV_FILENAME = "records.csv"
 RAW_FILENAME = "source.csv"
 METADATA_FILENAME = "metadata.json"
-DEFAULT_TABLE_NAME = "raw_moi_a3"
+DEFAULT_TABLE_NAME = "raw_moi_a1"
+
+EXPECTED_COLUMNS = [
+    "發生年度",
+    "發生月份",
+    "發生日期",
+    "發生時間",
+    "事故類別名稱",
+    "處理單位名稱警局層",
+    "發生地點",
+    "天候名稱",
+    "光線名稱",
+    "道路類別-第1當事者-名稱",
+    "速限-第1當事者",
+    "道路型態大類別名稱",
+    "道路型態子類別名稱",
+    "事故位置大類別名稱",
+    "事故位置子類別名稱",
+    "路面狀況-路面鋪裝名稱",
+    "路面狀況-路面狀態名稱",
+    "路面狀況-路面缺陷名稱",
+    "道路障礙-障礙物名稱",
+    "道路障礙-視距品質名稱",
+    "道路障礙-視距名稱",
+    "號誌-號誌種類名稱",
+    "號誌-號誌動作名稱",
+    "車道劃分設施-分向設施大類別名稱",
+    "車道劃分設施-分向設施子類別名稱",
+    "車道劃分設施-分道設施-快車道或一般車道間名稱",
+    "車道劃分設施-分道設施-快慢車道間名稱",
+    "車道劃分設施-分道設施-路面邊線名稱",
+    "事故類型及型態大類別名稱",
+    "事故類型及型態子類別名稱",
+    "肇因研判大類別名稱-主要",
+    "肇因研判子類別名稱-主要",
+    "死亡受傷人數",
+    "當事者順位",
+    "當事者區分-類別-大類別名稱-車種",
+    "當事者區分-類別-子類別名稱-車種",
+    "當事者屬-性-別名稱",
+    "當事者事故發生時年齡",
+    "保護裝備名稱",
+    "行動電話或電腦或其他相類功能裝置名稱",
+    "當事者行動狀態大類別名稱",
+    "當事者行動狀態子類別名稱",
+    "車輛撞擊部位大類別名稱-最初",
+    "車輛撞擊部位子類別名稱-最初",
+    "車輛撞擊部位大類別名稱-其他",
+    "車輛撞擊部位子類別名稱-其他",
+    "肇因研判大類別名稱-個別",
+    "肇因研判子類別名稱-個別",
+    "肇事逃逸類別名稱-是否肇逃",
+    "經度",
+    "緯度",
+]
 
 
 @dataclass(slots=True)
@@ -59,7 +113,7 @@ class CollectorConfig:
         return self.dataset_dir / METADATA_FILENAME
 
 
-class A3DatasetFetcher:
+class A1DatasetFetcher:
     def __init__(self, config: CollectorConfig):
         self.config = config
         self.config.dataset_dir.mkdir(parents=True, exist_ok=True)
@@ -85,7 +139,6 @@ class A3DatasetFetcher:
                 return wrapper.read()
 
     def save_files(self, csv_text: str) -> tuple[int, list[str]]:
-        # Preserve a copy of the raw CSV exactly as downloaded
         self.config.raw_path.write_text(csv_text, encoding="utf-8")
 
         reader = csv.reader(StringIO(csv_text))
@@ -93,17 +146,19 @@ class A3DatasetFetcher:
         if not rows:
             return 0, []
 
+        header = rows[0]
         with self.config.csv_path.open("w", newline="", encoding="utf-8") as fh:
             writer = csv.writer(fh)
             writer.writerows(rows)
 
-        return max(len(rows) - 1, 0), rows[0]
+        return max(len(rows) - 1, 0), header
 
     def write_metadata(self, row_count: int, header: list[str]) -> None:
         metadata: dict[str, Any] = {
             "source_url": self.config.source_url,
             "record_count": row_count,
-            "columns": header,
+            "expected_columns": EXPECTED_COLUMNS,
+            "actual_columns": header,
             "csv_path": str(self.config.csv_path),
             "raw_path": str(self.config.raw_path),
             "downloaded_at": datetime.now(timezone.utc).isoformat(),
@@ -157,19 +212,23 @@ class A3DatasetFetcher:
         row_count, header = self.save_files(csv_text)
         self.write_metadata(row_count, header)
         self.load_into_database(header)
+
+        if header and header != EXPECTED_COLUMNS:
+            print("⚠️ CSV header differs from EXPECTED_COLUMNS; check metadata for details.")
+
         print(
-            f"Fetched {row_count} rows from A3 dataset and saved to {self.config.csv_path} "
+            f"Fetched {row_count} rows from A1 dataset and saved to {self.config.csv_path} "
             f"(metadata: {self.config.metadata_path})."
         )
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Download the weekly MOI A3 accident dataset (CSV) and store it locally."
+        description="Download the weekly MOI A1 accident dataset (CSV) and store it locally."
     )
     parser.add_argument("--source-url", type=str, default=DEFAULT_SOURCE_URL, help="資料集下載 URL")
     parser.add_argument(
-        "--dataset-subdir", type=str, default=DEFAULT_DATASET_SUBDIR, help="輸出子資料夾（預設 data/moi_a3）"
+        "--dataset-subdir", type=str, default=DEFAULT_DATASET_SUBDIR, help="輸出子資料夾（預設 data/moi_a1）"
     )
     parser.add_argument("--output-dir", type=Path, default=DATA_ROOT, help="輸出根目錄（預設 data/）")
     parser.add_argument("--timeout", type=float, default=60.0, help="HTTP 逾時秒數（預設 60 秒）")
@@ -183,7 +242,7 @@ def parse_args() -> argparse.Namespace:
         "--table-name",
         type=str,
         default=DEFAULT_TABLE_NAME,
-        help="儲存 A3 資料的資料表名稱（預設 raw_moi_a3）",
+        help="儲存 A1 資料的資料表名稱（預設 raw_moi_a1）",
     )
     return parser.parse_args()
 
@@ -198,7 +257,7 @@ def main() -> None:
         database_url=args.database_url,
         table_name=args.table_name,
     )
-    fetcher = A3DatasetFetcher(config)
+    fetcher = A1DatasetFetcher(config)
     try:
         fetcher.run()
     except httpx.HTTPError as exc:
