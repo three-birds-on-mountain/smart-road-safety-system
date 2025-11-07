@@ -422,9 +422,9 @@
 
 ### 部署準備
 
-- [ ] T243 [P] 建立環境變數範本文件 in docs/environment-variables.md（列出所有必要的環境變數）
-- [ ] T244 [P] 建立部署檢查清單 in docs/deployment-checklist.md（部署前的驗證項目）
-- [ ] T245 驗證 Docker Compose 配置 in docker-compose.yml（確保前後端可正確啟動並互通）
+- [x] T243 [P] 建立環境變數範本文件 in docs/environment-variables.md（列出所有必要的環境變數）
+- [x] T244 [P] 建立部署檢查清單 in docs/deployment-checklist.md（部署前的驗證項目）
+- [x] T245 驗證 Docker Compose 配置 in docker-compose.yml（確保前後端可正確啟動並互通）
 
 ---
 

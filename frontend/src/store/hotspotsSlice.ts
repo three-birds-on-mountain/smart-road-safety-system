@@ -11,7 +11,6 @@ import type {
 } from '../types/hotspot';
 import type { RootState } from '../store';
 import type { AccidentSeverity } from '../types/accident';
-import type { TimeRangeOption } from '../types/settings';
 
 interface HotspotsState {
   items: HotspotSummary[];

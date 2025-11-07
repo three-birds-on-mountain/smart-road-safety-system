@@ -1,12 +1,12 @@
 import type { AccidentSeverity } from '../types/accident';
 import type { TimeRangeOption } from '../types/settings';
 
-const TIME_RANGE_MAP: Record<TimeRangeOption, string> = {
+const TIME_RANGE_MAP = {
   '1Y': '1_year',
   '6M': '6_months',
   '3M': '3_months',
   '1M': '1_month',
-};
+} as const satisfies Record<TimeRangeOption, '1_year' | '6_months' | '3_months' | '1_month'>;
 
 export const mapTimeRangeToApi = (
   timeRange?: TimeRangeOption,

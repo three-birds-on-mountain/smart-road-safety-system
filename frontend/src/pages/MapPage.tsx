@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type mapboxgl from 'mapbox-gl';
 import AlertOverlay from '../components/Alert/AlertOverlay';
 import MapView from '../components/Map/MapView';
 import HotspotLayer from '../components/Map/HotspotLayer';
@@ -19,6 +18,7 @@ import { toggleIgnoredHotspot } from '../store/settingsSlice';
 import type { NearbyHotspot, HotspotSummary } from '../types/hotspot';
 import type { AlertChannel } from '../types/settings';
 import { getMockNearbyHotspots } from '../mocks/hotspots';
+import type { MapboxInstance } from '../lib/mapbox';
 
 interface ActiveAlertState {
   hotspot: NearbyHotspot;
@@ -78,7 +78,7 @@ const MapPage = () => {
   const geolocationServiceRef = useRef<ReturnType<typeof createGeolocationService> | null>(null);
   const alertServiceRef = useRef<ReturnType<typeof createAlertService> | null>(null);
   const fetchControllerRef = useRef<AbortController | null>(null);
-  const mapRef = useRef<mapboxgl.Map | null>(null);
+  const mapRef = useRef<MapboxInstance | null>(null);
   const hasAppliedPreviewRef = useRef(false);
   const [isMapReady, setIsMapReady] = useState(false);
 
@@ -282,7 +282,7 @@ const MapPage = () => {
       ? detailedHotspot
       : undefined;
 
-  const handleMapLoad = useCallback((map: mapboxgl.Map) => {
+  const handleMapLoad = useCallback((map: MapboxInstance) => {
     mapRef.current = map;
     setIsMapReady(true);
     map.on('remove', () => {
@@ -415,7 +415,9 @@ const MapPage = () => {
   ]);
 
   const mapCenter =
-    followUser && latitude != null && longitude != null ? [longitude, latitude] : undefined;
+    followUser && latitude != null && longitude != null
+      ? ([longitude, latitude] as [number, number])
+      : undefined;
   const mapZoom = followUser ? 13 : undefined;
   const showDataUpdatingOverlay =
     hotspotsState.status === 'loading' && hotspotsState.nearby.length === 0;

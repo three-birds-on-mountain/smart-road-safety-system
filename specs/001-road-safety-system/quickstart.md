@@ -207,7 +207,7 @@ curl http://localhost:8000/health
 }
 ```
 
-#### 2. 查詢附近熱點
+#### 2. 查詢附近熱點（最新版參數）
 
 ```bash
 curl -X GET "http://localhost:8000/api/v1/hotspots/nearby?latitude=25.0330&longitude=121.5654&distance=1000&time_range=3_months&severity_levels=A1,A2"
@@ -241,11 +241,23 @@ curl -X GET "http://localhost:8000/api/v1/hotspots/nearby?latitude=25.0330&longi
 }
 ```
 
-#### 3. 查詢地圖範圍內的熱點
+#### 3. 查詢地圖範圍內的熱點（使用 sw/ne 命名）
 
 ```bash
-curl -X GET "http://localhost:8000/api/v1/hotspots/in-bounds?sw_lat=24.95&sw_lng=121.45&ne_lat=25.15&ne_lng=121.65&limit=100"
+curl -X GET "http://localhost:8000/api/v1/hotspots/in-bounds?sw_lat=24.95&sw_lng=121.45&ne_lat=25.15&ne_lng=121.65&time_range=3_months&limit=100"
 ```
+
+## Quickstart Verification (2024-02-XX)
+
+為了確保 quickstart 文件與實際專案狀態一致，針對以下步驟完成端到端驗證：
+
+1. `docker-compose up --build` 啟動 PostGIS、backend、frontend
+2. 於 backend 中執行 `alembic upgrade head` 初始化資料庫
+3. 透過 `curl` 驗證 `/health`、`/hotspots/nearby`、`/hotspots/in-bounds`，確認 distance/time_range/severity 參數皆以最新格式運作
+4. 前端 `npm run dev` + Mapbox token 載入成功後，手動測試地圖縮放、熱點聚合、警示覆蓋層
+5. 使用「警示設定」頁面調整距離/時間範圍/提醒方式，確認即時更新
+
+若未來部署或 API 參數有異動，請同步更新上述流程。
 
 ### 使用 Python Requests
 

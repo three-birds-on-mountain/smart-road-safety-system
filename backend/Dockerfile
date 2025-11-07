@@ -12,7 +12,7 @@ COPY alembic.ini ./
 # 安裝依賴
 RUN uv pip install --system -e .
 
-# 複製原始碼
+# 複製原始碼和遷移腳本
 COPY src/ ./src/
 
 # 暴露端口

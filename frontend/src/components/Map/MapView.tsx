@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import type mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import { loadMapboxModule } from '../../lib/mapbox'
+import type { MapboxInstance } from '../../lib/mapbox'
 
 // Mapbox Access Token （從環境變數載入）
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN
@@ -14,17 +14,16 @@ export interface MapViewProps {
   /** 自訂樣式類別 */
   className?: string
   /** 地圖初始化完成的回調 */
-  onMapLoad?: (map: mapboxgl.Map) => void
+  onMapLoad?: (map: MapboxInstance) => void
   /** 地圖移動結束的回調（用於載入新的熱點資料） */
-  onMoveEnd?: (map: mapboxgl.Map) => void
+  onMoveEnd?: (map: MapboxInstance) => void
   /** 地圖縮放結束的回調 */
-  onZoomEnd?: (map: mapboxgl.Map) => void
+  onZoomEnd?: (map: MapboxInstance) => void
   /** 初始中心點（預設為台灣中心） */
   center?: [number, number]
   /** 初始縮放層級 */
   zoom?: number
-  /** 子元件（例如 HotspotLayer, UserLocation） */
-  children?: (map: mapboxgl.Map | null) => React.ReactNode
+  children?: (map: MapboxInstance | null) => React.ReactNode
 }
 
 /**
@@ -64,7 +63,7 @@ const MapView = ({
   children,
 }: MapViewProps) => {
   const mapContainerRef = useRef<HTMLDivElement>(null)
-  const mapRef = useRef<mapboxgl.Map | null>(null)
+  const mapRef = useRef<MapboxInstance | null>(null)
   const [mapLoaded, setMapLoaded] = useState(false)
   const initialCenterRef = useRef<[number, number]>(center ?? TAIWAN_CENTER)
   const initialZoomRef = useRef<number>(zoom ?? DEFAULT_ZOOM)
@@ -165,7 +164,7 @@ const MapView = ({
   }, [zoom, mapLoaded])
 
   return (
-    <div className={`relative ${className}`}>
+    <div className={`relative ${className}`} data-testid="map-view">
       {/* 地圖容器 */}
       <div
         ref={mapContainerRef}

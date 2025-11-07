@@ -253,6 +253,40 @@ paths:
                             type: number
                           ne_lng:
                             type: number
+              examples:
+                taipei_bounds:
+                  summary: 台北盆地 200 筆熱點
+                  value:
+                    data:
+                      - id: "770e8400-e29b-41d4-a716-446655440100"
+                        center_latitude: 25.0479
+                        center_longitude: 121.517
+                        radius_meters: 350
+                        total_accidents: 18
+                        a1_count: 3
+                        a2_count: 9
+                        a3_count: 6
+                        earliest_accident_at: "2024-02-10T03:20:00Z"
+                        latest_accident_at: "2024-10-18T15:10:00Z"
+                        severity_score: 15.0
+                      - id: "880e8400-e29b-41d4-a716-446655440101"
+                        center_latitude: 25.033
+                        center_longitude: 121.5654
+                        radius_meters: 280
+                        total_accidents: 11
+                        a1_count: 1
+                        a2_count: 6
+                        a3_count: 4
+                        earliest_accident_at: "2024-01-12T08:50:00Z"
+                        latest_accident_at: "2024-11-04T05:40:00Z"
+                        severity_score: 10.0
+                    meta:
+                      total_count: 2
+                      bounds:
+                        sw_lat: 24.95
+                        sw_lng: 121.45
+                        ne_lat: 25.15
+                        ne_lng: 121.65
         '400':
           $ref: '#/components/responses/BadRequest'
         '500':
@@ -294,6 +328,42 @@ paths:
                 properties:
                   data:
                     $ref: '#/components/schemas/HotspotDetail'
+              examples:
+                hotspot_detail:
+                  summary: 熱點詳細資訊（含分析期間）
+                  value:
+                    data:
+                      id: "550e8400-e29b-41d4-a716-446655440000"
+                      center_latitude: 25.0342
+                      center_longitude: 121.5678
+                      radius_meters: 250
+                      total_accidents: 12
+                      a1_count: 2
+                      a2_count: 7
+                      a3_count: 3
+                      earliest_accident_at: "2024-03-15T08:30:00Z"
+                      latest_accident_at: "2024-10-22T14:45:00Z"
+                      severity_score: 8.5
+                      analysis_date: "2024-11-02"
+                      analysis_period_start: "2023-11-02"
+                      analysis_period_end: "2024-11-01"
+                      accidents:
+                        - id: "acc-001"
+                          latitude: 25.0345
+                          longitude: 121.568
+                          occurred_at: "2024-10-22T14:45:00Z"
+                          severity: "A2"
+                          address: "臺北市信義區松仁路 100 號"
+                          distance_meters: 80
+                          involved_people: ["駕駛", "乘客"]
+                          involved_vehicles: ["小客車", "機車"]
+                        - id: "acc-002"
+                          latitude: 25.0339
+                          longitude: 121.5664
+                          occurred_at: "2024-06-15T09:12:00Z"
+                          severity: "A1"
+                          address: "臺北市信義區忠孝東路五段"
+                          distance_meters: 120
         '404':
           $ref: '#/components/responses/NotFound'
         '500':

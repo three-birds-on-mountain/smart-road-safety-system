@@ -33,6 +33,12 @@ export interface HotspotListMeta {
     latitude: number;
     longitude: number;
   };
+  bounds?: {
+    swLat: number;
+    swLng: number;
+    neLat: number;
+    neLng: number;
+  };
 }
 
 export interface HotspotListResponse<THotspot extends HotspotSummary = HotspotSummary> {

@@ -105,6 +105,13 @@ export const createGeolocationService = (dispatch: AppDispatch) => {
       });
   };
 
+  const stopNativeWatcher = () => {
+    if (state.nativeWatchId && typeof navigator !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.clearWatch(state.nativeWatchId);
+    }
+    state.nativeWatchId = null;
+  };
+
   const startNativeWatcher = (options?: GeolocationServiceOptions) => {
     if (state.nativeWatchId) {
       return;
@@ -162,7 +169,7 @@ export const createGeolocationService = (dispatch: AppDispatch) => {
         }
 
         emitStatus('error', options);
-        options?.onError?.(error);
+        options?.onError?.(new Error(error.message));
       },
       defaultOptions,
     );
@@ -187,10 +194,7 @@ export const createGeolocationService = (dispatch: AppDispatch) => {
     if (isFlutterBridgeAvailable()) {
       postMessage({ name: 'location:stop' });
     }
-    if (state.nativeWatchId && typeof navigator !== 'undefined' && navigator.geolocation) {
-      navigator.geolocation.clearWatch(state.nativeWatchId);
-      state.nativeWatchId = null;
-    }
+    stopNativeWatcher();
     state.isWatching = false;
     dispatch(setGPSStatus('idle'));
   };

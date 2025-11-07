@@ -1,8 +1,8 @@
-import { defineConfig } from 'vite'
+import { defineConfig, type PluginOption } from 'vite'
 import react from '@vitejs/plugin-react'
 import { visualizer } from 'rollup-plugin-visualizer'
 
-const plugins = [react()]
+const plugins: PluginOption[] = [react()]
 
 if (process.env.ANALYZE === 'true') {
   plugins.push(

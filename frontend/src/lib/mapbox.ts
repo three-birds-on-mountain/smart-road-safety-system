@@ -1,4 +1,4 @@
-import type mapboxgl from 'mapbox-gl';
+import type { Map as MapboxMap } from 'mapbox-gl';
 
 type MapboxModule = typeof import('mapbox-gl');
 
@@ -11,4 +11,4 @@ export const loadMapboxModule = async (): Promise<MapboxModule> => {
   return mapboxModulePromise;
 };
 
-export type MapboxInstance = mapboxgl.Map;
+export type MapboxInstance = MapboxMap;

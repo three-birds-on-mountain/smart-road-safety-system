@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef } from 'react'
-import type mapboxgl from 'mapbox-gl'
+import type { GeoJSONSource, Map as MapboxMap, Marker as MapboxMarker } from 'mapbox-gl'
 import { loadMapboxModule } from '../../lib/mapbox'
 
 export interface UserLocationProps {
   /** Mapbox 地圖實例 */
-  map: mapboxgl.Map
+  map: MapboxMap
   /** 用戶緯度 */
   latitude: number | null
   /** 用戶經度 */
@@ -47,7 +47,7 @@ const UserLocation = ({
   showAccuracyCircle = true,
   accuracy = 20,
 }: UserLocationProps) => {
-  const markerRef = useRef<mapboxgl.Marker | null>(null)
+  const markerRef = useRef<MapboxMarker | null>(null)
   const markerVisualRef = useRef<HTMLDivElement | null>(null)
   const arrowRef = useRef<HTMLDivElement | null>(null)
   const primaryColorRef = useRef('#5AB4C5')
@@ -75,7 +75,7 @@ const UserLocation = ({
   // 更新用戶位置標記
   useEffect(() => {
     let isMounted = true
-    const internalMap = map as mapboxgl.Map & { _removed?: boolean }
+    const internalMap = map as MapboxMap & { _removed?: boolean }
     if (!internalMap || internalMap._removed) {
       return
     }
@@ -232,7 +232,7 @@ const UserLocation = ({
 
   // 更新精確度圓圈
   useEffect(() => {
-    const internalMap = map as mapboxgl.Map & { _removed?: boolean }
+    const internalMap = map as MapboxMap & { _removed?: boolean }
     if (!internalMap || internalMap._removed || typeof internalMap.getStyle !== 'function') {
       return
     }
@@ -292,7 +292,7 @@ const UserLocation = ({
     // 建立或更新 source
     const primaryColor = primaryColorRef.current
     try {
-      const mapWithInternalStyle = internalMap as mapboxgl.Map & {
+      const mapWithInternalStyle = internalMap as MapboxMap & {
         style?: {
           _layers?: unknown
           sources?: unknown
@@ -315,7 +315,7 @@ const UserLocation = ({
           },
         })
       } else {
-        const source = existingSource as mapboxgl.GeoJSONSource
+        const source = existingSource as GeoJSONSource
         source.setData({
           type: 'FeatureCollection',
           features: [circleFeature],
@@ -357,7 +357,7 @@ const UserLocation = ({
       }
 
       try {
-        const mapWithInternalStyle = internalMap as mapboxgl.Map & {
+      const mapWithInternalStyle = internalMap as MapboxMap & {
           style?: {
             _layers?: unknown
             sources?: unknown

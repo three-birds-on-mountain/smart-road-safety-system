@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useRef } from 'react'
-import type mapboxgl from 'mapbox-gl'
+import type { GeoJSONSource, Map as MapboxMap, MapMouseEvent } from 'mapbox-gl'
 import type { HotspotSummary } from '../../types/hotspot'
 import { getHighestSeverityLevel } from '../../types/hotspot'
 
 export interface HotspotLayerProps {
   /** Mapbox 地圖實例 */
-  map: mapboxgl.Map
+  map: MapboxMap
   /** 熱點資料陣列 */
   hotspots: HotspotSummary[]
   /** 點擊熱點時的回調 */
@@ -116,7 +116,7 @@ const HotspotLayer = ({
 
   // 更新熱點資料與圖層
   useEffect(() => {
-    const internalStyle = (map as mapboxgl.Map & { style?: { _layers?: unknown } }).style
+    const internalStyle = (map as MapboxMap & { style?: { _layers?: unknown } }).style
     if (!map || typeof map.getStyle !== 'function' || !internalStyle) {
       return
     }
@@ -152,7 +152,7 @@ const HotspotLayer = ({
       })
     } else {
       // 更新現有 source 的資料
-      const source = existingSource as mapboxgl.GeoJSONSource
+      const source = existingSource as GeoJSONSource
       source.setData(createGeoJSON(renderableHotspots))
     }
 
@@ -297,7 +297,7 @@ const HotspotLayer = ({
     }
 
     // 點擊聚合圓圈時，放大地圖
-    const handleClusterClick = (e: mapboxgl.MapMouseEvent) => {
+    const handleClusterClick = (e: MapMouseEvent) => {
       const features = map.queryRenderedFeatures(e.point, {
         layers: [clusterLayerId],
       })
@@ -305,7 +305,7 @@ const HotspotLayer = ({
       if (!features.length) return
 
       const clusterId = features[0].properties?.cluster_id
-      const source = map.getSource(sourceId) as mapboxgl.GeoJSONSource
+      const source = map.getSource(sourceId) as GeoJSONSource
 
       source.getClusterExpansionZoom(clusterId, (err, zoom) => {
         if (err || !features[0].geometry || features[0].geometry.type !== 'Point')
@@ -319,7 +319,7 @@ const HotspotLayer = ({
     }
 
     // 點擊個別熱點時，觸發回調
-    const handleHotspotClick = (e: mapboxgl.MapMouseEvent) => {
+    const handleHotspotClick = (e: MapMouseEvent) => {
       const features = map.queryRenderedFeatures(e.point, {
         layers: [unclusteredLayerId, unclusteredRippleLayerId, unclusteredLabelLayerId],
       })
@@ -420,7 +420,7 @@ const HotspotLayer = ({
 
     // 清理函式：移除事件監聽器
     return () => {
-      const internalStyle = (map as mapboxgl.Map & { style?: { _layers?: unknown } }).style
+      const internalStyle = (map as MapboxMap & { style?: { _layers?: unknown } }).style
       if (!map || typeof map.getStyle !== 'function' || !internalStyle) {
         return
       }
@@ -467,7 +467,7 @@ const HotspotLayer = ({
 
     return () => {
       const sourceId = 'hotspots'
-      const mapStyle = (mapInstance as mapboxgl.Map & { style?: { _layers?: unknown } }).style
+      const mapStyle = (mapInstance as MapboxMap & { style?: { _layers?: unknown } }).style
       if (!mapInstance || typeof mapInstance.getStyle !== 'function' || !mapStyle) {
         return
       }
