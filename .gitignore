@@ -6,3 +6,7 @@ specs/.DS_Store
 **/.venv/
 frontend/dist/
 frontend/stats/
+frontend/coverage/
+backend/htmlcov/
+backend/.coverage
+*.coverage
