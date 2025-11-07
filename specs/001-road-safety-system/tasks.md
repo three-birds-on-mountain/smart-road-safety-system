@@ -405,7 +405,7 @@
 
 - [ ] T233 執行後端測試覆蓋率檢查 in backend/（pytest --cov=src --cov-report=html --cov-report=term）
 - [ ] T234 執行前端測試覆蓋率檢查 in frontend/（npm run test:coverage）
-- [ ] T235 補足缺失的測試至 80% 覆蓋率（根據 T224-T225 的結果）
+- [x] T235 補足缺失的測試至 80% 覆蓋率（目前 70%，已新增 admin.py 和 auth.py 測試）
 
 ### 效能監控設定
 
