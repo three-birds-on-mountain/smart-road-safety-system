@@ -1,6 +1,16 @@
-# Smart Road Safety System
+# 智慧道路守護系統 | Smart Road Safety System
 
-智慧道路守護系統是一套結合 FastAPI、React 以及 Mapbox 的全端專案，透過交通事故資料與 GPS 定位在地圖上提供即時危險區域警示。此專案採用前後端分離架構，並提供 docker-compose 進行本地整合環境。
+> 結合政府公開交通事故資料與地理聚類分析，提供即時危險區域警示的 Web 應用
+
+智慧道路守護系統是一套結合 FastAPI、React 以及 Mapbox 的全端專案，透過交通事故資料（A1/A2/A3）與 GPS 定位在地圖上提供即時危險區域警示。系統支援客製化警示設定（距離、事故等級、時間範圍、警示方式）並透過地圖視覺化呈現事故熱點分布。
+
+## 核心功能
+
+- **即時危險區域警示**（US1 - P1 MVP）：駕駛接近事故熱點時，根據用戶設定觸發音效/震動/視覺提示
+- **客製化警示設定**（US2 - P2）：調整提醒距離（100m/500m/1km/3km）、事故等級（A1/A2/A3）、時間範圍、警示方式
+- **地圖視覺化熱點資訊**（US3 - P3）：地圖上顯示熱點標記、點擊查看詳細資訊（事故數量、等級比例、地址）
+- **資料擷取與熱點分析**：每日/每月自動擷取政府公開資料，執行 DBSCAN 聚類分析識別事故熱點
+- **Flutter WebView 整合**：透過 JS Bridge 與 TownPass App 整合，支援定位與通知功能
 
 ## Project Structure
 
@@ -61,15 +71,30 @@ npm run build:analyze  # ANALYZE=true npm run build
 
 ## Docker Compose (Full Stack)
 
-```
+最快速的啟動方式：
+
+```bash
+# 啟動所有服務
 docker-compose up --build
+
+# 建立測試資料庫（用於測試）
+docker-compose exec postgres psql -U postgres -c "CREATE DATABASE road_safety_db_test;"
+docker-compose exec postgres psql -U postgres -d road_safety_db_test -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+
+# 執行後端測試
+cd backend && TEST_DATABASE_URL="postgresql://postgres:postgres@localhost:5433/road_safety_db_test" uv run pytest tests/ --cov=src
 ```
 
 這會啟動：
 
-- `postgres`（PostGIS）
-- `backend`（FastAPI）
-- `frontend`（Vite dev server）
+- `postgres`（PostGIS） - Port 5433
+- `backend`（FastAPI） - Port 8001
+- `frontend`（Vite dev server） - Port 5174
+
+訪問：
+- 前端應用：http://localhost:5174
+- 後端 API 文件：http://localhost:8001/docs
+- 健康檢查：http://localhost:8001/health
 
 ## Documentation
 
@@ -81,9 +106,42 @@ docker-compose up --build
 
 ## Testing & Coverage
 
-- Backend：`pytest --cov=src --cov-report=term --cov-report=html`
-- Frontend：`npm run test -- --run`、`npm run test:coverage`
-- E2E（Playwright）：`cd tests/e2e && npm install && npm run test`
+### 後端測試
+
+```bash
+cd backend
+
+# 執行所有測試
+TEST_DATABASE_URL="postgresql://postgres:postgres@localhost:5433/road_safety_db_test" uv run pytest tests/
+
+# 測試覆蓋率（目前：62%，目標：80%）
+TEST_DATABASE_URL="postgresql://postgres:postgres@localhost:5433/road_safety_db_test" uv run pytest tests/ --cov=src --cov-report=term --cov-report=html
+
+# 執行特定測試
+TEST_DATABASE_URL="postgresql://postgres:postgres@localhost:5433/road_safety_db_test" uv run pytest tests/contract/  # API 契約測試
+TEST_DATABASE_URL="postgresql://postgres:postgres@localhost:5433/road_safety_db_test" uv run pytest tests/integration/  # 整合測試
+TEST_DATABASE_URL="postgresql://postgres:postgres@localhost:5433/road_safety_db_test" uv run pytest tests/unit/  # 單元測試
+```
+
+### 前端測試
+
+```bash
+cd frontend
+
+# 單元測試（待實作）
+npm run test
+
+# 測試覆蓋率
+npm run test:coverage
+```
+
+### E2E 測試（可選）
+
+```bash
+cd tests/e2e
+npm install
+npm run test
+```
 
 ## Contributing
 

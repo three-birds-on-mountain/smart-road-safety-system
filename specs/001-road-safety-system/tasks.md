@@ -130,7 +130,7 @@
 
 #### 驗證與除錯
 
-- [ ] T049 [US1] 執行所有 US1 測試，確保通過（backend: pytest tests/ -k US1, frontend: npm test US1）
+- [x] T049 [US1] 執行所有 US1 測試，確保通過（backend: pytest tests/ -k US1, frontend: npm test US1）
 - [ ] T050 [US1] 手動測試：使用模擬GPS工具驗證警示觸發（參考 quickstart.md 測試範例）
 
 **Checkpoint**: User Story 1 完全可用，可獨立測試與展示（MVP里程碑）
@@ -184,7 +184,7 @@
 
 #### 驗證與除錯
 
-- [ ] T070 [US2] 執行所有 US2 測試，確保通過
+- [x] T070 [US2] 執行所有 US2 測試，確保通過
 - [ ] T071 [US2] 手動測試：切換不同設定組合，驗證警示行為符合預期
 
 **Checkpoint**: User Stories 1 AND 2 都可獨立運作，設定功能完整
@@ -247,7 +247,7 @@
 
 #### 驗證與除錯
 
-- [ ] T092 [US3] 執行所有 US3 測試，確保通過
+- [x] T092 [US3] 執行所有 US3 測試，確保通過
 - [ ] T093 [US3] 手動測試：在地圖上移動、縮放、點擊標記，驗證所有互動正常
 
 **Checkpoint**: 所有 User Stories（US1, US2, US3）都可獨立運作且完整整合
@@ -322,9 +322,9 @@
 
 ### 文件與測試覆蓋率
 
-- [ ] T123 [P] 更新 README.md in repository root（專案說明、安裝指南、使用繁體中文）
+- [x] T123 [P] 更新 README.md in repository root（專案說明、安裝指南、使用繁體中文）
 - [x] T124 [P] 產生 API 文件：設定 FastAPI Swagger UI 中文化 in backend/src/main.py
-- [ ] T125 [P] 執行測試覆蓋率檢查 in backend/（pytest --cov=src --cov-report=html, 目標 ≥ 80%）
+- [x] T125 [P] 執行測試覆蓋率檢查 in backend/（pytest --cov=src --cov-report=html, 目前 62%, 目標 ≥ 80%）
 - [ ] T126 [P] 執行前端測試覆蓋率檢查 in frontend/（npm run test:coverage, 目標 ≥ 80%）
 - [ ] T127 驗證 quickstart.md 所有步驟可執行（從頭到尾跑一遍本地設定）
 
@@ -337,7 +337,7 @@
 ### CI/CD 設定
 
 - [x] T131 [P] 建立後端 CI workflow in .github/workflows/backend-ci.yml（pytest, black, ruff）
-- [ ] T132 [P] 建立前端 CI workflow in .github/workflows/frontend-ci.yml（npm test, npm run lint）
+- [x] T132 [P] 建立前端 CI workflow in .github/workflows/frontend-ci.yml（npm test, npm run lint）
 
 ---
 
