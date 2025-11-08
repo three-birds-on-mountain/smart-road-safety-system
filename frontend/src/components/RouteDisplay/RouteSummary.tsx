@@ -69,11 +69,9 @@ const RouteSummary = ({ summary, isVisible, onToggle, onClearRoute }: RouteSumma
   return (
     <div
       ref={drawerRef}
-      className="pointer-events-auto fixed bottom-0 left-0 right-0 z-30 bg-white shadow-2xl transition-transform duration-300 ease-out"
+      className="pointer-events-auto fixed bottom-0 left-0 right-0 z-[200] bg-white shadow-2xl transition-transform duration-300 ease-out"
       style={{
-        transform: isVisible
-          ? `translateY(${dragOffset}px)`
-          : 'translateY(100%)',
+        transform: isVisible ? `translateY(${dragOffset}px)` : 'translateY(100%)',
       }}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
@@ -110,19 +108,12 @@ const RouteSummary = ({ summary, isVisible, onToggle, onClearRoute }: RouteSumma
               title="隱藏統計"
             >
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            {/* 清除路線按鈕 */}
-            <button
-              type="button"
-              onClick={onClearRoute}
-              className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-100 hover:text-danger-600"
-              aria-label="清除路線"
-              title="清除路線"
-            >
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
               </svg>
             </button>
           </div>
@@ -217,7 +208,8 @@ const RouteSummary = ({ summary, isVisible, onToggle, onClearRoute }: RouteSumma
             <span className="font-medium">統計範圍：</span>路線兩側 200 公尺內的事故熱點
           </p>
           <p className="mt-1 text-xs text-gray-600">
-            <span className="font-medium">篩選條件：</span>依據目前設定的時間範圍、嚴重程度和數量門檻
+            <span className="font-medium">篩選條件：</span>
+            依據目前設定的時間範圍、嚴重程度和數量門檻
           </p>
         </div>
       </div>
