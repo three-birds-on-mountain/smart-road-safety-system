@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import Optional, List
+from typing import Optional
 import uuid
 import re
 
@@ -133,14 +133,20 @@ async def get_all_hotspots(
 async def get_hotspot_by_id(
     hotspot_id: str,
     include_accidents: bool = Query(False, description="是否包含事故記錄列表"),
+    severity_levels: Optional[str] = Query(None, description="嚴重程度篩選（逗號分隔，如 A1,A2）"),
     db: Session = Depends(get_db),
 ):
     """
     查詢單一熱點詳細資訊
 
     根據熱點ID查詢詳細資訊，可選擇包含該熱點的所有事故記錄。
+    支援嚴重程度篩選（僅在 include_accidents=True 時有效）。
     """
-    logger.info(f"查詢熱點詳細資訊: hotspot_id={hotspot_id}, include_accidents={include_accidents}")
+    sanitized_severity = _normalize_severity_levels(severity_levels)
+    logger.info(
+        f"查詢熱點詳細資訊: hotspot_id={hotspot_id}, include_accidents={include_accidents}, "
+        f"severity_levels={sanitized_severity}"
+    )
 
     # 驗證 UUID 格式
     try:
@@ -174,7 +180,9 @@ async def get_hotspot_by_id(
 
     if include_accidents:
         # 查詢熱點包含的事故記錄
-        accidents = HotspotService.get_accidents_by_hotspot_id(db, hotspot_id)
+        accidents = HotspotService.get_accidents_by_hotspot_id(
+            db, hotspot_id, severity_levels=sanitized_severity
+        )
         result["accidents"] = [_serialize_accident(acc) for acc in accidents]
 
     return {"data": result}
