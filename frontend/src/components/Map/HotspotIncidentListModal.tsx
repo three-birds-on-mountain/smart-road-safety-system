@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import type { HotspotDetail } from '../../types/hotspot';
 import type { AccidentRecord, AccidentSeverity } from '../../types/accident';
-import { useAppSelector } from '../../hooks/store';
 
 interface HotspotIncidentListModalProps {
   hotspot: HotspotDetail;
@@ -62,15 +61,6 @@ const formatInvolved = (people?: string[], vehicles?: string[]) => {
 };
 
 const HotspotIncidentListModal = ({ hotspot, onClose }: HotspotIncidentListModalProps) => {
-  // 取得當前勾選的嚴重程度篩選器
-  const severityFilter = useAppSelector((state) => state.settings.current.severityFilter);
-
-  // 計算根據篩選器過濾後的總事故數
-  const filteredTotalAccidents =
-    (severityFilter.includes('A1') ? hotspot.a1Count : 0) +
-    (severityFilter.includes('A2') ? hotspot.a2Count : 0) +
-    (severityFilter.includes('A3') ? hotspot.a3Count : 0);
-
   const accidents: AccidentRecord[] = useMemo(() => hotspot.accidents ?? [], [hotspot.accidents]);
   const primaryAddress = accidents.find((item) => item.address)?.address ?? '近期事故位置';
 
