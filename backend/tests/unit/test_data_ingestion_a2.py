@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from src.db.session import SessionLocal, engine, Base
 from src.services.data_ingestion import DataIngestionService
 from src.models.accident import Accident
-from src.models import SourceType, SeverityLevel
+from src.models import SourceType
 
 
 @pytest.fixture(scope="function")
@@ -55,7 +55,6 @@ def test_save_accident_a2(ingestion_service, db):
         occurred_at=datetime.utcnow(),
         latitude=25.0136,
         longitude=121.4637,
-        severity_level=SeverityLevel.A2,
         location_text="新北市測試路段",
         vehicle_type="機車",
     )
@@ -66,4 +65,3 @@ def test_save_accident_a2(ingestion_service, db):
     saved = db.query(Accident).filter(Accident.source_id == "A2-TEST-001").first()
     assert saved is not None
     assert saved.source_type == SourceType.A2
-    assert saved.severity_level == SeverityLevel.A2

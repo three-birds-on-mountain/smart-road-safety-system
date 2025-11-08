@@ -8,7 +8,7 @@ from src.db.session import SessionLocal, engine, Base
 from src.services.hotspot_analysis import HotspotAnalysisService
 from src.models.accident import Accident
 from src.models.hotspot import Hotspot
-from src.models import SourceType, SeverityLevel
+from src.models import SourceType
 from geoalchemy2 import WKTElement
 
 
@@ -48,7 +48,7 @@ def multiple_cluster_accidents(db):
             
             accident = Accident(
                 id=uuid4(),
-                source_type=SourceType.A2,
+                source_type=SourceType.A2 if i % 2 == 0 else SourceType.A3,
                 source_id=f"A2-CLUSTER{cluster_idx}-{i:03d}",
                 occurred_at=datetime.utcnow() - timedelta(days=i),
                 latitude=Decimal(str(cluster["lat"] + offset_lat)),
@@ -57,7 +57,6 @@ def multiple_cluster_accidents(db):
                     f"POINT({cluster['lng'] + offset_lng} {cluster['lat'] + offset_lat})",
                     srid=4326
                 ),
-                severity_level=SeverityLevel.A2 if i % 2 == 0 else SeverityLevel.A3,
             )
             db.add(accident)
             accidents.append(accident)

@@ -13,7 +13,7 @@ from geopy.distance import geodesic
 
 from src.models.accident import Accident
 from src.models.hotspot import Hotspot
-from src.models import SeverityLevel
+from src.models import SourceType
 from src.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -142,9 +142,10 @@ class HotspotAnalysisService:
         """
         accidents = self.db.query(Accident).filter(Accident.id.in_(accident_ids)).all()
 
-        a1_count = sum(1 for acc in accidents if acc.severity_level == SeverityLevel.A1)
-        a2_count = sum(1 for acc in accidents if acc.severity_level == SeverityLevel.A2)
-        a3_count = sum(1 for acc in accidents if acc.severity_level == SeverityLevel.A3)
+        # 從 source_type 推斷事故嚴重程度（A1/A2/A3）
+        a1_count = sum(1 for acc in accidents if acc.source_type == SourceType.A1)
+        a2_count = sum(1 for acc in accidents if acc.source_type == SourceType.A2)
+        a3_count = sum(1 for acc in accidents if acc.source_type == SourceType.A3)
 
         occurred_times = [acc.occurred_at for acc in accidents]
         earliest = min(occurred_times)

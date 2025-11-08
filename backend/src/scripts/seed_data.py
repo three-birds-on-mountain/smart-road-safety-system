@@ -13,7 +13,7 @@ from sqlalchemy import text
 from src.db.session import SessionLocal, engine
 from src.models.accident import Accident
 from src.models.hotspot import Hotspot
-from src.models import SourceType, SeverityLevel
+from src.models import SourceType
 from src.db.session import Base
 from geoalchemy2 import WKTElement
 
@@ -34,10 +34,10 @@ def generate_accident_data(count: int = 100) -> list[dict]:
         {"lat": (22.50, 22.80), "lng": (120.20, 120.50), "name": "高雄"},
     ]
     
-    severity_distribution = [
-        (SeverityLevel.A1, 0.05),
-        (SeverityLevel.A2, 0.35),
-        (SeverityLevel.A3, 0.60),
+    source_type_distribution = [
+        (SourceType.A1, 0.05),
+        (SourceType.A2, 0.35),
+        (SourceType.A3, 0.60),
     ]
     
     for i in range(count):
@@ -47,14 +47,12 @@ def generate_accident_data(count: int = 100) -> list[dict]:
         
         rand = random.random()
         cumulative = 0
-        severity = SeverityLevel.A3
-        for sev, prob in severity_distribution:
+        source_type = SourceType.A3
+        for src, prob in source_type_distribution:
             cumulative += prob
             if rand <= cumulative:
-                severity = sev
+                source_type = src
                 break
-        
-        source_type = SourceType(severity.value)
         days_ago = random.randint(0, 365)
         occurred_at = datetime.utcnow() - timedelta(days=days_ago)
         occurred_at = occurred_at.replace(
@@ -72,11 +70,7 @@ def generate_accident_data(count: int = 100) -> list[dict]:
             "latitude": Decimal(str(lat)),
             "longitude": Decimal(str(lng)),
             "geom": WKTElement(f"POINT({lng} {lat})", srid=4326),
-            "severity_level": severity,
             "vehicle_type": random.choice(["小客車", "機車", "大貨車", "公車", "行人"]),
-            "raw_data": {"city": city["name"], "generated": True},
-            "geocoded": source_type == SourceType.A3,
-            "geocode_confidence": Decimal("0.95") if source_type == SourceType.A3 else None,
         }
         
         accidents.append(accident)
@@ -120,9 +114,10 @@ def generate_hotspot_data(db: Session, count: int = 20) -> list[dict]:
         
         radius = max(50, min(2000, int(max_distance * 1.2)))
         
-        a1_count = sum(1 for acc in cluster_accidents if acc.severity_level == SeverityLevel.A1)
-        a2_count = sum(1 for acc in cluster_accidents if acc.severity_level == SeverityLevel.A2)
-        a3_count = sum(1 for acc in cluster_accidents if acc.severity_level == SeverityLevel.A3)
+        # 從 source_type 推斷事故嚴重程度（A1/A2/A3）
+        a1_count = sum(1 for acc in cluster_accidents if acc.source_type == SourceType.A1)
+        a2_count = sum(1 for acc in cluster_accidents if acc.source_type == SourceType.A2)
+        a3_count = sum(1 for acc in cluster_accidents if acc.source_type == SourceType.A3)
         
         occurred_times = [acc.occurred_at for acc in cluster_accidents]
         earliest = min(occurred_times)

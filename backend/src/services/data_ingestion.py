@@ -7,7 +7,7 @@ import uuid
 from decimal import Decimal
 
 from src.models.accident import Accident
-from src.models import SourceType, SeverityLevel
+from src.models import SourceType
 from src.services.geocoding import GeocodingService
 from src.core.logging import get_logger
 
@@ -82,12 +82,8 @@ class DataIngestionService:
         occurred_at: datetime,
         latitude: float,
         longitude: float,
-        severity_level: SeverityLevel,
         location_text: Optional[str] = None,
         vehicle_type: Optional[str] = None,
-        raw_data: Optional[Dict] = None,
-        geocoded: bool = False,
-        geocode_confidence: Optional[float] = None,
     ) -> Accident:
         """
         儲存事故記錄（內部方法）
@@ -122,12 +118,8 @@ class DataIngestionService:
             latitude=Decimal(str(latitude)).quantize(Decimal("0.0000001")),
             longitude=Decimal(str(longitude)).quantize(Decimal("0.0000001")),
             geom=WKTElement(f"POINT({longitude} {latitude})", srid=4326),
-            severity_level=severity_level,
             location_text=location_text,
             vehicle_type=vehicle_type,
-            raw_data=raw_data,
-            geocoded=geocoded,
-            geocode_confidence=Decimal(str(geocode_confidence)).quantize(Decimal("0.01")) if geocode_confidence else None,
         )
 
         self.db.add(accident)

@@ -7,7 +7,7 @@ from uuid import uuid4
 from src.db.session import SessionLocal, engine, Base
 from src.services.hotspot_analysis import HotspotAnalysisService
 from src.models.accident import Accident
-from src.models import SourceType, SeverityLevel
+from src.models import SourceType
 from geoalchemy2 import WKTElement
 
 
@@ -35,17 +35,16 @@ def sample_accidents(db):
     accidents = []
     base_time = datetime.utcnow()
     
-    # 建立不同嚴重程度的事故
-    for i, severity in enumerate([SeverityLevel.A1, SeverityLevel.A2, SeverityLevel.A3]):
+    # 建立不同嚴重程度的事故（透過 source_type 區分）
+    for i, source_type in enumerate([SourceType.A1, SourceType.A2, SourceType.A3]):
         accident = Accident(
             id=uuid4(),
-            source_type=SourceType(severity.value),
-            source_id=f"TEST-{severity.value}-{i:03d}",
+            source_type=source_type,
+            source_id=f"TEST-{source_type.value}-{i:03d}",
             occurred_at=base_time - timedelta(days=i),
             latitude=Decimal("25.0479"),
             longitude=Decimal("121.5170"),
             geom=WKTElement("POINT(121.5170 25.0479)", srid=4326),
-            severity_level=severity,
         )
         db.add(accident)
         accidents.append(accident)

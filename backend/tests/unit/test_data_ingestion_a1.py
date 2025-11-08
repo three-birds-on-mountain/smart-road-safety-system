@@ -52,21 +52,14 @@ async def test_ingest_a1_with_date_range(ingestion_service):
 
 def test_save_accident_a1(ingestion_service, db):
     """測試儲存 A1 事故記錄"""
-    from src.models import SeverityLevel
-    from decimal import Decimal
-    
     accident = ingestion_service._save_accident(
         source_type=SourceType.A1,
         source_id="A1-TEST-001",
         occurred_at=datetime.utcnow(),
         latitude=25.0479,
         longitude=121.5170,
-        severity_level=SeverityLevel.A1,
         location_text="台北市測試路段",
         vehicle_type="小客車",
-        raw_data={"test": True},
-        geocoded=True,
-        geocode_confidence=0.95,
     )
     
     db.commit()
@@ -75,14 +68,10 @@ def test_save_accident_a1(ingestion_service, db):
     saved = db.query(Accident).filter(Accident.source_id == "A1-TEST-001").first()
     assert saved is not None
     assert saved.source_type == SourceType.A1
-    assert saved.severity_level == SeverityLevel.A1
-    assert saved.geocoded is True
 
 
 def test_save_accident_duplicate_prevention(ingestion_service, db):
     """測試防止重複儲存事故記錄"""
-    from src.models import SeverityLevel
-    
     # 第一次儲存
     accident1 = ingestion_service._save_accident(
         source_type=SourceType.A1,
@@ -90,7 +79,6 @@ def test_save_accident_duplicate_prevention(ingestion_service, db):
         occurred_at=datetime.utcnow(),
         latitude=25.0479,
         longitude=121.5170,
-        severity_level=SeverityLevel.A1,
     )
     db.commit()
     
@@ -101,7 +89,6 @@ def test_save_accident_duplicate_prevention(ingestion_service, db):
         occurred_at=datetime.utcnow(),
         latitude=25.0479,
         longitude=121.5170,
-        severity_level=SeverityLevel.A1,
     )
     db.commit()
     
