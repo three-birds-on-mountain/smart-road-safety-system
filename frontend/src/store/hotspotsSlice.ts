@@ -1,7 +1,6 @@
 import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { apiClient } from '../services/api';
-import { getMockNearbyHotspots, getMockHotspotDetail, getMockAllHotspots } from '../mocks/hotspots';
-import { mapSeverityLevelsToApi, mapTimeRangeToApi } from '../utils/mappers';
+import { getMockHotspotDetail, getMockAllHotspots } from '../mocks/hotspots';
 import type {
   HotspotDetail,
   HotspotListMeta,
