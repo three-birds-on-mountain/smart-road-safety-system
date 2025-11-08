@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { HotspotDetail, HotspotSummary } from '../../types/hotspot';
 import { useAppSelector } from '../../hooks/store';
+import InfoIcon from '../../assets/info.svg';
 
 type DetailStatus = 'idle' | 'loading' | 'succeeded' | 'failed';
 
@@ -157,20 +158,7 @@ const HotspotDetailPopup = ({
               aria-label="事故等級說明"
               onClick={toggleSeverityHint}
             >
-              <svg
-                className="h-3 w-3"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2}
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M12 6.75a.75.75 0 10-.75-.75.75.75 0 00.75.75zm0 10.5v-6"
-                />
-                <circle cx="12" cy="12" r="9" />
-              </svg>
+              <img src={InfoIcon} alt="" className="h-3 w-3" />
             </button>
           </div>
           {showSeverityHint && (
