@@ -93,6 +93,7 @@ const MapPage = () => {
   const [followUser, setFollowUser] = useState(true);
   const [isRecenterPressed, setIsRecenterPressed] = useState(false);
   const [showRouteSearch, setShowRouteSearch] = useState(false);
+  const [isRouteSummaryVisible, setIsRouteSummaryVisible] = useState(true);
 
   const activeAlertRef = useRef<ActiveAlertState | null>(null);
   const geolocationServiceRef = useRef<ReturnType<typeof createGeolocationService> | null>(null);
@@ -402,7 +403,19 @@ const MapPage = () => {
   const handleClearRoute = useCallback(() => {
     dispatch(clearRoute());
     setShowRouteSearch(false);
+    setIsRouteSummaryVisible(true); // 重置抽屜狀態
   }, [dispatch]);
+
+  const toggleRouteSummary = useCallback(() => {
+    setIsRouteSummaryVisible((prev) => !prev);
+  }, []);
+
+  // 當新路線產生時，自動展開抽屜
+  useEffect(() => {
+    if (routeState.safetySummary) {
+      setIsRouteSummaryVisible(true);
+    }
+  }, [routeState.safetySummary]);
 
   const handleOpenLocationSettings = async () => {
     console.log('🔍 handleOpenLocationSettings 被呼叫');
@@ -784,7 +797,34 @@ const MapPage = () => {
 
       {/* 路線安全統計抽屜 */}
       {routeState.safetySummary && (
-        <RouteSummary summary={routeState.safetySummary} onClose={handleClearRoute} />
+        <RouteSummary
+          summary={routeState.safetySummary}
+          isVisible={isRouteSummaryVisible}
+          onToggle={toggleRouteSummary}
+          onClearRoute={handleClearRoute}
+        />
+      )}
+
+      {/* 顯示路線統計浮動按鈕（當抽屜隱藏且有路線時顯示） */}
+      {routeState.safetySummary && !isRouteSummaryVisible && (
+        <div className="pointer-events-none fixed right-6 bottom-[90px] z-50">
+          <button
+            type="button"
+            onClick={toggleRouteSummary}
+            className="pointer-events-auto flex items-center gap-2 rounded-full bg-primary-500 px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-primary-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+            aria-label="顯示路線統計"
+          >
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+              />
+            </svg>
+            <span>路線統計</span>
+          </button>
+        </div>
       )}
 
       {/* 警示覆蓋層（簡化版：底部浮動顯示） */}

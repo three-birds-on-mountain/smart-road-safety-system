@@ -1,22 +1,97 @@
+import { useState, useRef, useEffect } from 'react';
 import type { RouteSafetySummary } from '../../types/route';
 
 interface RouteSummaryProps {
   summary: RouteSafetySummary;
-  onClose: () => void;
+  isVisible: boolean;
+  onToggle: () => void;
+  onClearRoute: () => void;
 }
 
 /**
  * 路線安全統計抽屜元件
  *
  * 顯示路線經過的事故統計和安全建議
+ * 支援滑動隱藏/展開
  */
-const RouteSummary = ({ summary, onClose }: RouteSummaryProps) => {
+const RouteSummary = ({ summary, isVisible, onToggle, onClearRoute }: RouteSummaryProps) => {
   const { totalAccidents, a1Count, a2Count, a3Count, suggestPublicTransport, message } = summary;
 
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState(0);
+  const startYRef = useRef(0);
+  const drawerRef = useRef<HTMLDivElement>(null);
+
+  // 處理觸控開始
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setIsDragging(true);
+    startYRef.current = e.touches[0].clientY;
+  };
+
+  // 處理觸控移動
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging) return;
+
+    const currentY = e.touches[0].clientY;
+    const diff = currentY - startYRef.current;
+
+    // 只允許向下拖曳
+    if (diff > 0) {
+      setDragOffset(diff);
+    }
+  };
+
+  // 處理觸控結束
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+
+    // 如果拖曳超過 100px，則隱藏抽屜
+    if (dragOffset > 100) {
+      onToggle();
+    }
+
+    setDragOffset(0);
+  };
+
+  // 處理點擊拖曳指示器
+  const handleIndicatorClick = () => {
+    onToggle();
+  };
+
+  // 重置拖曳狀態
+  useEffect(() => {
+    if (!isVisible) {
+      setDragOffset(0);
+      setIsDragging(false);
+    }
+  }, [isVisible]);
+
   return (
-    <div className="pointer-events-auto fixed bottom-0 left-0 right-0 z-30 bg-white shadow-2xl">
+    <div
+      ref={drawerRef}
+      className="pointer-events-auto fixed bottom-0 left-0 right-0 z-30 bg-white shadow-2xl transition-transform duration-300 ease-out"
+      style={{
+        transform: isVisible
+          ? `translateY(${dragOffset}px)`
+          : 'translateY(100%)',
+      }}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
       {/* 拖曳指示器 */}
-      <div className="flex justify-center py-2">
+      <div
+        className="flex cursor-pointer justify-center py-3 active:bg-gray-50"
+        onClick={handleIndicatorClick}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            handleIndicatorClick();
+          }
+        }}
+        aria-label={isVisible ? '隱藏路線統計' : '顯示路線統計'}
+      >
         <div className="h-1 w-12 rounded-full bg-gray-300" />
       </div>
 
@@ -25,16 +100,32 @@ const RouteSummary = ({ summary, onClose }: RouteSummaryProps) => {
         {/* 標題列 */}
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-text-primary">路線安全評估</h3>
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
-            aria-label="關閉"
-          >
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+          <div className="flex gap-2">
+            {/* 隱藏按鈕 */}
+            <button
+              type="button"
+              onClick={onToggle}
+              className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+              aria-label="隱藏"
+              title="隱藏統計"
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {/* 清除路線按鈕 */}
+            <button
+              type="button"
+              onClick={onClearRoute}
+              className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-100 hover:text-danger-600"
+              aria-label="清除路線"
+              title="清除路線"
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         {/* 安全建議 */}
