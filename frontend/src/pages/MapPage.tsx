@@ -8,6 +8,7 @@ import HotspotIncidentListModal from '../components/Map/HotspotIncidentListModal
 import { useAppDispatch, useAppSelector } from '../hooks/store';
 import { createAlertService, type TriggerAlertResult } from '../services/alerts';
 import { createGeolocationService } from '../services/geolocation';
+import { FlutterBridge } from '../services/flutterBridge';
 import {
   fetchAllHotspots,
   fetchHotspotDetail,
@@ -334,11 +335,23 @@ const MapPage = () => {
     setIsRecenterPressed(false);
   }, []);
 
-  const handleOpenLocationSettings = () => {
+  const handleOpenLocationSettings = async () => {
     geolocationServiceRef.current?.startWatching();
 
     if (typeof window === 'undefined') {
       return;
+    }
+
+    // 優先使用 Flutter Bridge API（在 Flutter WebView 環境下）
+    if (typeof window.flutterObject?.postMessage === 'function') {
+      try {
+        const bridge = new FlutterBridge();
+        await bridge.openAppSettings();
+        return;
+      } catch (error) {
+        console.warn('Failed to open app settings via Flutter Bridge:', error);
+        // 如果 Flutter Bridge 失敗，繼續使用 fallback 方式
+      }
     }
 
     const userAgent = window.navigator?.userAgent ?? '';

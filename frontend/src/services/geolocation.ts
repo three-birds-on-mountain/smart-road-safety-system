@@ -94,8 +94,8 @@ export const createGeolocationService = (dispatch: AppDispatch) => {
     });
 
     state.isWatching = true;
-    postMessage({ name: 'location:start' });
 
+    // 使用簡單的 'location' 訊息（與 tpml-seat-tracker 一致）
     requestLocation()
       .then((position) => handleLocationUpdate(position, options))
       .catch((error: Error) => {

@@ -24,6 +24,8 @@ declare global {
     };
     flutterObject?: {
       postMessage: (payload: string) => Promise<string>;
+      addEventListener: (event: 'message', callback: (event: { data: string }) => void) => void;
+      removeEventListener: (event: 'message', callback: (event: { data: string }) => void) => void;
     };
     ReactNativeWebView?: {
       postMessage: (payload: string) => void;
@@ -53,8 +55,23 @@ const dispatchBridgeEvent = (name: string, payload: unknown) => {
   });
 };
 
-const handleIncomingMessage = (event: MessageEvent) => {
-  const payload = event.data;
+const handleIncomingMessage = (event: MessageEvent | { data: string }) => {
+  let payload: any;
+
+  // 處理兩種事件格式
+  if (typeof event.data === 'string') {
+    // flutterObject.addEventListener('message') 格式：data 是 JSON 字串
+    try {
+      payload = JSON.parse(event.data);
+    } catch (error) {
+      console.warn('[Flutter Bridge] Failed to parse message:', error);
+      return;
+    }
+  } else {
+    // window.addEventListener('message') 格式：data 是物件
+    payload = event.data;
+  }
+
   if (!payload || typeof payload !== 'object') {
     return;
   }
@@ -71,7 +88,7 @@ const handleIncomingMessage = (event: MessageEvent) => {
   const detail = payload.data ?? payload.payload ?? payload;
   const requestId = payload.requestId ?? detail?.requestId;
 
-  if (eventName.startsWith('location')) {
+  if (eventName.startsWith('location') || eventName === 'location') {
     const pendingEntry =
       (requestId && pendingLocationRequests.get(requestId)) ||
       pendingLocationRequests.values().next().value;
@@ -91,7 +108,14 @@ const handleIncomingMessage = (event: MessageEvent) => {
 };
 
 if (typeof window !== 'undefined') {
+  // 監聽 window message (舊的方式)
   window.addEventListener('message', handleIncomingMessage);
+
+  // 監聽 flutterObject message (新的方式，與 tpml-seat-tracker 一致)
+  if (window.flutterObject?.addEventListener) {
+    window.flutterObject.addEventListener('message', handleIncomingMessage as any);
+    console.log('[Flutter Bridge] Registered flutterObject message listener');
+  }
 }
 
 const sendToFlutter = (message: FlutterBridgeMessage): boolean => {
@@ -99,15 +123,21 @@ const sendToFlutter = (message: FlutterBridgeMessage): boolean => {
     return false;
   }
 
-  if (typeof window.flutter_inappwebview?.callHandler === 'function') {
-    window.flutter_inappwebview.callHandler('postMessage', message);
-    return true;
-  }
-
   const serialized = JSON.stringify(message);
 
+  // 優先使用 flutterObject (與 tpml-seat-tracker 一致)
   if (typeof window.flutterObject?.postMessage === 'function') {
-    window.flutterObject.postMessage(serialized);
+    try {
+      window.flutterObject.postMessage(serialized);
+      console.log('[Flutter Bridge] Sent message via flutterObject:', message.name);
+      return true;
+    } catch (error) {
+      console.error('[Flutter Bridge] Failed to send via flutterObject:', error);
+    }
+  }
+
+  if (typeof window.flutter_inappwebview?.callHandler === 'function') {
+    window.flutter_inappwebview.callHandler('postMessage', message);
     return true;
   }
 
@@ -163,17 +193,7 @@ export const requestLocation = async (): Promise<BridgePosition> => {
     return Promise.reject(new Error('Flutter bridge 尚未就緒，無法取得定位資訊'));
   }
 
-  // 優先使用新的 FlutterBridge API（雙向通訊）
-  if (typeof window.flutterObject?.postMessage === 'function') {
-    try {
-      const bridge = new FlutterBridge();
-      return await bridge.getLocation();
-    } catch (error) {
-      throw new Error('定位請求失敗: ' + (error instanceof Error ? error.message : String(error)));
-    }
-  }
-
-  // Fallback: 使用舊的事件監聽方式（flutter_inappwebview）
+  // 使用簡單的訊息格式（與 tpml-seat-tracker 一致）
   const requestId = createRequestId();
 
   return new Promise<BridgePosition>((resolve, reject) => {
@@ -183,7 +203,14 @@ export const requestLocation = async (): Promise<BridgePosition> => {
     }, REQUEST_TIMEOUT_MS);
 
     pendingLocationRequests.set(requestId, { resolve, reject, timeout });
-    postMessage({ name: 'location:request', data: { requestId }, requestId });
+
+    // 發送簡單的 location 請求（與 tpml-seat-tracker 一致）
+    const sent = postMessage({ name: 'location', data: null });
+    if (!sent) {
+      window.clearTimeout(timeout);
+      pendingLocationRequests.delete(requestId);
+      reject(new Error('無法發送定位請求'));
+    }
   });
 };
 
@@ -265,4 +292,6 @@ export class FlutterBridge {
     this.call<{ title: string; content: string }, void>('notify', { title, content });
 
   openLink = (url: string) => this.call<string, void>('open_link', url);
+
+  openAppSettings = () => this.call<null, void>('open_app_settings');
 }
