@@ -181,15 +181,22 @@ export const fetchHotspotDetail = createAsyncThunk<
   { state: RootState }
 >(
   'hotspots/fetchDetail',
-  async ({ hotspotId, signal }) => {
+  async ({ hotspotId, signal }, { getState }) => {
     if (import.meta.env.VITE_USE_MOCK_API === 'true') {
       const mock = getMockHotspotDetail(hotspotId);
       if (mock) return mock;
     }
 
     try {
+      const state = getState();
+      const severityFilter = state.settings.current.severityFilter;
+      const severityLevels = severityFilter.length > 0 ? severityFilter.join(',') : undefined;
+
       const response = await apiClient.get<{ data: HotspotDetailApi }>(`/hotspots/${hotspotId}`, {
-        params: { include_accidents: true },
+        params: {
+          include_accidents: true,
+          severity_levels: severityLevels,
+        },
         signal,
       });
       return adaptHotspotDetail(response.data.data);
