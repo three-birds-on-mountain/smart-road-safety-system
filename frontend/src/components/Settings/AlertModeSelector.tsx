@@ -2,7 +2,8 @@ import { useMemo } from 'react';
 import type { AlertChannel } from '../../types/settings';
 import { useAppDispatch, useAppSelector } from '../../hooks/store';
 import { updateAlertChannels } from '../../store/settingsSlice';
-import checkIcon from '../../assets/check.svg';
+import checkYesIcon from '../../assets/check-yes.svg';
+import checkNoIcon from '../../assets/check-no.svg';
 
 const CHANNEL_OPTIONS: Array<{
   value: AlertChannel;
@@ -26,9 +27,7 @@ const CHANNEL_OPTIONS: Array<{
 
 const AlertModeSelector = () => {
   const dispatch = useAppDispatch();
-  const selectedChannels = useAppSelector(
-    (state) => state.settings.current.alertChannels,
-  );
+  const selectedChannels = useAppSelector((state) => state.settings.current.alertChannels);
 
   const isVisualOnly = selectedChannels.length === 0;
 
@@ -68,14 +67,13 @@ const AlertModeSelector = () => {
     <section className="flex flex-col gap-md">
       <header className="flex flex-col gap-xs">
         <h2 className="text-lg font-semibold text-text-primary">警示方式</h2>
-        <p className="text-sm text-text-secondary">
-          可同時選擇音效與震動，或改為僅顯示視覺提示。
-        </p>
+        <p className="text-sm text-text-secondary">可同時選擇音效與震動，或改為僅顯示視覺提示。</p>
       </header>
 
       <div className="flex flex-col gap-sm">
         {CHANNEL_OPTIONS.map((option) => {
           const isChecked = selectedChannels.includes(option.value);
+          const showActive = isChecked && !isVisualOnly;
           return (
             <label
               key={option.value}
@@ -84,34 +82,38 @@ const AlertModeSelector = () => {
                 isChecked && !isVisualOnly
                   ? 'border-primary-500 bg-primary-50 text-primary-700 shadow-md'
                   : 'border-gray-100 bg-white text-text-primary hover:border-primary-200',
-                isVisualOnly
-                  ? 'opacity-60 transition-opacity hover:opacity-80'
-                  : '',
+                isVisualOnly ? 'opacity-60 transition-opacity hover:opacity-80' : '',
               ].join(' ')}
             >
               <div className="flex items-start gap-sm">
                 <input
                   type="checkbox"
                   className="peer sr-only"
-                  checked={isChecked && !isVisualOnly}
+                  checked={showActive}
                   disabled={isVisualOnly}
                   onChange={() => toggleChannel(option.value)}
                   aria-label={option.label}
                 />
                 <span
                   className={[
-                    'mt-[2px] pointer-events-none flex h-4 w-4 items-center justify-center rounded border border-primary-500 bg-white transition',
-                    'peer-checked:bg-primary-500',
-                    'peer-disabled:border-gray-300 peer-disabled:bg-gray-100 peer-disabled:opacity-80',
+                    'mt-[2px] pointer-events-none relative block h-6 w-6 rounded transition',
+                    'peer-disabled:opacity-40',
                     'peer-focus-visible:ring-2 peer-focus-visible:ring-primary-500',
-                    'peer-checked:[&>img]:opacity-100 peer-disabled:[&>img]:opacity-0',
                   ].join(' ')}
                   aria-hidden="true"
                 >
                   <img
-                    src={checkIcon}
+                    src={checkNoIcon}
                     alt=""
-                    className="h-3 w-3 opacity-0 transition-opacity duration-150"
+                    className="absolute inset-0 h-full w-full"
+                  />
+                  <img
+                    src={checkYesIcon}
+                    alt=""
+                    className={[
+                      'absolute inset-0 h-full w-full transition-opacity duration-150',
+                      showActive ? 'opacity-100' : 'opacity-0',
+                    ].join(' ')}
                   />
                 </span>
               </div>
@@ -120,9 +122,7 @@ const AlertModeSelector = () => {
                   <span aria-hidden>{option.icon}</span>
                   {option.label}
                 </span>
-                <span className="text-xs text-text-description">
-                  {option.description}
-                </span>
+                <span className="text-xs text-text-description">{option.description}</span>
               </div>
             </label>
           );

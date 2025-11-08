@@ -1,7 +1,8 @@
 import type { AccidentSeverity } from '../../types/accident';
 import { useAppDispatch, useAppSelector } from '../../hooks/store';
 import { updateSeverityFilter } from '../../store/settingsSlice';
-import checkIcon from '../../assets/check.svg';
+import checkYesIcon from '../../assets/check-yes.svg';
+import checkNoIcon from '../../assets/check-no.svg';
 
 const SEVERITY_OPTIONS: Array<{
   value: AccidentSeverity;
@@ -31,9 +32,7 @@ const SEVERITY_OPTIONS: Array<{
 
 const AccidentLevelFilter = () => {
   const dispatch = useAppDispatch();
-  const selectedSeverities = useAppSelector(
-    (state) => state.settings.current.severityFilter,
-  );
+  const selectedSeverities = useAppSelector((state) => state.settings.current.severityFilter);
 
   const handleToggle = (severity: AccidentSeverity) => {
     const isSelected = selectedSeverities.includes(severity);
@@ -41,11 +40,7 @@ const AccidentLevelFilter = () => {
       if (selectedSeverities.length === 1) {
         return;
       }
-      dispatch(
-        updateSeverityFilter(
-          selectedSeverities.filter((level) => level !== severity),
-        ),
-      );
+      dispatch(updateSeverityFilter(selectedSeverities.filter((level) => level !== severity)));
       return;
     }
     dispatch(updateSeverityFilter([...selectedSeverities, severity]));
@@ -92,25 +87,30 @@ const AccidentLevelFilter = () => {
                   />
                   <span
                     className={[
-                      'pointer-events-none flex h-4 w-4 items-center justify-center rounded border border-primary-500 bg-white transition',
-                      'peer-checked:bg-primary-500 peer-focus-visible:ring-2 peer-focus-visible:ring-primary-500',
-                      'peer-checked:[&>img]:opacity-100',
+                      'mt-[2px] pointer-events-none relative block h-6 w-6 rounded transition',
+                      'peer-focus-visible:ring-2 peer-focus-visible:ring-primary-500',
                     ].join(' ')}
                     aria-hidden="true"
                   >
                     <img
-                      src={checkIcon}
+                      src={checkNoIcon}
                       alt=""
-                      className="h-3 w-3 opacity-0 transition-opacity duration-150"
+                      className="absolute inset-0 h-full w-full"
+                    />
+                    <img
+                      src={checkYesIcon}
+                      alt=""
+                      className={[
+                        'absolute inset-0 h-full w-full transition-opacity duration-150',
+                        isChecked ? 'opacity-100' : 'opacity-0',
+                      ].join(' ')}
                     />
                   </span>
                 </div>
               </div>
               <div className="flex flex-col gap-xs">
                 <span className="text-sm font-semibold">{option.label}</span>
-                <span className="text-xs text-text-description">
-                  {option.description}
-                </span>
+                <span className="text-xs text-text-description">{option.description}</span>
               </div>
             </label>
           );
