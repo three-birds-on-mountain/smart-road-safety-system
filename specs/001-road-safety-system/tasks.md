@@ -426,6 +426,41 @@
 - [x] T244 [P] 建立部署檢查清單 in docs/deployment-checklist.md（部署前的驗證項目）
 - [x] T245 驗證 Docker Compose 配置 in docker-compose.yml（確保前後端可正確啟動並互通）
 
+### API 對齊與部署修正
+
+**Purpose**: 修正後端 API 變更導致的前後端不一致問題，確保部署後的服務正常運作
+
+**背景**: 後端已移除 `/hotspots/nearby` 和 `/hotspots/in-bounds` 端點，改用統一的 `/hotspots/all` 端點。前端需要更新以適配新的 API。
+
+#### 後端 CORS 與環境變數修正
+
+- [ ] T246 [P] 更新 backend/src/core/config.py 加入 CORS_ORIGINS 環境變數（支援多個來源，逗號分隔）
+- [ ] T247 更新 backend/src/main.py 使用 CORS_ORIGINS 環境變數（替換硬編碼的 allow_origins=["*"]）
+- [ ] T248 [P] 驗證後端 /api/v1/hotspots/all 端點回應格式（確認包含 meta.period_days, 支援 period_days 和 severity_levels 參數）
+- [ ] T249 [P] 撰寫 CORS 設定單元測試 in backend/tests/unit/test_cors_config.py（驗證環境變數讀取與多來源解析）
+
+#### 前端 API 呼叫更新
+
+- [ ] T250 移除 frontend/src/store/hotspotsSlice.ts 中的 fetchNearbyHotspots 函數（已廢棄的 /hotspots/nearby 端點）
+- [ ] T251 移除 frontend/src/store/hotspotsSlice.ts 中的 fetchHotspotsInBounds 函數（已廢棄的 /hotspots/in-bounds 端點）
+- [ ] T252 移除 hotspotsSlice 中舊 API 相關的 reducer cases（fetchNearbyHotspots.pending/fulfilled/rejected, fetchHotspotsInBounds.pending/fulfilled/rejected）
+- [ ] T253 更新 frontend/src/pages/MapPage.tsx 使用 fetchAllHotspots + 本地過濾邏輯（實作地圖範圍過濾和距離過濾）
+- [ ] T254 [P] 建立本地過濾工具函式 in frontend/src/utils/filters.ts（filterByDistance, filterByBounds）
+- [ ] T255 [P] 撰寫過濾函式單元測試 in frontend/tests/unit/utils/test_filters.spec.ts
+
+#### 整合測試與部署
+
+- [ ] T256 本地測試前端連接已部署的後端（npm run dev, 驗證 API 呼叫正常，無 404 錯誤）
+- [ ] T257 重新建置並部署後端（gcloud builds submit, 套用 CORS_ORIGINS 環境變數）
+- [ ] T258 重新建置並部署前端（gcloud builds submit, 套用 API 更新）
+- [ ] T259 驗證部署後的前後端整合（測試地圖功能、警示功能、無 CORS 錯誤、API 回應正常）
+- [ ] T260 [P] 更新部署文件記錄 CORS_ORIGINS 環境變數 in docs/deployment/BACKEND_DEPLOYMENT.md, docs/deployment/QUICK_REFERENCE.md
+
+#### 文件更新
+
+- [ ] T261 [P] 更新 docs/hotspot-api-changes.md 標記前端已更新使用新 API
+- [ ] T262 [P] 建立 API 對齊檢查清單 in docs/api-alignment-checklist.md（列出所有前後端 API 契約檢查項目）
+
 ---
 
 ## Dependencies & Execution Order
@@ -544,22 +579,28 @@ Task T046: "建立 AlertIcon 元件"
 
 ## Summary
 
-- **總任務數**: 178 個任務（原 132 + 新增 46 個整合任務）
+- **總任務數**: 195 個任務（原 132 + 整合 46 + API 對齊 17）
 - **User Story 任務分布**:
   - US1（即時警示）: 20 個任務（T031-T050）
   - US2（客製化設定）: 21 個任務（T051-T071）
   - US3（地圖視覺化）: 28 個任務（T072-T093, T194-T199）
   - 資料管線: 22 個任務（T094-T115）
   - Setup/Foundational/Polish: 47 個任務（T001-T030, T116-T132）
-  - **前後端整合**: 46 個任務（T200-T245）
+  - **前後端整合**: 63 個任務（T200-T262）
     - Flutter WebView 整合: 9 個任務（T203-T211）
     - 格式轉換與參數驗證: 9 個任務（T212-T220）
     - API 整合測試: 7 個任務（T221-T227）
     - 文件與型別定義: 5 個任務（T228-T232）
     - 測試覆蓋率與效能: 6 個任務（T233-T238）
-    - E2E 測試與部署: 7 個任務（T239-T245）
-- **並行機會**: 75+ 任務標記 [P] 可平行執行
+    - E2E 測試與部署: 10 個任務（T239-T245, T246-T262）
+    - **API 對齊與部署修正**: 17 個任務（T246-T262）
+      - 後端 CORS 與環境變數: 4 個任務（T246-T249）
+      - 前端 API 呼叫更新: 6 個任務（T250-T255）
+      - 整合測試與部署: 5 個任務（T256-T260）
+      - 文件更新: 2 個任務（T261-T262）
+- **並行機會**: 80+ 任務標記 [P] 可平行執行
 - **獨立測試標準**: 每個 User Story 都有明確的獨立測試方法
 - **建議 MVP 範圍**: Phase 1 + Phase 2 + Phase 3（User Story 1 only）= ~50 個任務
-- **整合範圍**: Phase 8（前後端整合）= 46 個任務，包含 Flutter WebView、格式統一、API 測試、覆蓋率驗證
+- **整合範圍**: Phase 8（前後端整合）= 63 個任務，包含 Flutter WebView、格式統一、API 測試、覆蓋率驗證、API 對齊修正
 - **格式驗證**: ✅ 所有任務遵循 checklist 格式（checkbox, ID, labels, file paths）
+- **最新更新**: 新增 API 對齊與部署修正任務（T246-T262），處理後端 API 端點變更導致的前後端不一致問題
