@@ -32,7 +32,7 @@ DEFAULT_TABLE_NAME = "raw_moi_a1"
 DEFAULT_ACCIDENT_LEVEL = "A1"
 DEFAULT_BATCH_SIZE = 1000
 EXPECTED_COLUMNS = CHINESE_COLUMNS
-DB_EXTRA_COLUMNS = ["accident_level", "etl_dt"]
+DB_EXTRA_COLUMNS = ["source_id", "accident_level", "etl_dt"]
 
 
 @dataclass(**DATACLASS_KWARGS)
@@ -106,7 +106,9 @@ class A1CSVDatasetLoader:
     def _ensure_table(self, cur, db_columns: Iterable[str]) -> None:
         column_defs = []
         for column in db_columns:
-            if column == "etl_dt":
+            if column == "source_id":
+                column_defs.append(sql.SQL("{} TEXT PRIMARY KEY").format(sql.Identifier(column)))
+            elif column == "etl_dt":
                 column_defs.append(sql.SQL("{} TIMESTAMPTZ NOT NULL").format(sql.Identifier(column)))
             else:
                 column_defs.append(sql.SQL("{} TEXT").format(sql.Identifier(column)))
@@ -136,6 +138,7 @@ class A1CSVDatasetLoader:
         rows_inserted = 0
         batch: list[list[str]] = []
         etl_timestamp = datetime.now(timezone.utc)
+        etl_date_str = etl_timestamp.strftime("%Y%m%d%H%M%S%f")  # 加上微秒避免衝突
 
         with path.open("r", encoding=self.config.encoding, newline="") as fh:
             reader = csv.DictReader(fh)
@@ -144,8 +147,10 @@ class A1CSVDatasetLoader:
             reader.fieldnames = [normalize_column_name(col or "") for col in reader.fieldnames]
 
             with conn.cursor() as cur:
-                for record in reader:
+                for idx, record in enumerate(reader, 1):
                     row = [record.get(col, "") or "" for col in header]
+                    source_id = f"{self.config.accident_level}-{etl_date_str}-{idx:08d}"
+                    row.append(source_id)
                     row.append(self.config.accident_level)
                     row.append(etl_timestamp)
                     batch.append(row)

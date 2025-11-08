@@ -23,7 +23,7 @@ except ModuleNotFoundError as exc:  # pragma: no cover - runtime guard
 else:
     IMPORT_ERROR = None
 
-from moi_schema import CHINESE_COLUMNS, normalize_column_name, translate_columns
+from moi_schema import CHINESE_COLUMNS_A3, normalize_column_name, translate_columns
 
 DATA_ROOT = Path(__file__).resolve().parent
 DATACLASS_KWARGS = {"slots": True} if sys.version_info >= (3, 10) else {}
@@ -31,8 +31,8 @@ DEFAULT_CSV_PATH = Path.home() / "moi_a3" / "A3_2025.csv"
 DEFAULT_TABLE_NAME = "raw_moi_a3"
 DEFAULT_ACCIDENT_LEVEL = "A3"
 DEFAULT_BATCH_SIZE = 1000
-EXPECTED_COLUMNS = CHINESE_COLUMNS
-DB_EXTRA_COLUMNS = ["accident_level", "etl_dt"]
+EXPECTED_COLUMNS = CHINESE_COLUMNS_A3
+DB_EXTRA_COLUMNS = ["source_id", "accident_level", "etl_dt"]
 
 
 @dataclass(**DATACLASS_KWARGS)
@@ -58,7 +58,9 @@ class A3CSVDatasetLoader:
 
     def run(self) -> None:
         if not self.config.database_url:
-            raise SystemExit("DATABASE_URL is not set. Provide it via env var or --database-url.")
+            raise SystemExit(
+                "DATABASE_URL is not set. Provide it via env var or --database-url."
+            )
         if IMPORT_ERROR is not None:
             raise SystemExit(
                 "psycopg2 (or psycopg2-binary) is required to run this loader; install it and retry."
@@ -69,7 +71,9 @@ class A3CSVDatasetLoader:
         if not header:
             raise SystemExit(f"{csv_path} appears to be empty.")
         if header != EXPECTED_COLUMNS:
-            print("⚠️ CSV header differs from the expected MOI schema; proceeding with detected columns.")
+            print(
+                "⚠️ CSV header differs from the expected MOI schema; proceeding with detected columns."
+            )
 
         db_columns = english_header + DB_EXTRA_COLUMNS
         with psycopg2.connect(self.config.database_url) as conn:
@@ -77,13 +81,19 @@ class A3CSVDatasetLoader:
             with conn.cursor() as cur:
                 self._ensure_table(cur, db_columns)
                 if self.config.truncate_before_load:
-                    cur.execute(sql.SQL("TRUNCATE TABLE {}").format(sql.Identifier(self.config.table_name)))
+                    cur.execute(
+                        sql.SQL("TRUNCATE TABLE {}").format(
+                            sql.Identifier(self.config.table_name)
+                        )
+                    )
             conn.commit()
 
             inserted = self._load_file(conn, csv_path, header, insert_sql)
             conn.commit()
 
-        print(f"Loaded {inserted} rows from {csv_path} into table {self.config.table_name}.")
+        print(
+            f"Loaded {inserted} rows from {csv_path} into table {self.config.table_name}."
+        )
 
     def _resolve_csv_path(self) -> Path:
         if self.config.csv_path is None:
@@ -96,18 +106,37 @@ class A3CSVDatasetLoader:
         with path.open("r", encoding=self.config.encoding, newline="") as fh:
             reader = csv.reader(fh)
             try:
-                raw_header = next(reader)
+                first_row = next(reader)
             except StopIteration:
                 return [], []
+
+            # A3 dataset has two header rows:
+            # Row 0: Short field names (ACCYMD, PLACE, CARTYPE)
+            # Row 1: Full Chinese field names (發生時間, 發生地點, 車種)
+            # We use row 1 as the actual header and skip row 0
+            if first_row and first_row[0] in ("ACCYMD", "accymd"):
+                try:
+                    raw_header = next(reader)  # Use second row as header
+                except StopIteration:
+                    return [], []
+            else:
+                raw_header = first_row  # Fallback: use first row if format is different
+
         header = [normalize_column_name(col) for col in raw_header]
-        english_header = translate_columns(header)
+        english_header = translate_columns(header, dataset_type="A3")
         return header, english_header
 
     def _ensure_table(self, cur, db_columns: Iterable[str]) -> None:
         column_defs = []
         for column in db_columns:
-            if column == "etl_dt":
-                column_defs.append(sql.SQL("{} TIMESTAMPTZ NOT NULL").format(sql.Identifier(column)))
+            if column == "source_id":
+                column_defs.append(
+                    sql.SQL("{} TEXT PRIMARY KEY").format(sql.Identifier(column))
+                )
+            elif column == "etl_dt":
+                column_defs.append(
+                    sql.SQL("{} TIMESTAMPTZ NOT NULL").format(sql.Identifier(column))
+                )
             else:
                 column_defs.append(sql.SQL("{} TEXT").format(sql.Identifier(column)))
         cur.execute(
@@ -129,31 +158,51 @@ class A3CSVDatasetLoader:
         rows_inserted = 0
         batch: list[list[str]] = []
         etl_timestamp = datetime.now(timezone.utc)
+        etl_date_str = etl_timestamp.strftime("%Y%m%d%H%M%S%f")  # 加上微秒避免衝突
 
         with path.open("r", encoding=self.config.encoding, newline="") as fh:
-            reader = csv.DictReader(fh)
-            if reader.fieldnames is None:
-                return 0
-            reader.fieldnames = [normalize_column_name(col or "") for col in reader.fieldnames]
+            reader = csv.reader(fh)
+
+            # Skip the first row if it's the short field names (ACCYMD, PLACE, etc.)
+            first_row = next(reader, None)
+            if first_row and first_row[0] in ("ACCYMD", "accymd"):
+                # Skip the second row too (the actual Chinese header)
+                next(reader, None)
+            # If first row is not ACCYMD, it's the header, already skipped
 
             with conn.cursor() as cur:
-                for record in reader:
-                    row = [record.get(col, "") or "" for col in header]
+                for idx, row_data in enumerate(reader, 1):
+                    if not row_data or not any(row_data):  # Skip empty rows
+                        continue
+                    # Ensure row has the right length
+                    row = (
+                        row_data[: len(header)]
+                        if len(row_data) >= len(header)
+                        else row_data + [""] * (len(header) - len(row_data))
+                    )
+                    source_id = f"{self.config.accident_level}-{etl_date_str}-{idx:08d}"
+                    row.append(source_id)
                     row.append(self.config.accident_level)
                     row.append(etl_timestamp)
                     batch.append(row)
                     if len(batch) >= self.config.batch_size:
-                        execute_batch(cur, insert_sql, batch, page_size=self.config.batch_size)
+                        execute_batch(
+                            cur, insert_sql, batch, page_size=self.config.batch_size
+                        )
                         rows_inserted += len(batch)
                         batch.clear()
                 if batch:
-                    execute_batch(cur, insert_sql, batch, page_size=self.config.batch_size)
+                    execute_batch(
+                        cur, insert_sql, batch, page_size=self.config.batch_size
+                    )
                     rows_inserted += len(batch)
         return rows_inserted
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Load a stored MOI A3 CSV into PostgreSQL.")
+    parser = argparse.ArgumentParser(
+        description="Load a stored MOI A3 CSV into PostgreSQL."
+    )
     parser.add_argument(
         "--csv-path",
         type=Path,

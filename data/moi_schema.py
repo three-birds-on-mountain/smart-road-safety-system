@@ -4,6 +4,14 @@ from __future__ import annotations
 
 from typing import Iterable, List, Tuple
 
+# A3 dataset has a simplified structure with only 3 columns
+RAW_TO_ENGLISH_COLUMNS_A3: List[Tuple[str, str]] = [
+    ("發生時間", "occurrence_time"),
+    ("發生地點", "location"),
+    ("車種", "vehicle_type"),
+]
+
+# A1/A2 datasets have full detailed columns
 RAW_TO_ENGLISH_COLUMNS: List[Tuple[str, str]] = [
     ("發生年度", "occurrence_year"),
     ("發生月份", "occurrence_month"),
@@ -62,24 +70,33 @@ CHINESE_COLUMNS: List[str] = [item[0] for item in RAW_TO_ENGLISH_COLUMNS]
 ENGLISH_COLUMNS: List[str] = [item[1] for item in RAW_TO_ENGLISH_COLUMNS]
 COLUMN_NAME_MAP = dict(RAW_TO_ENGLISH_COLUMNS)
 
+CHINESE_COLUMNS_A3: List[str] = [item[0] for item in RAW_TO_ENGLISH_COLUMNS_A3]
+ENGLISH_COLUMNS_A3: List[str] = [item[1] for item in RAW_TO_ENGLISH_COLUMNS_A3]
+COLUMN_NAME_MAP_A3 = dict(RAW_TO_ENGLISH_COLUMNS_A3)
+
 
 def normalize_column_name(raw_name: str) -> str:
     """Trim whitespace/BOM characters from a header column."""
     return raw_name.replace("\ufeff", "").strip()
 
 
-def translate_columns(columns: Iterable[str]) -> List[str]:
+def translate_columns(columns: Iterable[str], dataset_type: str = "A1") -> List[str]:
     """Translate a sequence of Chinese header names into English equivalents.
+
+    Args:
+        columns: Chinese column names to translate
+        dataset_type: "A1" (default) for A1/A2 full columns, "A3" for simplified A3 columns
 
     Raises ValueError if any column is unknown so downstream callers can stop early.
     """
+    column_map = COLUMN_NAME_MAP_A3 if dataset_type == "A3" else COLUMN_NAME_MAP
 
     translated: List[str] = []
     missing: List[str] = []
 
     for col in columns:
         normalized = normalize_column_name(col)
-        english = COLUMN_NAME_MAP.get(normalized)
+        english = column_map.get(normalized)
         if english is None:
             missing.append(normalized or col)
         else:

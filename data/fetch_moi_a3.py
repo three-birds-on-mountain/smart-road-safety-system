@@ -32,7 +32,7 @@ except ModuleNotFoundError as exc:  # pragma: no cover - runtime guard
 else:
     IMPORT_ERROR = None
 
-from moi_schema import CHINESE_COLUMNS, normalize_column_name, translate_columns
+from moi_schema import CHINESE_COLUMNS_A3, normalize_column_name, translate_columns
 
 DEFAULT_SOURCE_URL = "https://data.moi.gov.tw/MoiOD/System/DownloadFile.aspx?DATA=6EC4380A-0F8A-4D68-809B-2218930F08FB"
 DEFAULT_DATASET_SUBDIR = "moi_a3"
@@ -42,8 +42,8 @@ METADATA_FILENAME = "metadata.json"
 DEFAULT_TABLE_NAME = "raw_moi_a3"
 DEFAULT_ACCIDENT_LEVEL = "A3"
 DEFAULT_LOCAL_CSV = Path.home() / "moi_a3" / "A3_2025.csv"
-DB_EXTRA_COLUMNS = ["accident_level", "etl_dt"]
-EXPECTED_COLUMNS = CHINESE_COLUMNS
+DB_EXTRA_COLUMNS = ["source_id", "accident_level", "etl_dt"]
+EXPECTED_COLUMNS = CHINESE_COLUMNS_A3
 
 
 @dataclass
@@ -94,12 +94,14 @@ class A3DatasetFetcher:
     def run(self) -> None:
         csv_text = self._obtain_csv_text()
         row_count, header = self.save_files(csv_text)
-        english_header = translate_columns(header)
+        english_header = translate_columns(header, dataset_type="A3")
         self.write_metadata(row_count, header, english_header)
         self.load_into_database(header, english_header)
 
         if header and header != EXPECTED_COLUMNS:
-            print("⚠️ CSV header differs from EXPECTED_COLUMNS; check metadata for details.")
+            print(
+                "⚠️ CSV header differs from EXPECTED_COLUMNS; check metadata for details."
+            )
 
         print(
             f"Fetched {row_count} rows from A3 dataset and saved to {self.config.csv_path} "
@@ -116,7 +118,9 @@ class A3DatasetFetcher:
         return self.download_csv_text()
 
     def download_csv_text(self) -> str:
-        with httpx.Client(timeout=httpx.Timeout(self.config.timeout, connect=10.0)) as client:
+        with httpx.Client(
+            timeout=httpx.Timeout(self.config.timeout, connect=10.0)
+        ) as client:
             response = client.get(self.config.source_url)
             response.raise_for_status()
             payload = response.content
@@ -130,7 +134,10 @@ class A3DatasetFetcher:
 
     def _extract_zip(self, data: bytes) -> str:
         with zipfile.ZipFile(BytesIO(data)) as zf:
-            name = next((n for n in zf.namelist() if n.lower().endswith(".csv")), zf.namelist()[0])
+            name = next(
+                (n for n in zf.namelist() if n.lower().endswith(".csv")),
+                zf.namelist()[0],
+            )
             with zf.open(name) as fp:
                 wrapper = TextIOWrapper(fp, encoding="utf-8-sig")
                 return wrapper.read()
@@ -143,15 +150,28 @@ class A3DatasetFetcher:
         if not rows:
             return 0, []
 
-        header = [normalize_column_name(col) for col in rows[0]]
+        # A3 dataset has two header rows:
+        # Row 0: Short field names (ACCYMD, PLACE, CARTYPE)
+        # Row 1: Full Chinese field names (發生時間, 發生地點, 車種)
+        # We use row 1 as the actual header and skip row 0
+        if len(rows) >= 2 and rows[0][0] in ("ACCYMD", "accymd"):
+            header = [normalize_column_name(col) for col in rows[1]]
+            data_rows = rows[2:]  # Data starts from row 2
+        else:
+            # Fallback: use first row as header if format is different
+            header = [normalize_column_name(col) for col in rows[0]]
+            data_rows = rows[1:]
+
         with self.config.csv_path.open("w", newline="", encoding="utf-8") as fh:
             writer = csv.writer(fh)
             writer.writerow(header)
-            writer.writerows(rows[1:])
+            writer.writerows(data_rows)
 
-        return max(len(rows) - 1, 0), header
+        return max(len(data_rows), 0), header
 
-    def write_metadata(self, row_count: int, header: list[str], english_header: list[str]) -> None:
+    def write_metadata(
+        self, row_count: int, header: list[str], english_header: list[str]
+    ) -> None:
         metadata: dict[str, Any] = {
             "source_url": self.config.source_url,
             "record_count": row_count,
@@ -160,11 +180,15 @@ class A3DatasetFetcher:
             "english_columns": english_header,
             "csv_path": str(self.config.csv_path),
             "raw_path": str(self.config.raw_path),
-            "local_csv_path": str(self.config.local_csv_path) if self.config.local_csv_path else None,
+            "local_csv_path": (
+                str(self.config.local_csv_path) if self.config.local_csv_path else None
+            ),
             "downloaded_at": datetime.now(timezone.utc).isoformat(),
             "accident_level": self.config.accident_level,
         }
-        self.config.metadata_path.write_text(json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8")
+        self.config.metadata_path.write_text(
+            json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
 
     def load_into_database(self, header: list[str], english_header: list[str]) -> None:
         if not self.config.database_url:
@@ -185,7 +209,11 @@ class A3DatasetFetcher:
         with psycopg2.connect(self.config.database_url) as conn:
             with conn.cursor() as cur:
                 self._ensure_table(cur, db_columns)
-                cur.execute(sql.SQL("TRUNCATE TABLE {}").format(sql.Identifier(self.config.table_name)))
+                cur.execute(
+                    sql.SQL("TRUNCATE TABLE {}").format(
+                        sql.Identifier(self.config.table_name)
+                    )
+                )
                 insert_query = sql.SQL("INSERT INTO {} ({}) VALUES ({})").format(
                     sql.Identifier(self.config.table_name),
                     sql.SQL(", ").join(sql.Identifier(col) for col in db_columns),
@@ -198,8 +226,12 @@ class A3DatasetFetcher:
     def _ensure_table(self, cur, db_columns: Iterable[str]) -> None:
         columns_sql = []
         for column in db_columns:
-            if column == "etl_dt":
-                columns_sql.append(sql.SQL("{} TIMESTAMPTZ NOT NULL").format(sql.Identifier(column)))
+            if column == "source_id":
+                columns_sql.append(sql.SQL("{} TEXT PRIMARY KEY").format(sql.Identifier(column)))
+            elif column == "etl_dt":
+                columns_sql.append(
+                    sql.SQL("{} TIMESTAMPTZ NOT NULL").format(sql.Identifier(column))
+                )
             else:
                 columns_sql.append(sql.SQL("{} TEXT").format(sql.Identifier(column)))
         cur.execute(
@@ -212,10 +244,13 @@ class A3DatasetFetcher:
     def _read_rows(self, header: list[str]) -> list[list[Any]]:
         rows: list[list[Any]] = []
         etl_timestamp = datetime.now(timezone.utc)
+        etl_date_str = etl_timestamp.strftime("%Y%m%d%H%M%S%f")  # 加上微秒避免衝突
         with self.config.csv_path.open("r", encoding="utf-8-sig") as fh:
             reader = csv.DictReader(fh)
-            for line in reader:
+            for idx, line in enumerate(reader, 1):
                 record = [line.get(col, "") or "" for col in header]
+                source_id = f"{self.config.accident_level}-{etl_date_str}-{idx:08d}"
+                record.append(source_id)
                 record.append(self.config.accident_level)
                 record.append(etl_timestamp)
                 rows.append(record)
@@ -226,12 +261,21 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Download the weekly MOI A3 accident dataset (CSV) and store it locally."
     )
-    parser.add_argument("--source-url", type=str, default=DEFAULT_SOURCE_URL, help="資料集下載 URL")
     parser.add_argument(
-        "--dataset-subdir", type=str, default=DEFAULT_DATASET_SUBDIR, help="輸出子資料夾（預設 data/moi_a3）"
+        "--source-url", type=str, default=DEFAULT_SOURCE_URL, help="資料集下載 URL"
     )
-    parser.add_argument("--output-dir", type=Path, default=DATA_ROOT, help="輸出根目錄（預設 data/）")
-    parser.add_argument("--timeout", type=float, default=60.0, help="HTTP 逾時秒數（預設 60 秒）")
+    parser.add_argument(
+        "--dataset-subdir",
+        type=str,
+        default=DEFAULT_DATASET_SUBDIR,
+        help="輸出子資料夾（預設 data/moi_a3）",
+    )
+    parser.add_argument(
+        "--output-dir", type=Path, default=DATA_ROOT, help="輸出根目錄（預設 data/）"
+    )
+    parser.add_argument(
+        "--timeout", type=float, default=60.0, help="HTTP 逾時秒數（預設 60 秒）"
+    )
     parser.add_argument(
         "--database-url",
         type=str,

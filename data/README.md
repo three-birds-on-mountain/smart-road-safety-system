@@ -48,11 +48,24 @@ uv run python data/fetch_moi_a1.py \
 ### 如何執行
 
 ```bash
+# fetch
 # 自動偵測 data/moi_a2/A2_*.csv
 uv run python data/fetch_moi_a2.py --database-url "$DATABASE_URL"
 
+
+# 使用絕對路徑
+uv run python fetch_moi_a1.py \
+  --database-url "$DATABASE_URL" \
+  --local-csv /Users/claireliang/Desktop/mytest/three-birds-on-mountain/smart-road-safety-system/data/moi_a1/A1_2025.csv
+
 # 指定其他檔案
 uv run python data/fetch_moi_a2.py --local-csv ~/Downloads/A2_202503.csv
+
+# load_moi_a*.py
+uv run python load_moi_a3.py --csv-path moi_a3/A3_2025.csv
+uv run python load_moi_a2.py
+uv run python load_moi_a1.py --csv-path moi_a1/A1_2025.csv
+
 ```
 
 常用參數與 A1 類似（`--dataset-subdir`、`--output-dir`、`--table-name`、`--accident-level`、`--database-url`、`--local-csv`、`--source-url`）。若未提供本地檔案且 `--source-url` 為空，腳本會直接終止以避免寫入空資料。
