@@ -39,10 +39,10 @@
 
 ---
 
-## Phase 3: US3 - 彈性路線調整
+## Phase 3: US3 - 彈性路線調整 ✅ 完成
 
-- [ ] T022 [P] [US3] 實作雙搜尋框元件 - frontend/src/components/RouteSearch/DualSearchBox.tsx
-- [ ] T023 [US3] 更新搜尋流程邏輯 - frontend/src/components/RouteSearch/SearchContainer.tsx
+- [x] T022 [P] [US3] 實作雙搜尋框元件 - frontend/src/components/RouteSearch/DualSearchBox.tsx
+- [x] T023 [US3] 更新搜尋流程邏輯 - frontend/src/components/RouteSearch/SearchContainer.tsx
 
 ---
 
