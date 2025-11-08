@@ -75,13 +75,13 @@ class GeocodeResult:
     confidence: float
 
 
-class GoogleGeocoder:
-    """簡易 Google Maps (REST) 地理編碼器，附帶快取與速率控管。"""
+class MapboxGeocoder:
+    """簡易 Mapbox (REST) 地理編碼器，附帶快取與速率控管。"""
 
-    def __init__(self, api_key: str, delay: float = DEFAULT_GEOCODE_DELAY):
-        if not api_key:
-            raise GeocodingError("缺少 Google Maps API key，無法進行地理編碼。")
-        self.api_key = api_key
+    def __init__(self, access_token: str, delay: float = DEFAULT_GEOCODE_DELAY):
+        if not access_token:
+            raise GeocodingError("缺少 Mapbox access token，無法進行地理編碼。")
+        self.access_token = access_token
         self.delay = max(0.0, delay)
         self._cache: dict[str, GeocodeResult] = {}
         self._client = httpx.Client(timeout=10.0)
@@ -99,41 +99,55 @@ class GoogleGeocoder:
         if elapsed < self.delay:
             time.sleep(self.delay - elapsed)
 
+        # Mapbox Geocoding API 端點
+        # 使用 mapbox.places 進行地理編碼
+        url = f"https://api.mapbox.com/geocoding/v5/mapbox.places/{addr}.json"
         params = {
-            "address": addr,
-            "key": self.api_key,
+            "access_token": self.access_token,
             "language": "zh-TW",
-            "region": "tw",
+            "country": "TW",  # 限制在台灣
+            "limit": 1,  # 只取最佳結果
         }
         try:
-            response = self._client.get(
-                "https://maps.googleapis.com/maps/api/geocode/json", params=params
-            )
+            response = self._client.get(url, params=params)
             response.raise_for_status()
         except httpx.HTTPError as exc:  # pragma: no cover - runtime safeguard
             print(f"[WARN] 無法地理編碼 {addr}: {exc}", file=sys.stderr)
             return None
 
         payload = response.json()
-        status = payload.get("status")
-        results = payload.get("results") or []
-        if status != "OK" or not results:
-            print(f"[WARN] 地理編碼失敗 {addr}: status={status}", file=sys.stderr)
+        features = payload.get("features") or []
+        if not features:
+            print(f"[WARN] 地理編碼失敗 {addr}: 無結果", file=sys.stderr)
             return None
 
-        first = results[0]
-        geometry = first.get("geometry", {})
-        location = geometry.get("location") or {}
-        location_type = geometry.get("location_type", "APPROXIMATE")
-        lat = float(location.get("lat"))
-        lng = float(location.get("lng"))
-        confidence_map = {
-            "ROOFTOP": 1.0,
-            "RANGE_INTERPOLATED": 0.8,
-            "GEOMETRIC_CENTER": 0.6,
-            "APPROXIMATE": 0.4,
-        }
-        confidence = confidence_map.get(location_type, 0.5)
+        first = features[0]
+        center = first.get("center") or []
+        if len(center) < 2:
+            print(f"[WARN] 地理編碼失敗 {addr}: 座標格式錯誤", file=sys.stderr)
+            return None
+
+        # Mapbox 回傳順序為 [longitude, latitude]
+        lng = float(center[0])
+        lat = float(center[1])
+
+        # 使用 relevance 和 place_type 來評估信心度
+        relevance = first.get("relevance", 0.5)
+        place_type = first.get("place_type", [])
+
+        # 根據 place_type 調整信心度
+        # address > poi > place > region
+        if "address" in place_type:
+            base_confidence = 1.0
+        elif "poi" in place_type:
+            base_confidence = 0.8
+        elif "place" in place_type or "locality" in place_type:
+            base_confidence = 0.6
+        else:
+            base_confidence = 0.4
+
+        # 結合 relevance 分數
+        confidence = base_confidence * relevance
 
         result = GeocodeResult(latitude=lat, longitude=lng, confidence=confidence)
         self._cache[addr] = result
@@ -164,9 +178,9 @@ def parse_args() -> argparse.Namespace:
         help="目的 accidents 資料表名稱（default: accidents）。",
     )
     parser.add_argument(
-        "--google-api-key",
-        default=os.environ.get("GOOGLE_MAPS_API_KEY"),
-        help="Google Maps Geocoding API key（default: GOOGLE_MAPS_API_KEY）。",
+        "--mapbox-token",
+        default=os.environ.get("MAPBOX_ACCESS_TOKEN"),
+        help="Mapbox Access Token（default: MAPBOX_ACCESS_TOKEN）。",
     )
     parser.add_argument(
         "--batch-size",
@@ -289,7 +303,9 @@ def aggregate_vehicle_rows(rows: Iterable[dict]) -> list[dict]:
                 entry["vehicle_types_set"].add(vehicle)
     aggregated: list[dict] = []
     for entry in grouped.values():
-        vehicle_str = ";".join(entry["vehicle_types"]) if entry["vehicle_types"] else None
+        vehicle_str = (
+            ";".join(entry["vehicle_types"]) if entry["vehicle_types"] else None
+        )
         aggregated.append(
             {
                 "source_id": entry["source_id"],
@@ -316,9 +332,7 @@ def purge_existing(conn, target_table: str) -> int:
     return deleted
 
 
-def fetch_raw_rows(
-    conn, source_table: str, limit: Optional[int] = None
-) -> list[dict]:
+def fetch_raw_rows(conn, source_table: str, limit: Optional[int] = None) -> list[dict]:
     query = sql.SQL(
         """
         SELECT source_id, occurrence_time, location, vehicle_type
@@ -358,15 +372,11 @@ def build_insert_sql(target_table: str) -> sql.SQL:
             latitude,
             longitude,
             geom,
-            severity_level,
-            vehicle_type,
-            raw_data,
-            geocoded,
-            geocode_confidence
+            vehicle_type
         ) VALUES (
             %s, %s, %s, %s, %s, %s,
             ST_SetSRID(ST_MakePoint(%s, %s), 4326)::geography,
-            %s, %s, %s, %s
+            %s
         )
         ON CONFLICT (source_type, source_id) DO UPDATE SET
             occurred_at = EXCLUDED.occurred_at,
@@ -375,9 +385,6 @@ def build_insert_sql(target_table: str) -> sql.SQL:
             longitude = EXCLUDED.longitude,
             geom = EXCLUDED.geom,
             vehicle_type = EXCLUDED.vehicle_type,
-            raw_data = EXCLUDED.raw_data,
-            geocoded = EXCLUDED.geocoded,
-            geocode_confidence = EXCLUDED.geocode_confidence,
             updated_at = NOW();
         """
     ).format(table=sql.Identifier(target_table))
@@ -385,7 +392,7 @@ def build_insert_sql(target_table: str) -> sql.SQL:
 
 def translate_rows(
     rows: Iterable[dict],
-    geocoder: GoogleGeocoder,
+    geocoder: MapboxGeocoder,
 ) -> list[tuple]:
     translated: list[tuple] = []
 
@@ -423,16 +430,6 @@ def translate_rows(
 
         lat = ensure_decimal(geo.latitude, "0.0000001")
         lng = ensure_decimal(geo.longitude, "0.0000001")
-        confidence = ensure_decimal(geo.confidence, "0.01")
-
-        raw_payload = {
-            "occurrence_time": occurrence_raw,
-            "location_raw": raw_location,
-            "location_normalized": normalized_location,
-            "vehicle_type": vehicle_type,
-            "vehicle_types": vehicle_types,
-            "source_ids": source_ids,
-        }
 
         translated.append(
             (
@@ -442,18 +439,17 @@ def translate_rows(
                 normalized_location,
                 lat,
                 lng,
-                lng,  # for ST_MakePoint
-                lat,  # for ST_MakePoint
-                "A3",
-                Json(raw_payload, dumps=lambda obj: json.dumps(obj, ensure_ascii=False)),
-                True,
-                confidence,
+                lng,  # for ST_MakePoint (longitude first)
+                lat,  # for ST_MakePoint (latitude second)
+                vehicle_type,
             )
         )
     return translated
 
 
-def insert_accidents(conn, insert_sql: sql.SQL, rows: list[tuple], batch_size: int) -> int:
+def insert_accidents(
+    conn, insert_sql: sql.SQL, rows: list[tuple], batch_size: int
+) -> int:
     if not rows:
         return 0
     with conn.cursor() as cur:
@@ -466,8 +462,8 @@ def main() -> None:
     if not args.database_url:
         raise SystemExit("請提供 --database-url 或設定 DATABASE_URL 環境變數。")
     try:
-        geocoder = GoogleGeocoder(
-            api_key=args.google_api_key or "",
+        geocoder = MapboxGeocoder(
+            access_token=args.mapbox_token or "",
             delay=args.geocode_delay,
         )
     except GeocodingError as exc:

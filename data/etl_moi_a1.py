@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 import os
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
@@ -11,7 +10,7 @@ from typing import Iterable, Optional
 
 import psycopg2
 from psycopg2 import sql
-from psycopg2.extras import Json, RealDictCursor, execute_batch
+from psycopg2.extras import RealDictCursor, execute_batch
 
 TAIWAN_TZ = timezone(timedelta(hours=8))
 TAIPEI_KEYWORDS = ("台北市", "臺北市")
@@ -251,15 +250,11 @@ def build_insert_sql(target_table: str) -> sql.SQL:
             latitude,
             longitude,
             geom,
-            severity_level,
-            vehicle_type,
-            raw_data,
-            geocoded,
-            geocode_confidence
+            vehicle_type
         ) VALUES (
             %s, %s, %s, %s, %s, %s,
             ST_SetSRID(ST_MakePoint(%s, %s), 4326)::geography,
-            %s, %s, %s, %s
+            %s
         )
         ON CONFLICT (source_type, source_id) DO UPDATE SET
             occurred_at = EXCLUDED.occurred_at,
@@ -268,9 +263,6 @@ def build_insert_sql(target_table: str) -> sql.SQL:
             longitude = EXCLUDED.longitude,
             geom = EXCLUDED.geom,
             vehicle_type = EXCLUDED.vehicle_type,
-            raw_data = EXCLUDED.raw_data,
-            geocoded = EXCLUDED.geocoded,
-            geocode_confidence = EXCLUDED.geocode_confidence,
             updated_at = NOW();
         """
     ).format(table=sql.Identifier(target_table))
@@ -298,18 +290,6 @@ def prepare_payloads(rows: Iterable[dict]) -> list[tuple]:
         vehicle_types = row.get("vehicle_types") or []
         vehicle_type_str = ";".join(vehicle_types) if vehicle_types else None
 
-        raw_payload = {
-            "source_ids": row.get("source_ids"),
-            "vehicle_types": vehicle_types,
-            "location": row.get("location"),
-            "timestamp_fields": {
-                "occurrence_year": row.get("occurrence_year"),
-                "occurrence_month": row.get("occurrence_month"),
-                "occurrence_date": row.get("occurrence_date"),
-                "occurrence_time": row.get("occurrence_time"),
-            },
-        }
-
         lat_decimal = ensure_decimal(lat, "0.0000001")
         lon_decimal = ensure_decimal(lon, "0.0000001")
 
@@ -323,11 +303,7 @@ def prepare_payloads(rows: Iterable[dict]) -> list[tuple]:
                 lon_decimal,
                 lon_decimal,
                 lat_decimal,
-                "A1",
                 vehicle_type_str,
-                Json(raw_payload, dumps=lambda obj: json.dumps(obj, ensure_ascii=False)),
-                False,
-                None,
             )
         )
     return prepared

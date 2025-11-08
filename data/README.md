@@ -66,6 +66,12 @@ uv run python load_moi_a3.py --csv-path moi_a3/A3_2025.csv
 uv run python load_moi_a2.py
 uv run python load_moi_a1.py --csv-path moi_a1/A1_2025.csv
 
+
+#  etl
+uv run python etl_moi_a1.py
+uv run python etl_moi_a2.py
+uv run python etl_moi_a3.py
+
 ```
 
 常用參數與 A1 類似（`--dataset-subdir`、`--output-dir`、`--table-name`、`--accident-level`、`--database-url`、`--local-csv`、`--source-url`）。若未提供本地檔案且 `--source-url` 為空，腳本會直接終止以避免寫入空資料。
