@@ -805,24 +805,24 @@ const MapPage = () => {
         />
       )}
 
-      {/* 顯示路線統計浮動按鈕（當抽屜隱藏且有路線時顯示） */}
+      {/* 顯示安全評估浮動按鈕（當抽屜隱藏且有路線時顯示） */}
       {routeState.safetySummary && !isRouteSummaryVisible && (
-        <div className="pointer-events-none fixed right-6 bottom-[90px] z-50">
+        <div className="pointer-events-none fixed left-6 bottom-[90px] z-50">
           <button
             type="button"
             onClick={toggleRouteSummary}
             className="pointer-events-auto flex items-center gap-2 rounded-full bg-primary-500 px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-primary-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
-            aria-label="顯示路線統計"
+            aria-label="顯示安全評估"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth={2}
-                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
               />
             </svg>
-            <span>路線統計</span>
+            <span>安全評估</span>
           </button>
         </div>
       )}
