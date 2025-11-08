@@ -36,6 +36,7 @@ import { getDirections } from '../services/mapboxApi';
 import { calculateRouteSafety } from '../utils/routeAccidentCalculator';
 import mapMarkPointer from '../assets/map-mark-pointer.svg';
 import mapMarkPointerPress from '../assets/map-mark-pointer-press.svg';
+import alertTone from '../assets/alert-tone.wav';
 
 interface ActiveAlertState {
   hotspot: NearbyHotspot;
@@ -181,6 +182,7 @@ const MapPage = () => {
 
     const service = createAlertService({
       minIntervalMs: Math.max(settings.autoSilenceSeconds * 1000, 30_000),
+      audioSrc: alertTone,
     });
     alertServiceRef.current = service;
 
