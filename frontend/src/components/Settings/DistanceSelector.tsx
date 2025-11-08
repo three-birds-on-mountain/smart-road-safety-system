@@ -37,23 +37,41 @@ const DistanceSelector = () => {
         {DISTANCE_OPTIONS.map((option) => {
           const isActive = option.value === selectedDistance;
           return (
-            <button
+            <label
               key={option.value}
-              type="button"
-              onClick={() => handleSelect(option.value)}
-              aria-pressed={isActive}
               className={[
-                'flex flex-col gap-xs rounded-lg border px-md py-md text-left shadow-sm transition',
+                'flex cursor-pointer flex-col gap-xs rounded-lg border px-md py-md shadow-sm transition',
                 isActive
                   ? 'border-primary-500 bg-primary-50 text-primary-700 shadow-md'
                   : 'border-gray-100 bg-white text-text-primary hover:border-primary-200',
               ].join(' ')}
             >
-              <span className="text-base font-semibold">{option.label}</span>
-              <span className="text-xs text-text-description">
-                {option.description}
-              </span>
-            </button>
+              <div className="flex items-center gap-sm">
+                <span className="flex items-center gap-xs">
+                  <input
+                    type="radio"
+                    className="peer sr-only"
+                    name="distance-option"
+                    value={option.value}
+                    checked={isActive}
+                    onChange={() => handleSelect(option.value)}
+                    aria-label={`選擇 ${option.label}`}
+                  />
+                  <span
+                    className={[
+                      'pointer-events-none flex h-4 w-4 items-center justify-center rounded-full border border-primary-500 bg-white transition',
+                      'peer-checked:bg-primary-500 peer-focus-visible:ring-2 peer-focus-visible:ring-primary-500',
+                      'peer-checked:[&>span]:opacity-100',
+                    ].join(' ')}
+                    aria-hidden="true"
+                  >
+                    <span className="h-2 w-2 rounded-full bg-white opacity-0 transition" />
+                  </span>
+                </span>
+                <span className="text-sm font-semibold">{option.label}</span>
+              </div>
+              <span className="text-xs text-text-description">{option.description}</span>
+            </label>
           );
         })}
       </div>
