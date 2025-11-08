@@ -36,7 +36,6 @@ const DualSearchBox = ({
   useCurrentLocationAsOrigin = false,
   onUseCurrentLocation,
 }: DualSearchBoxProps) => {
-
   const handleSwap = () => {
     if (onSwap && !disableOrigin && !disableDestination) {
       onSwap();
@@ -47,17 +46,21 @@ const DualSearchBox = ({
     <div className="flex flex-col gap-3">
       {/* 起點搜尋框 */}
       <div className="relative">
-        <div className="absolute left-3 top-1/2 z-10 flex -translate-y-1/2 flex-col items-center gap-1">
+        <div className="absolute top-1/2 z-10 flex -translate-y-1/2 flex-col items-center gap-1">
           {/* 起點圖示 */}
           <div className="flex h-3 w-3 items-center justify-center rounded-full bg-primary-500">
             <div className="h-1.5 w-1.5 rounded-full bg-white" />
           </div>
         </div>
 
-        <div className="pl-8">
+        <div style={{ paddingLeft: '1.5rem' }}>
           {useCurrentLocationAsOrigin ? (
             <div className="flex items-center gap-2 rounded-lg border border-primary-300 bg-primary-50 px-4 py-3">
-              <svg className="h-5 w-5 flex-shrink-0 text-primary-500" fill="currentColor" viewBox="0 0 20 20">
+              <svg
+                className="h-5 w-5 flex-shrink-0 text-primary-500"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
                 <path
                   fillRule="evenodd"
                   d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
@@ -111,12 +114,12 @@ const DualSearchBox = ({
 
       {/* 終點搜尋框 */}
       <div className="relative">
-        <div className="absolute left-3 top-1/2 z-10 -translate-y-1/2">
+        <div className="absolute top-1/2 z-10 -translate-y-1/2">
           {/* 終點圖示 */}
           <div className="flex h-3 w-3 items-center justify-center rounded-full border-2 border-danger-500 bg-white" />
         </div>
 
-        <div className="pl-8">
+        <div style={{ paddingLeft: '1.5rem' }}>
           <SearchInput
             placeholder="輸入目的地地址..."
             value={destinationValue}
