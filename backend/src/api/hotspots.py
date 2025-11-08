@@ -76,6 +76,37 @@ def _serialize_hotspot(hotspot, *, distance: Optional[float] = None):
     return payload
 
 
+@router.get("/all")
+async def get_all_hotspots(
+    limit: int = Query(10000, description="最多回傳數量", ge=1, le=10000),
+    db: Session = Depends(get_db),
+):
+    """
+    取得所有事故熱點
+
+    一次性取得所有熱點資料，用於前端快取。
+    不含時間範圍和嚴重程度篩選，前端自行過濾。
+    """
+    try:
+        logger.info(f"查詢所有熱點，limit={limit}")
+
+        # 查詢所有熱點
+        hotspots = HotspotService.get_all(db=db, limit=limit)
+
+        # 轉換為回應格式
+        hotspot_data = [_serialize_hotspot(hotspot) for hotspot in hotspots]
+
+        return {
+            "data": hotspot_data,
+            "meta": {
+                "total_count": len(hotspot_data),
+            },
+        }
+    except Exception as e:
+        logger.error(f"查詢所有熱點失敗: {e}", exc_info=True)
+        raise
+
+
 @router.get("/nearby")
 async def get_nearby_hotspots(
     latitude: float = Query(..., description="用戶當前緯度", ge=21.5, le=25.5),

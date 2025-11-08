@@ -112,7 +112,12 @@ const HotspotLayer = ({
   clusterRadius = 50,
 }: HotspotLayerProps) => {
   const hotspotMapRef = useRef<Map<string, HotspotSummary>>(new Map())
-  const renderableHotspots = useMemo(() => pickHighPriorityHotspots(hotspots), [hotspots])
+  const renderableHotspots = useMemo(() => {
+    console.log('🗺️ [HotspotLayer] Received hotspots:', hotspots.length, hotspots)
+    const result = pickHighPriorityHotspots(hotspots)
+    console.log('🗺️ [HotspotLayer] Renderable hotspots:', result.length, result)
+    return result
+  }, [hotspots])
 
   // 更新熱點資料與圖層
   useEffect(() => {

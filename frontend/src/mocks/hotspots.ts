@@ -2,6 +2,7 @@ import type { AlertSettings } from '../types/settings';
 import type {
   HotspotDetail,
   HotspotListResponse,
+  HotspotSummary,
   NearbyHotspot,
 } from '../types/hotspot';
 import type { AccidentRecord } from '../types/accident';
@@ -42,8 +43,8 @@ const MOCK_HOTSPOTS: NearbyHotspot[] = [
     a1Count: 2,
     a2Count: 6,
     a3Count: 4,
-    earliestAccidentAt: '2024-02-10T08:30:00Z',
-    latestAccidentAt: '2024-09-21T17:10:00Z',
+    earliestAccidentAt: '2025-02-10T08:30:00Z',
+    latestAccidentAt: '2025-09-21T17:10:00Z',
     severityScore: 9.4,
     distanceFromUserMeters: 0,
   },
@@ -56,8 +57,8 @@ const MOCK_HOTSPOTS: NearbyHotspot[] = [
     a1Count: 1,
     a2Count: 3,
     a3Count: 3,
-    earliestAccidentAt: '2024-04-02T11:40:00Z',
-    latestAccidentAt: '2024-08-15T20:05:00Z',
+    earliestAccidentAt: '2025-04-02T11:40:00Z',
+    latestAccidentAt: '2025-08-15T20:05:00Z',
     severityScore: 6.8,
     distanceFromUserMeters: 0,
   },
@@ -70,8 +71,8 @@ const MOCK_HOTSPOTS: NearbyHotspot[] = [
     a1Count: 3,
     a2Count: 9,
     a3Count: 6,
-    earliestAccidentAt: '2024-01-22T05:15:00Z',
-    latestAccidentAt: '2024-10-11T12:45:00Z',
+    earliestAccidentAt: '2025-01-22T05:15:00Z',
+    latestAccidentAt: '2025-10-11T12:45:00Z',
     severityScore: 11.2,
     distanceFromUserMeters: 0,
   },
@@ -84,8 +85,8 @@ const MOCK_HOTSPOTS: NearbyHotspot[] = [
     a1Count: 2,
     a2Count: 4,
     a3Count: 3,
-    earliestAccidentAt: '2024-03-14T14:25:00Z',
-    latestAccidentAt: '2024-10-05T09:40:00Z',
+    earliestAccidentAt: '2025-03-14T14:25:00Z',
+    latestAccidentAt: '2025-10-05T09:40:00Z',
     severityScore: 8.6,
     distanceFromUserMeters: 0,
   },
@@ -98,8 +99,8 @@ const MOCK_HOTSPOTS: NearbyHotspot[] = [
     a1Count: 1,
     a2Count: 8,
     a3Count: 6,
-    earliestAccidentAt: '2024-01-08T07:55:00Z',
-    latestAccidentAt: '2024-09-28T19:20:00Z',
+    earliestAccidentAt: '2025-01-08T07:55:00Z',
+    latestAccidentAt: '2025-09-28T19:20:00Z',
     severityScore: 10.7,
     distanceFromUserMeters: 0,
   },
@@ -112,8 +113,8 @@ const MOCK_HOTSPOTS: NearbyHotspot[] = [
     a1Count: 0,
     a2Count: 2,
     a3Count: 3,
-    earliestAccidentAt: '2024-06-02T10:05:00Z',
-    latestAccidentAt: '2024-09-17T22:15:00Z',
+    earliestAccidentAt: '2025-06-02T10:05:00Z',
+    latestAccidentAt: '2025-09-17T22:15:00Z',
     severityScore: 5.1,
     distanceFromUserMeters: 0,
   },
@@ -126,8 +127,8 @@ const MOCK_HOTSPOTS: NearbyHotspot[] = [
     a1Count: 3,
     a2Count: 5,
     a3Count: 3,
-    earliestAccidentAt: '2024-02-26T06:35:00Z',
-    latestAccidentAt: '2024-10-08T16:45:00Z',
+    earliestAccidentAt: '2025-02-26T06:35:00Z',
+    latestAccidentAt: '2025-10-08T16:45:00Z',
     severityScore: 9.9,
     distanceFromUserMeters: 0,
   },
@@ -140,8 +141,8 @@ const MOCK_HOTSPOTS: NearbyHotspot[] = [
     a1Count: 1,
     a2Count: 2,
     a3Count: 3,
-    earliestAccidentAt: '2024-05-12T04:15:00Z',
-    latestAccidentAt: '2024-09-29T13:05:00Z',
+    earliestAccidentAt: '2025-05-12T04:15:00Z',
+    latestAccidentAt: '2025-09-29T13:05:00Z',
     severityScore: 6.2,
     distanceFromUserMeters: 0,
   },
@@ -166,11 +167,11 @@ const createAccident = (
 const MOCK_HOTSPOT_DETAILS: Record<string, HotspotDetail> = {
   'mock-101': {
     ...MOCK_HOTSPOTS[0],
-    analysisPeriodStart: '2024-01-01T00:00:00Z',
-    analysisPeriodEnd: '2024-10-11T23:59:59Z',
+    analysisPeriodStart: '2025-01-01T00:00:00Z',
+    analysisPeriodEnd: '2025-10-11T23:59:59Z',
     accidents: [
       createAccident('mock-101-1', {
-        occurredAt: '2024-09-21T17:10:00Z',
+        occurredAt: '2025-09-21T17:10:00Z',
         severity: 'A2',
         address: '臺北市大安區忠孝東路四段 235 號',
         distanceMeters: 45,
@@ -178,7 +179,7 @@ const MOCK_HOTSPOT_DETAILS: Record<string, HotspotDetail> = {
         involvedPeople: ['騎士', '駕駛'],
       }),
       createAccident('mock-101-2', {
-        occurredAt: '2024-07-12T08:35:00Z',
+        occurredAt: '2025-07-12T08:35:00Z',
         severity: 'A1',
         address: '臺北市大安區光復南路 120 號',
         distanceMeters: 110,
@@ -186,7 +187,7 @@ const MOCK_HOTSPOT_DETAILS: Record<string, HotspotDetail> = {
         involvedPeople: ['行人', '駕駛'],
       }),
       createAccident('mock-101-3', {
-        occurredAt: '2024-05-05T19:25:00Z',
+        occurredAt: '2025-05-05T19:25:00Z',
         severity: 'A3',
         address: '臺北市大安區延吉街 22 巷口',
         distanceMeters: 62,
@@ -197,11 +198,11 @@ const MOCK_HOTSPOT_DETAILS: Record<string, HotspotDetail> = {
   },
   'mock-102': {
     ...MOCK_HOTSPOTS[1],
-    analysisPeriodStart: '2024-03-01T00:00:00Z',
-    analysisPeriodEnd: '2024-08-15T23:59:59Z',
+    analysisPeriodStart: '2025-03-01T00:00:00Z',
+    analysisPeriodEnd: '2025-08-15T23:59:59Z',
     accidents: [
       createAccident('mock-102-1', {
-        occurredAt: '2024-08-15T20:05:00Z',
+        occurredAt: '2025-08-15T20:05:00Z',
         severity: 'A2',
         address: '臺北市中正區羅斯福路四段 68 號',
         distanceMeters: 95,
@@ -209,7 +210,7 @@ const MOCK_HOTSPOT_DETAILS: Record<string, HotspotDetail> = {
         involvedPeople: ['乘客', '騎士'],
       }),
       createAccident('mock-102-2', {
-        occurredAt: '2024-06-21T11:40:00Z',
+        occurredAt: '2025-06-21T11:40:00Z',
         severity: 'A3',
         address: '臺北市中正區汀州路三段 125 號',
         distanceMeters: 120,
@@ -220,11 +221,11 @@ const MOCK_HOTSPOT_DETAILS: Record<string, HotspotDetail> = {
   },
   'mock-103': {
     ...MOCK_HOTSPOTS[2],
-    analysisPeriodStart: '2024-01-01T00:00:00Z',
-    analysisPeriodEnd: '2024-10-11T23:59:59Z',
+    analysisPeriodStart: '2025-01-01T00:00:00Z',
+    analysisPeriodEnd: '2025-10-11T23:59:59Z',
     accidents: [
       createAccident('mock-103-1', {
-        occurredAt: '2024-10-11T12:45:00Z',
+        occurredAt: '2025-10-11T12:45:00Z',
         severity: 'A1',
         address: '臺北市松山區南京東路五段 188 號',
         distanceMeters: 70,
@@ -232,7 +233,7 @@ const MOCK_HOTSPOT_DETAILS: Record<string, HotspotDetail> = {
         involvedPeople: ['騎士', '駕駛'],
       }),
       createAccident('mock-103-2', {
-        occurredAt: '2024-08-08T22:10:00Z',
+        occurredAt: '2025-08-08T22:10:00Z',
         severity: 'A2',
         address: '臺北市松山區民生東路五段 72 號',
         distanceMeters: 90,
@@ -240,7 +241,7 @@ const MOCK_HOTSPOT_DETAILS: Record<string, HotspotDetail> = {
         involvedPeople: ['行人', '司機'],
       }),
       createAccident('mock-103-3', {
-        occurredAt: '2024-03-18T14:05:00Z',
+        occurredAt: '2025-03-18T14:05:00Z',
         severity: 'A3',
         address: '臺北市松山區光復北路 11 巷口',
         distanceMeters: 140,
@@ -251,11 +252,11 @@ const MOCK_HOTSPOT_DETAILS: Record<string, HotspotDetail> = {
   },
   'mock-104': {
     ...MOCK_HOTSPOTS[3],
-    analysisPeriodStart: '2024-02-01T00:00:00Z',
-    analysisPeriodEnd: '2024-10-05T23:59:59Z',
+    analysisPeriodStart: '2025-02-01T00:00:00Z',
+    analysisPeriodEnd: '2025-10-05T23:59:59Z',
     accidents: [
       createAccident('mock-104-1', {
-        occurredAt: '2024-10-05T09:40:00Z',
+        occurredAt: '2025-10-05T09:40:00Z',
         severity: 'A2',
         address: '臺北市萬華區漢中街 121 號',
         distanceMeters: 60,
@@ -263,7 +264,7 @@ const MOCK_HOTSPOT_DETAILS: Record<string, HotspotDetail> = {
         involvedPeople: ['駕駛', '行人'],
       }),
       createAccident('mock-104-2', {
-        occurredAt: '2024-04-18T18:10:00Z',
+        occurredAt: '2025-04-18T18:10:00Z',
         severity: 'A3',
         address: '臺北市萬華區康定路 35 號',
         distanceMeters: 105,
@@ -274,11 +275,11 @@ const MOCK_HOTSPOT_DETAILS: Record<string, HotspotDetail> = {
   },
   'mock-105': {
     ...MOCK_HOTSPOTS[4],
-    analysisPeriodStart: '2024-01-01T00:00:00Z',
-    analysisPeriodEnd: '2024-09-28T23:59:59Z',
+    analysisPeriodStart: '2025-01-01T00:00:00Z',
+    analysisPeriodEnd: '2025-09-28T23:59:59Z',
     accidents: [
       createAccident('mock-105-1', {
-        occurredAt: '2024-09-28T19:20:00Z',
+        occurredAt: '2025-09-28T19:20:00Z',
         severity: 'A2',
         address: '臺北市中山區松江路 89 號',
         distanceMeters: 80,
@@ -286,7 +287,7 @@ const MOCK_HOTSPOT_DETAILS: Record<string, HotspotDetail> = {
         involvedPeople: ['乘客', '騎士'],
       }),
       createAccident('mock-105-2', {
-        occurredAt: '2024-07-05T07:50:00Z',
+        occurredAt: '2025-07-05T07:50:00Z',
         severity: 'A3',
         address: '臺北市中山區長春路 256 號',
         distanceMeters: 120,
@@ -294,7 +295,7 @@ const MOCK_HOTSPOT_DETAILS: Record<string, HotspotDetail> = {
         involvedPeople: ['單車騎士', '駕駛'],
       }),
       createAccident('mock-105-3', {
-        occurredAt: '2024-02-11T23:15:00Z',
+        occurredAt: '2025-02-11T23:15:00Z',
         severity: 'A1',
         address: '臺北市中山區南京東路二段 150 號',
         distanceMeters: 65,
@@ -305,11 +306,11 @@ const MOCK_HOTSPOT_DETAILS: Record<string, HotspotDetail> = {
   },
   'mock-106': {
     ...MOCK_HOTSPOTS[5],
-    analysisPeriodStart: '2024-04-01T00:00:00Z',
-    analysisPeriodEnd: '2024-09-17T23:59:59Z',
+    analysisPeriodStart: '2025-04-01T00:00:00Z',
+    analysisPeriodEnd: '2025-09-17T23:59:59Z',
     accidents: [
       createAccident('mock-106-1', {
-        occurredAt: '2024-09-17T22:15:00Z',
+        occurredAt: '2025-09-17T22:15:00Z',
         severity: 'A3',
         address: '臺北市信義區松德路 100 號',
         distanceMeters: 55,
@@ -317,7 +318,7 @@ const MOCK_HOTSPOT_DETAILS: Record<string, HotspotDetail> = {
         involvedPeople: ['騎士'],
       }),
       createAccident('mock-106-2', {
-        occurredAt: '2024-06-02T10:05:00Z',
+        occurredAt: '2025-06-02T10:05:00Z',
         severity: 'A2',
         address: '臺北市信義區莊敬路 423 號',
         distanceMeters: 130,
@@ -328,11 +329,11 @@ const MOCK_HOTSPOT_DETAILS: Record<string, HotspotDetail> = {
   },
   'mock-107': {
     ...MOCK_HOTSPOTS[6],
-    analysisPeriodStart: '2024-02-01T00:00:00Z',
-    analysisPeriodEnd: '2024-10-08T23:59:59Z',
+    analysisPeriodStart: '2025-02-01T00:00:00Z',
+    analysisPeriodEnd: '2025-10-08T23:59:59Z',
     accidents: [
       createAccident('mock-107-1', {
-        occurredAt: '2024-10-08T16:45:00Z',
+        occurredAt: '2025-10-08T16:45:00Z',
         severity: 'A1',
         address: '臺北市松山區八德路四段 678 號',
         distanceMeters: 75,
@@ -340,7 +341,7 @@ const MOCK_HOTSPOT_DETAILS: Record<string, HotspotDetail> = {
         involvedPeople: ['駕駛', '騎士'],
       }),
       createAccident('mock-107-2', {
-        occurredAt: '2024-05-30T06:55:00Z',
+        occurredAt: '2025-05-30T06:55:00Z',
         severity: 'A2',
         address: '臺北市松山區民權東路三段 210 號',
         distanceMeters: 95,
@@ -351,11 +352,11 @@ const MOCK_HOTSPOT_DETAILS: Record<string, HotspotDetail> = {
   },
   'mock-108': {
     ...MOCK_HOTSPOTS[7],
-    analysisPeriodStart: '2024-05-01T00:00:00Z',
-    analysisPeriodEnd: '2024-09-29T23:59:59Z',
+    analysisPeriodStart: '2025-05-01T00:00:00Z',
+    analysisPeriodEnd: '2025-09-29T23:59:59Z',
     accidents: [
       createAccident('mock-108-1', {
-        occurredAt: '2024-09-29T13:05:00Z',
+        occurredAt: '2025-09-29T13:05:00Z',
         severity: 'A3',
         address: '新北市新店區北新路一段 12 號',
         distanceMeters: 150,
@@ -363,7 +364,7 @@ const MOCK_HOTSPOT_DETAILS: Record<string, HotspotDetail> = {
         involvedPeople: ['騎士'],
       }),
       createAccident('mock-108-2', {
-        occurredAt: '2024-05-12T04:15:00Z',
+        occurredAt: '2025-05-12T04:15:00Z',
         severity: 'A2',
         address: '新北市新店區中正路 352 號',
         distanceMeters: 210,
@@ -436,4 +437,16 @@ export const getMockNearbyHotspots = ({
 
 export const getMockHotspotDetail = (hotspotId: string): HotspotDetail | undefined => {
   return MOCK_HOTSPOT_DETAILS[hotspotId];
+};
+
+export const getMockAllHotspots = (): HotspotListResponse<HotspotSummary> => {
+  // 移除 distanceFromUserMeters，因為還不知道使用者位置
+  const hotspots = MOCK_HOTSPOTS.map(({ distanceFromUserMeters, ...hotspot }) => hotspot);
+
+  return {
+    data: hotspots,
+    meta: {
+      totalCount: hotspots.length,
+    },
+  };
 };

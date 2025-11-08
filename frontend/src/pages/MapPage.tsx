@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import AlertOverlay from '../components/Alert/AlertOverlay';
 import MapView from '../components/Map/MapView';
 import HotspotLayer from '../components/Map/HotspotLayer';
@@ -9,10 +9,11 @@ import { useAppDispatch, useAppSelector } from '../hooks/store';
 import { createAlertService, type TriggerAlertResult } from '../services/alerts';
 import { createGeolocationService } from '../services/geolocation';
 import {
+  fetchAllHotspots,
   fetchHotspotDetail,
-  fetchNearbyHotspots,
   setHotspotDetail,
   setNearbyHotspots,
+  setHotspots,
 } from '../store/hotspotsSlice';
 import { toggleIgnoredHotspot } from '../store/settingsSlice';
 import type { NearbyHotspot, HotspotSummary } from '../types/hotspot';
@@ -77,28 +78,75 @@ const MapPage = () => {
   const activeAlertRef = useRef<ActiveAlertState | null>(null);
   const geolocationServiceRef = useRef<ReturnType<typeof createGeolocationService> | null>(null);
   const alertServiceRef = useRef<ReturnType<typeof createAlertService> | null>(null);
-  const fetchControllerRef = useRef<AbortController | null>(null);
   const mapRef = useRef<MapboxInstance | null>(null);
   const hasAppliedPreviewRef = useRef(false);
   const [isMapReady, setIsMapReady] = useState(false);
 
-  const fetchDependencies = useMemo(() => {
-    if (latitude == null || longitude == null) {
-      return null;
+  // 前端過濾邏輯：根據設定篩選和過濾熱點
+  useEffect(() => {
+    const allHotspots = hotspotsState.allHotspots;
+    console.log('🔍 [Filter] allHotspots:', allHotspots.length, allHotspots);
+
+    if (allHotspots.length === 0) {
+      console.log('⚠️ [Filter] No hotspots to filter');
+      return;
     }
-    return {
-      latitude,
-      longitude,
-      distance: settings.distanceMeters,
-      severity: settings.severityFilter.join(','),
-      timeRange: settings.timeRange,
-    };
-  }, [latitude, longitude, settings.distanceMeters, settings.severityFilter, settings.timeRange]);
+
+    // 匯入過濾函式並執行過濾
+    (async () => {
+      const { filterBySeverity, filterByTimeRange, filterByDistance } = await import(
+        '../utils/hotspotFilters'
+      );
+
+      console.log('📋 [Filter] Settings:', {
+        timeRange: settings.timeRange,
+        severityFilter: settings.severityFilter,
+        distanceMeters: settings.distanceMeters,
+      });
+
+      // 1. 先套用時間範圍和嚴重程度過濾
+      let filtered = filterByTimeRange(allHotspots, settings.timeRange);
+      console.log('⏱️ [Filter] After time range filter:', filtered.length);
+
+      filtered = filterBySeverity(filtered, settings.severityFilter);
+      console.log('🎯 [Filter] After severity filter:', filtered.length, filtered);
+
+      // 2. 設定地圖顯示的熱點（所有符合條件的）
+      dispatch(setHotspots(filtered));
+      console.log('✅ [Filter] Dispatched setHotspots with', filtered.length, 'hotspots');
+
+      // 3. 如果有使用者位置，計算附近熱點用於警示
+      if (latitude != null && longitude != null) {
+        const nearby = filterByDistance(filtered, latitude, longitude, settings.distanceMeters);
+        dispatch(setNearbyHotspots(nearby));
+        console.log('📍 [Filter] Dispatched setNearbyHotspots with', nearby.length, 'hotspots');
+      }
+    })();
+  }, [
+    hotspotsState.allHotspots,
+    settings.timeRange,
+    settings.severityFilter,
+    settings.distanceMeters,
+    latitude,
+    longitude,
+    dispatch,
+  ]);
 
   const updateActiveAlert = useCallback((next: ActiveAlertState | null) => {
     activeAlertRef.current = next;
     setActiveAlert(next);
   }, []);
+
+  // 一次性載入所有熱點
+  useEffect(() => {
+    const controller = new AbortController();
+
+    dispatch(fetchAllHotspots({ signal: controller.signal }));
+
+    return () => {
+      controller.abort();
+    };
+  }, [dispatch]);
 
   useEffect(() => {
     const service = createGeolocationService(dispatch);
@@ -133,37 +181,6 @@ const MapPage = () => {
     };
   }, [settings.autoSilenceSeconds]);
 
-  useEffect(() => {
-    if (!fetchDependencies || locationState.status !== 'active') {
-      fetchControllerRef.current?.abort();
-      fetchControllerRef.current = null;
-      return;
-    }
-
-    if (
-      ENABLE_DEV_PREVIEW &&
-      hasAppliedPreviewRef.current &&
-      import.meta.env.VITE_USE_MOCK_API !== 'true'
-    ) {
-      return;
-    }
-
-    const controller = new AbortController();
-    fetchControllerRef.current?.abort();
-    fetchControllerRef.current = controller;
-
-    dispatch(
-      fetchNearbyHotspots({
-        latitude: fetchDependencies.latitude,
-        longitude: fetchDependencies.longitude,
-        signal: controller.signal,
-      }),
-    );
-
-    return () => {
-      controller.abort();
-    };
-  }, [dispatch, fetchDependencies, locationState.status]);
 
   useEffect(() => {
     const alertService = alertServiceRef.current;
@@ -420,7 +437,7 @@ const MapPage = () => {
       : undefined;
   const mapZoom = followUser ? 13 : undefined;
   const showDataUpdatingOverlay =
-    hotspotsState.status === 'loading' && hotspotsState.nearby.length === 0;
+    hotspotsState.status === 'loading' && hotspotsState.items.length === 0;
 
   return (
     <div className="relative h-screen w-screen">
@@ -437,7 +454,7 @@ const MapPage = () => {
               <>
                 <HotspotLayer
                   map={map}
-                  hotspots={hotspotsState.nearby}
+                  hotspots={hotspotsState.items}
                   onHotspotClick={(hotspot) => {
                     setFollowUser(false);
                     setSelectedHotspot(hotspot);
@@ -531,15 +548,15 @@ const MapPage = () => {
           </div>
         )}
 
-        {hotspotsState.status === 'loading' && (
+        {hotspotsState.nearbyStatus === 'loading' && (
           <span className="pointer-events-auto rounded-md bg-primary-600/95 px-3 py-1.5 text-xs text-white shadow-md">
             取得附近熱點中…
           </span>
         )}
 
-        {hotspotsState.status === 'failed' && hotspotsState.error && (
+        {hotspotsState.nearbyStatus === 'failed' && hotspotsState.nearbyError && (
           <span className="pointer-events-auto rounded-md bg-danger-500/95 px-3 py-1.5 text-xs text-white shadow-md">
-            載入失敗
+            載入附近熱點失敗
           </span>
         )}
       </div>

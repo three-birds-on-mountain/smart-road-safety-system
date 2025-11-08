@@ -98,8 +98,34 @@ class HotspotService:
         
         # 合併重疊的熱點
         merged_hotspots = HotspotService.merge_overlapping_hotspots(db, hotspots)
-        
+
         return merged_hotspots
+
+    @staticmethod
+    def get_all(
+        db: Session,
+        limit: int = 10000,
+    ) -> List[Hotspot]:
+        """
+        取得所有熱點
+
+        Args:
+            db: 資料庫連線
+            limit: 最多回傳數量
+
+        Returns:
+            所有熱點列表
+        """
+        query = db.query(Hotspot)
+
+        # 按嚴重程度分數排序（高到低）
+        query = query.order_by(
+            (Hotspot.a1_count * 3 + Hotspot.a2_count * 2 + Hotspot.a3_count).desc()
+        )
+
+        query = query.limit(limit)
+
+        return query.all()
 
     @staticmethod
     def get_in_bounds(

@@ -1,6 +1,6 @@
 import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { apiClient } from '../services/api';
-import { getMockNearbyHotspots, getMockHotspotDetail } from '../mocks/hotspots';
+import { getMockNearbyHotspots, getMockHotspotDetail, getMockAllHotspots } from '../mocks/hotspots';
 import { mapSeverityLevelsToApi, mapTimeRangeToApi } from '../utils/mappers';
 import type {
   HotspotDetail,
@@ -13,18 +13,22 @@ import type { RootState } from '../store';
 import type { AccidentSeverity } from '../types/accident';
 
 interface HotspotsState {
-  items: HotspotSummary[];
-  nearby: NearbyHotspot[];
+  allHotspots: HotspotSummary[]; // 所有熱點資料（啟動時載入一次）
+  items: HotspotSummary[]; // 地圖顯示的熱點（前端過濾）
+  nearby: NearbyHotspot[]; // 警示用的附近熱點（前端過濾）
   nearbyMeta?: HotspotListMeta;
   selectedHotspotId?: string;
   detailedHotspot?: HotspotDetail;
-  status: 'idle' | 'loading' | 'succeeded' | 'failed';
+  status: 'idle' | 'loading' | 'succeeded' | 'failed'; // 載入所有熱點的狀態
   error?: string;
+  nearbyStatus: 'idle' | 'loading' | 'succeeded' | 'failed'; // 附近熱點狀態
+  nearbyError?: string;
   detailStatus: 'idle' | 'loading' | 'succeeded' | 'failed';
   detailError?: string;
 }
 
 const initialState: HotspotsState = {
+  allHotspots: [],
   items: [],
   nearby: [],
   nearbyMeta: undefined,
@@ -32,6 +36,8 @@ const initialState: HotspotsState = {
   detailedHotspot: undefined,
   status: 'idle',
   error: undefined,
+  nearbyStatus: 'idle',
+  nearbyError: undefined,
   detailStatus: 'idle',
   detailError: undefined,
 };
@@ -146,6 +152,43 @@ export const adaptHotspotDetail = (payload: HotspotDetailApi): HotspotDetail => 
       description: accident.description,
     })) ?? [],
 });
+
+export const fetchAllHotspots = createAsyncThunk<
+  HotspotListResponse<HotspotSummary>,
+  { signal?: AbortSignal } | void,
+  { state: RootState }
+>(
+  'hotspots/fetchAll',
+  async (params) => {
+    const signal = params?.signal;
+
+    if (import.meta.env.VITE_USE_MOCK_API === 'true') {
+      return getMockAllHotspots();
+    }
+
+    try {
+      const response = await apiClient.get<{
+        data: NearbyHotspotApi[];
+        meta: HotspotListMetaApi;
+      }>(`/hotspots/all`, {
+        params: { limit: 10000 },
+        signal,
+      });
+
+      return {
+        data: response.data.data.map(adaptHotspotSummary),
+        meta: {
+          totalCount: response.data.meta.total_count,
+        },
+      };
+    } catch (error) {
+      if (import.meta.env.VITE_FALLBACK_TO_MOCK === 'true') {
+        return getMockAllHotspots();
+      }
+      throw error;
+    }
+  },
+);
 
 export const fetchNearbyHotspots = createAsyncThunk<
   HotspotListResponse<NearbyHotspot>,
@@ -309,24 +352,44 @@ const hotspotsSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchNearbyHotspots.pending, (state) => {
+      // fetchAllHotspots 用於一次性載入所有熱點
+      .addCase(fetchAllHotspots.pending, (state) => {
         state.status = 'loading';
         state.error = undefined;
       })
-      .addCase(fetchNearbyHotspots.fulfilled, (state, action) => {
+      .addCase(fetchAllHotspots.fulfilled, (state, action) => {
         state.status = 'succeeded';
+        state.allHotspots = action.payload.data;
+        state.items = action.payload.data; // 初始時顯示所有熱點
+      })
+      .addCase(fetchAllHotspots.rejected, (state, action) => {
+        if (action.meta.aborted) {
+          state.status = 'idle';
+          return;
+        }
+        state.status = 'failed';
+        state.error = action.error.message ?? 'Failed to load all hotspots';
+      })
+      // fetchNearbyHotspots 用於警示功能
+      .addCase(fetchNearbyHotspots.pending, (state) => {
+        state.nearbyStatus = 'loading';
+        state.nearbyError = undefined;
+      })
+      .addCase(fetchNearbyHotspots.fulfilled, (state, action) => {
+        state.nearbyStatus = 'succeeded';
         state.nearby = action.payload.data;
         state.nearbyMeta = action.payload.meta;
       })
       .addCase(fetchNearbyHotspots.rejected, (state, action) => {
         if (action.meta.aborted) {
-          state.status = 'idle';
+          state.nearbyStatus = 'idle';
           return;
         }
 
-        state.status = 'failed';
-        state.error = action.error.message ?? 'Failed to load nearby hotspots';
+        state.nearbyStatus = 'failed';
+        state.nearbyError = action.error.message ?? 'Failed to load nearby hotspots';
       })
+      // fetchHotspotsInBounds 用於地圖顯示
       .addCase(fetchHotspotsInBounds.pending, (state) => {
         state.status = 'loading';
         state.error = undefined;
