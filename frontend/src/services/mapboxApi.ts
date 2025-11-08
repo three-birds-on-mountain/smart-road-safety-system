@@ -39,7 +39,7 @@ export interface DirectionsResponse {
 /**
  * 地址搜尋（Geocoding API）
  *
- * @param query - 搜尋關鍵字（地址或地點名稱）
+ * @param query - 搜尋關鍵字（地址、地標或地點名稱）
  * @param options - 搜尋選項
  * @returns 搜尋結果
  */
@@ -49,16 +49,29 @@ export async function searchAddress(
     limit?: number; // 最多回傳幾筆結果（預設 5）
     proximity?: [number, number]; // 優先搜尋附近位置 [lng, lat]
     bbox?: [number, number, number, number]; // 限制搜尋範圍 [minLng, minLat, maxLng, maxLat]
+    types?: string[]; // 搜尋類型（預設包含 POI 和 address）
   } = {},
 ): Promise<GeocodingResponse> {
-  const { limit = 5, proximity, bbox } = options;
+  const {
+    limit = 5,
+    proximity,
+    bbox,
+    types = ['poi', 'address', 'place'] // 預設搜尋地標、地址、地點
+  } = options;
 
   const params = new URLSearchParams({
     access_token: MAPBOX_TOKEN,
     limit: limit.toString(),
     language: 'zh-TW', // 繁體中文結果
     country: 'TW', // 限制台灣地區
+    autocomplete: 'true', // 啟用自動完成
+    fuzzyMatch: 'true', // 啟用模糊匹配
   });
+
+  // 指定搜尋類型（POI 地標、address 地址、place 城市等）
+  if (types.length > 0) {
+    params.append('types', types.join(','));
+  }
 
   if (proximity) {
     params.append('proximity', proximity.join(','));
