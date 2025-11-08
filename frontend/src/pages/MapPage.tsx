@@ -336,34 +336,114 @@ const MapPage = () => {
   }, []);
 
   const handleOpenLocationSettings = async () => {
-    geolocationServiceRef.current?.startWatching();
-
+    console.log('🔍 handleOpenLocationSettings 被呼叫');
+    
     if (typeof window === 'undefined') {
+      console.log('❌ window 未定義');
       return;
     }
 
-    // 優先使用 Flutter Bridge API（在 Flutter WebView 環境下）
-    if (typeof window.flutterObject?.postMessage === 'function') {
+    // 檢查是否在 Flutter WebView 環境
+    const isFlutterApp = typeof window.flutterObject?.postMessage === 'function';
+    console.log('📱 是否在 Flutter App 中:', isFlutterApp);
+
+    // 如果在 Flutter App 中，使用 Flutter Bridge 開啟系統設定
+    if (isFlutterApp) {
       try {
         const bridge = new FlutterBridge();
         await bridge.openAppSettings();
         return;
       } catch (error) {
         console.warn('Failed to open app settings via Flutter Bridge:', error);
-        // 如果 Flutter Bridge 失敗，繼續使用 fallback 方式
       }
     }
 
+    // 在瀏覽器環境下，嘗試檢查並處理權限
+    if (typeof navigator !== 'undefined' && navigator.geolocation) {
+      // 嘗試使用 Permissions API 檢查狀態
+      if (navigator.permissions) {
+        console.log('✅ navigator.permissions 可用，開始檢查權限狀態');
+        try {
+          const permissionStatus = await navigator.permissions.query({ name: 'geolocation' });
+          console.log('📍 權限狀態:', permissionStatus.state);
+          
+          if (permissionStatus.state === 'prompt') {
+            // 如果是 prompt 狀態，請求定位會觸發權限對話框
+            console.log('⏸️ 權限狀態為 prompt，嘗試觸發權限請求');
+            geolocationServiceRef.current?.startWatching();
+            return;
+          }
+          
+          if (permissionStatus.state === 'denied') {
+            // 如果已經被拒絕，提示使用者手動開啟
+            console.log('🚫 權限已被拒絕，顯示提示訊息');
+            alert(
+              '定位權限已被拒絕。\n\n' +
+              '請點擊網址列左側的鎖頭圖示 🔒，\n' +
+              '找到「位置」或「定位」設定，\n' +
+              '將其改為「允許」，\n' +
+              '然後重新整理頁面。'
+            );
+            return;
+          }
+          
+          if (permissionStatus.state === 'granted') {
+            console.log('✅ 權限已授予，重新啟動定位服務');
+            geolocationServiceRef.current?.startWatching();
+            return;
+          }
+        } catch (error) {
+          console.warn('⚠️ 檢查權限狀態失敗:', error);
+          // 繼續嘗試直接請求
+        }
+      }
+      
+      // 如果 Permissions API 不可用或檢查失敗，嘗試直接請求定位
+      console.log('🔄 嘗試直接請求定位權限');
+      try {
+        await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(
+            resolve,
+            reject,
+            {
+              enableHighAccuracy: true,
+              timeout: 5000,
+              maximumAge: 0,
+            }
+          );
+        });
+        console.log('✅ 定位請求成功');
+        geolocationServiceRef.current?.startWatching();
+        return;
+      } catch (error: any) {
+        console.error('❌ 定位請求失敗:', error);
+        if (error.code === error.PERMISSION_DENIED) {
+          alert(
+            '定位權限已被拒絕。\n\n' +
+            '請點擊網址列左側的鎖頭圖示 🔒，\n' +
+            '找到「位置」或「定位」設定，\n' +
+            '將其改為「允許」，\n' +
+            '然後重新整理頁面。'
+          );
+          return;
+        }
+      }
+    }
+
+    // 如果以上都失敗，且在移動裝置上，嘗試開啟系統設定
     const userAgent = window.navigator?.userAgent ?? '';
+    console.log('📱 User Agent:', userAgent);
 
     try {
       if (/android/i.test(userAgent)) {
+        console.log('🤖 Android 裝置，嘗試開啟系統設定');
         window.location.href =
           'intent://settings/location#Intent;scheme=android-app;package=com.android.settings;end';
         return;
       }
 
       if (/iphone|ipad|ipod/i.test(userAgent)) {
+        console.log('🍎 iOS 裝置，嘗試開啟系統設定');
         window.location.href = 'App-Prefs:root=Privacy&path=LOCATION_SERVICES';
         window.setTimeout(() => {
           window.location.href = 'app-settings:';
@@ -374,10 +454,15 @@ const MapPage = () => {
       console.warn('Failed to open system settings automatically:', error);
     }
 
-    window.open(
-      'https://support.google.com/chrome/answer/142065?hl=zh-Hant',
-      '_blank',
-      'noopener,noreferrer',
+    // 最後的 fallback：顯示提示訊息而不是跳轉
+    console.log('ℹ️ 顯示最終提示訊息');
+    alert(
+      '無法自動開啟定位設定。\n\n' +
+      '請手動在瀏覽器中啟用定位權限：\n' +
+      '1. 點擊網址列左側的鎖頭圖示 🔒\n' +
+      '2. 找到「位置」或「定位」設定\n' +
+      '3. 將其改為「允許」\n' +
+      '4. 重新整理頁面'
     );
   };
 
@@ -464,6 +549,7 @@ const MapPage = () => {
                     setSelectedHotspot(hotspot);
                   }}
                   enableClustering={true}
+                  severityFilter={settings.severityFilter}
                 />
                 <UserLocation
                   map={map}

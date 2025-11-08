@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import type { HotspotDetail } from '../../types/hotspot';
 import type { AccidentRecord, AccidentSeverity } from '../../types/accident';
+import { useAppSelector } from '../../hooks/store';
 
 interface HotspotIncidentListModalProps {
   hotspot: HotspotDetail;
@@ -64,6 +65,15 @@ const formatInvolved = (people?: string[], vehicles?: string[]) => {
 };
 
 const HotspotIncidentListModal = ({ hotspot, onClose }: HotspotIncidentListModalProps) => {
+  // 取得當前勾選的嚴重程度篩選器
+  const severityFilter = useAppSelector((state) => state.settings.current.severityFilter);
+
+  // 計算根據篩選器過濾後的總事故數
+  const filteredTotalAccidents = 
+    (severityFilter.includes('A1') ? hotspot.a1Count : 0) +
+    (severityFilter.includes('A2') ? hotspot.a2Count : 0) +
+    (severityFilter.includes('A3') ? hotspot.a3Count : 0);
+
   const accidents: AccidentRecord[] = useMemo(
     () => hotspot.accidents ?? [],
     [hotspot.accidents],
@@ -105,17 +115,23 @@ const HotspotIncidentListModal = ({ hotspot, onClose }: HotspotIncidentListModal
       <section className="border-b border-gray-100 bg-surface-muted px-4 py-3">
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <span className="rounded-full bg-primary-100 px-3 py-1 text-primary-700">
-            事故總數 {hotspot.totalAccidents}
+            事故總數 {filteredTotalAccidents}
           </span>
-          <span className="rounded-full bg-danger-50 px-3 py-1 text-danger-600">
-            A1 {hotspot.a1Count}
-          </span>
-          <span className="rounded-full bg-warning-50 px-3 py-1 text-warning-600">
-            A2 {hotspot.a2Count}
-          </span>
-          <span className="rounded-full bg-secondary-50 px-3 py-1 text-secondary-600">
-            A3 {hotspot.a3Count}
-          </span>
+          {severityFilter.includes('A1') && hotspot.a1Count > 0 && (
+            <span className="rounded-full bg-danger-50 px-3 py-1 text-danger-600">
+              A1 {hotspot.a1Count}
+            </span>
+          )}
+          {severityFilter.includes('A2') && hotspot.a2Count > 0 && (
+            <span className="rounded-full bg-warning-50 px-3 py-1 text-warning-600">
+              A2 {hotspot.a2Count}
+            </span>
+          )}
+          {severityFilter.includes('A3') && hotspot.a3Count > 0 && (
+            <span className="rounded-full bg-secondary-50 px-3 py-1 text-secondary-600">
+              A3 {hotspot.a3Count}
+            </span>
+          )}
           <span className="rounded-full bg-gray-50 px-3 py-1 text-text-secondary">
             影響半徑 {hotspot.radiusMeters}m
           </span>

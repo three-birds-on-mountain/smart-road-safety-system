@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { HotspotDetail, HotspotSummary } from '../../types/hotspot'
 import { getHighestSeverityLevel } from '../../types/hotspot'
+import { useAppSelector } from '../../hooks/store'
 
 type DetailStatus = 'idle' | 'loading' | 'succeeded' | 'failed'
 
@@ -100,9 +101,18 @@ const HotspotDetailPopup = ({
   const severityLabel = getSeverityLabel(severity)
   const [showSeverityHint, setShowSeverityHint] = useState(false)
 
+  // 取得當前勾選的嚴重程度篩選器
+  const severityFilter = useAppSelector((state) => state.settings.current.severityFilter)
+
   const toggleSeverityHint = () => {
     setShowSeverityHint((prev) => !prev)
   }
+
+  // 計算根據篩選器過濾後的總事故數
+  const filteredTotalAccidents = 
+    (severityFilter.includes('A1') ? hotspot.a1Count : 0) +
+    (severityFilter.includes('A2') ? hotspot.a2Count : 0) +
+    (severityFilter.includes('A3') ? hotspot.a3Count : 0)
 
   const primaryAddress =
     detail?.accidents?.find((item) => item.address)?.address ?? '暫無詳細地址資訊'
@@ -177,7 +187,7 @@ const HotspotDetailPopup = ({
             <div className="rounded-md bg-surface-muted px-sm py-xs">
               <p className="text-xs text-text-secondary">總事故數</p>
               <p className="text-lg font-semibold text-primary-700">
-                {hotspot.totalAccidents}
+                {filteredTotalAccidents}
               </p>
             </div>
             <div className="rounded-md bg-surface-muted px-sm py-xs">
@@ -188,19 +198,19 @@ const HotspotDetailPopup = ({
             </div>
           </div>
 
-          {/* 各等級事故數 */}
+          {/* 各等級事故數 - 只顯示當前篩選器勾選的嚴重程度 */}
           <div className="flex flex-wrap gap-xs text-xs">
-            {hotspot.a1Count > 0 && (
+            {severityFilter.includes('A1') && hotspot.a1Count > 0 && (
               <span className="rounded-full bg-danger-500/10 px-sm py-xs text-danger-500">
                 A1: {hotspot.a1Count}
               </span>
             )}
-            {hotspot.a2Count > 0 && (
+            {severityFilter.includes('A2') && hotspot.a2Count > 0 && (
               <span className="rounded-full bg-warning-500/10 px-sm py-xs text-warning-500">
                 A2: {hotspot.a2Count}
               </span>
             )}
-            {hotspot.a3Count > 0 && (
+            {severityFilter.includes('A3') && hotspot.a3Count > 0 && (
               <span className="rounded-full bg-secondary-500/10 px-sm py-xs text-secondary-700">
                 A3: {hotspot.a3Count}
               </span>

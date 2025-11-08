@@ -16,32 +16,46 @@ export interface HotspotLayerProps {
   clusterMaxZoom?: number
   /** 聚合半徑（像素，預設：50） */
   clusterRadius?: number
+  /** 當前的嚴重程度篩選器 */
+  severityFilter?: ('A1' | 'A2' | 'A3')[]
 }
 
 /**
  * 將熱點資料轉換為 GeoJSON Feature Collection
  */
-const createGeoJSON = (hotspots: HotspotSummary[]): GeoJSON.FeatureCollection => {
+const createGeoJSON = (
+  hotspots: HotspotSummary[],
+  severityFilter: ('A1' | 'A2' | 'A3')[] = ['A1', 'A2', 'A3']
+): GeoJSON.FeatureCollection => {
   return {
     type: 'FeatureCollection',
-    features: hotspots.map((hotspot) => ({
-      type: 'Feature',
-      geometry: {
-        type: 'Point',
-        coordinates: [hotspot.centerLongitude, hotspot.centerLatitude],
-      },
-      properties: {
-        id: hotspot.id,
-        radiusMeters: hotspot.radiusMeters,
-        totalAccidents: hotspot.totalAccidents,
-        a1Count: hotspot.a1Count,
-        a2Count: hotspot.a2Count,
-        a3Count: hotspot.a3Count,
-        severity: getHighestSeverityLevel(hotspot),
-        earliestAccidentAt: hotspot.earliestAccidentAt,
-        latestAccidentAt: hotspot.latestAccidentAt,
-      },
-    })),
+    features: hotspots.map((hotspot) => {
+      // 根據篩選器計算過濾後的事故數
+      const filteredAccidents = 
+        (severityFilter.includes('A1') ? hotspot.a1Count : 0) +
+        (severityFilter.includes('A2') ? hotspot.a2Count : 0) +
+        (severityFilter.includes('A3') ? hotspot.a3Count : 0)
+      
+      return {
+        type: 'Feature',
+        geometry: {
+          type: 'Point',
+          coordinates: [hotspot.centerLongitude, hotspot.centerLatitude],
+        },
+        properties: {
+          id: hotspot.id,
+          radiusMeters: hotspot.radiusMeters,
+          totalAccidents: hotspot.totalAccidents,
+          filteredAccidents, // 新增：過濾後的事故數
+          a1Count: hotspot.a1Count,
+          a2Count: hotspot.a2Count,
+          a3Count: hotspot.a3Count,
+          severity: getHighestSeverityLevel(hotspot),
+          earliestAccidentAt: hotspot.earliestAccidentAt,
+          latestAccidentAt: hotspot.latestAccidentAt,
+        },
+      }
+    }),
   }
 }
 
@@ -110,6 +124,7 @@ const HotspotLayer = ({
   enableClustering = true,
   clusterMaxZoom = 14,
   clusterRadius = 50,
+  severityFilter = ['A1', 'A2', 'A3'],
 }: HotspotLayerProps) => {
   const hotspotMapRef = useRef<Map<string, HotspotSummary>>(new Map())
   const renderableHotspots = useMemo(() => {
@@ -148,18 +163,18 @@ const HotspotLayer = ({
     if (!existingSource) {
       map.addSource(sourceId, {
         type: 'geojson',
-        data: createGeoJSON(renderableHotspots),
+        data: createGeoJSON(renderableHotspots, severityFilter),
         cluster: enableClustering,
         clusterMaxZoom,
         clusterRadius,
         clusterProperties: {
-          total_accidents: ['+', ['get', 'totalAccidents'], 0],
+          total_accidents: ['+', ['get', 'filteredAccidents'], 0],
         },
       })
     } else {
       // 更新現有 source 的資料
       const source = existingSource as GeoJSONSource
-      source.setData(createGeoJSON(renderableHotspots))
+      source.setData(createGeoJSON(renderableHotspots, severityFilter))
     }
 
     // === 圖層 1: 聚合圓圈 ===
@@ -297,7 +312,7 @@ const HotspotLayer = ({
         source: sourceId,
         filter: enableClustering ? ['!', ['has', 'point_count']] : undefined,
         layout: {
-          'text-field': ['to-string', ['get', 'totalAccidents']],
+          'text-field': ['to-string', ['get', 'filteredAccidents']],
           'text-size': 11,
           'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
           'text-offset': [0, 0],
@@ -471,6 +486,7 @@ const HotspotLayer = ({
     enableClustering,
     clusterMaxZoom,
     clusterRadius,
+    severityFilter,
   ])
 
   // 清理圖層與 source（元件卸載時）
