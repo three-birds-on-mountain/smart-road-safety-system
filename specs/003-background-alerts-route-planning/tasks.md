@@ -19,30 +19,23 @@
 
 ---
 
-## Phase 2: US2 - 路線規劃與事故統計
+## Phase 2: US2 - 路線規劃與事故統計（純前端實作）
 
-### 後端資料模型
-- [ ] T007 [P] [US2] 建立 Route 模型 - backend/src/models/route.py
-- [ ] T008 [P] [US2] 建立 RouteSummary 模型 - backend/src/models/route_summary.py
-- [ ] T009 [US2] 建立資料庫遷移腳本 - backend/alembic/versions/xxx_add_route_tables.py
+**架構說明**：
+- 前端直接呼叫 Mapbox Directions API 取得路線
+- 前端使用 Turf.js 計算路線附近的事故（已從 /hotspots/all 取得）
+- 前端加總事故數量並判斷 > 200（「建議搭乘大眾交通工具」）或 ≤ 200（「安全出遊」）
+- 不需要後端支援（利用現有的 /hotspots/all API 和前端篩選邏輯）
 
-### 後端服務層
-- [ ] T010 [P] [US2] 實作 Mapbox 客戶端 - backend/src/utils/mapbox_client.py
-- [ ] T011 [P] [US2] 實作路線事故查詢服務 - backend/src/services/route_accident_service.py
-- [ ] T012 [US2] 實作事故統計服務（加總，>200 危險）- backend/src/services/accident_count_service.py
-- [ ] T013 [US2] 整合路線規劃服務 - backend/src/services/route_service.py
-
-### 後端 API
-- [ ] T014 [US2] 實作 POST /api/v1/routes/plan 端點 - backend/src/api/routes.py
-
-### 前端
-- [ ] T015 [P] [US2] 建立 route Redux slice - frontend/src/store/routeSlice.ts
-- [ ] T016 [P] [US2] 實作 route API 客戶端 - frontend/src/services/routeApi.ts
-- [ ] T017 [P] [US2] 實作搜尋框元件 - frontend/src/components/RouteSearch/SearchInput.tsx
-- [ ] T018 [P] [US2] 實作路線圖層元件 - frontend/src/components/Map/RouteLayer.tsx
-- [ ] T019 [P] [US2] 實作路線統計抽屜元件 - frontend/src/components/RouteDisplay/RouteSummary.tsx
-- [ ] T020 [US2] 整合搜尋框到地圖頁面 - frontend/src/pages/MapPage.tsx
-- [ ] T021 [US2] 整合路線圖層到地圖頁面 - frontend/src/components/Map/MapView.tsx
+### 前端任務
+- [x] T007 [P] [US2] 建立 route Redux slice - frontend/src/store/routeSlice.ts
+- [x] T008 [P] [US2] 實作 Mapbox API 客戶端 - frontend/src/services/mapboxApi.ts
+- [x] T009 [P] [US2] 實作路線事故計算工具 - frontend/src/utils/routeAccidentCalculator.ts
+- [ ] T010 [P] [US2] 實作搜尋框元件 - frontend/src/components/RouteSearch/SearchInput.tsx
+- [ ] T011 [P] [US2] 實作路線圖層元件 - frontend/src/components/Map/RouteLayer.tsx
+- [ ] T012 [P] [US2] 實作路線統計抽屜元件 - frontend/src/components/RouteDisplay/RouteSummary.tsx
+- [ ] T013 [US2] 整合搜尋框到地圖頁面 - frontend/src/pages/MapPage.tsx
+- [ ] T014 [US2] 整合路線圖層到地圖頁面 - frontend/src/components/Map/MapView.tsx
 
 ---
 
@@ -63,5 +56,5 @@ def calculate_safety_advice(total_accidents: int) -> str:
         return "安全出遊"
 ```
 
-**總任務數**: 23 個
-**MVP**: Phase 1 + Phase 2（約 8-10 天）
+**總任務數**: 14 個（簡化版）
+**MVP**: Phase 1 + Phase 2（約 3-5 天）
