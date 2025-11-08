@@ -152,6 +152,9 @@ const HotspotLayer = ({
         cluster: enableClustering,
         clusterMaxZoom,
         clusterRadius,
+        clusterProperties: {
+          total_accidents: ['+', ['get', 'totalAccidents'], 0],
+        },
       })
     } else {
       // 更新現有 source 的資料
@@ -201,7 +204,14 @@ const HotspotLayer = ({
         source: sourceId,
         filter: ['has', 'point_count'],
         layout: {
-          'text-field': ['get', 'point_count_abbreviated'],
+          'text-field': [
+            'to-string',
+            [
+              'coalesce',
+              ['get', 'total_accidents'],
+              ['get', 'point_count'],
+            ],
+          ],
           'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
           'text-size': 14,
         },
