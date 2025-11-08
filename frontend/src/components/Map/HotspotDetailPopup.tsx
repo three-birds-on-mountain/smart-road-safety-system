@@ -1,41 +1,40 @@
-import { useState } from 'react'
-import type { HotspotDetail, HotspotSummary } from '../../types/hotspot'
-import { getHighestSeverityLevel } from '../../types/hotspot'
-import { useAppSelector } from '../../hooks/store'
+import { useState } from 'react';
+import type { HotspotDetail, HotspotSummary } from '../../types/hotspot';
+import { useAppSelector } from '../../hooks/store';
 
-type DetailStatus = 'idle' | 'loading' | 'succeeded' | 'failed'
+type DetailStatus = 'idle' | 'loading' | 'succeeded' | 'failed';
 
 export interface HotspotDetailPopupProps {
   /** 熱點資料 */
-  hotspot: HotspotSummary
+  hotspot: HotspotSummary;
   /** 詳細資料 */
-  detail?: HotspotDetail
+  detail?: HotspotDetail;
   /** 詳細資料載入狀態 */
-  detailStatus: DetailStatus
-  detailError?: string
+  detailStatus: DetailStatus;
+  detailError?: string;
   /** 開啟完整詳情頁 */
-  onShowFullDetail: () => void
+  onShowFullDetail: () => void;
   /** 關閉彈窗的回調 */
-  onClose: () => void
+  onClose: () => void;
 }
 
 /**
  * 格式化日期時間字串
  */
 const formatDateTime = (dateTimeString?: string): string => {
-  if (!dateTimeString) return '未知'
+  if (!dateTimeString) return '未知';
 
   try {
-    const date = new Date(dateTimeString)
+    const date = new Date(dateTimeString);
     return date.toLocaleDateString('zh-TW', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
-    })
+    });
   } catch {
-    return '未知'
+    return '未知';
   }
-}
+};
 
 /**
  * 根據嚴重程度返回標籤樣式
@@ -43,15 +42,15 @@ const formatDateTime = (dateTimeString?: string): string => {
 const getSeverityBadgeClass = (severity: string): string => {
   switch (severity) {
     case 'A1':
-      return 'bg-danger-500 text-white'
+      return 'bg-danger-500 text-white';
     case 'A2':
-      return 'bg-warning-500 text-white'
+      return 'bg-warning-500 text-white';
     case 'A3':
-      return 'bg-secondary-500 text-white'
+      return 'bg-secondary-500 text-white';
     default:
-      return 'bg-gray-500 text-white'
+      return 'bg-gray-500 text-white';
   }
-}
+};
 
 /**
  * 根據嚴重程度返回標籤文字
@@ -59,15 +58,15 @@ const getSeverityBadgeClass = (severity: string): string => {
 const getSeverityLabel = (severity: string): string => {
   switch (severity) {
     case 'A1':
-      return 'A1 (死亡)'
+      return 'A1 (死亡)';
     case 'A2':
-      return 'A2 (重傷)'
+      return 'A2 (重傷)';
     case 'A3':
-      return 'A3 (輕傷)'
+      return 'A3 (輕傷)';
     default:
-      return '未知'
+      return '未知';
   }
-}
+};
 
 /**
  * HotspotDetailPopup 元件
@@ -96,26 +95,46 @@ const HotspotDetailPopup = ({
   onShowFullDetail,
   onClose,
 }: HotspotDetailPopupProps) => {
-  const severity = getHighestSeverityLevel(hotspot)
-  const severityBadgeClass = getSeverityBadgeClass(severity)
-  const severityLabel = getSeverityLabel(severity)
-  const [showSeverityHint, setShowSeverityHint] = useState(false)
+  // 建立所有出現的事故等級陣列（按 A1 A2 A3 順序）
+  const severityLabels: Array<{ severity: string; label: string; badgeClass: string }> = [];
+  if (hotspot.a1Count > 0) {
+    severityLabels.push({
+      severity: 'A1',
+      label: getSeverityLabel('A1'),
+      badgeClass: getSeverityBadgeClass('A1'),
+    });
+  }
+  if (hotspot.a2Count > 0) {
+    severityLabels.push({
+      severity: 'A2',
+      label: getSeverityLabel('A2'),
+      badgeClass: getSeverityBadgeClass('A2'),
+    });
+  }
+  if (hotspot.a3Count > 0) {
+    severityLabels.push({
+      severity: 'A3',
+      label: getSeverityLabel('A3'),
+      badgeClass: getSeverityBadgeClass('A3'),
+    });
+  }
+  const [showSeverityHint, setShowSeverityHint] = useState(false);
 
   // 取得當前勾選的嚴重程度篩選器
-  const severityFilter = useAppSelector((state) => state.settings.current.severityFilter)
+  const severityFilter = useAppSelector((state) => state.settings.current.severityFilter);
 
   const toggleSeverityHint = () => {
-    setShowSeverityHint((prev) => !prev)
-  }
+    setShowSeverityHint((prev) => !prev);
+  };
 
   // 計算根據篩選器過濾後的總事故數
-  const filteredTotalAccidents = 
+  const filteredTotalAccidents =
     (severityFilter.includes('A1') ? hotspot.a1Count : 0) +
     (severityFilter.includes('A2') ? hotspot.a2Count : 0) +
-    (severityFilter.includes('A3') ? hotspot.a3Count : 0)
+    (severityFilter.includes('A3') ? hotspot.a3Count : 0);
 
   const primaryAddress =
-    detail?.accidents?.find((item) => item.address)?.address ?? '暫無詳細地址資訊'
+    detail?.accidents?.find((item) => item.address)?.address ?? '暫無詳細地址資訊';
 
   return (
     <div className="rounded-lg bg-white shadow-xl" style={{ minWidth: '280px' }}>
@@ -124,11 +143,14 @@ const HotspotDetailPopup = ({
         <div className="flex flex-col gap-xs">
           <h3 className="text-base font-semibold text-text-primary">事故熱點詳情</h3>
           <div className="flex items-center gap-xs">
-            <span
-              className={`self-start rounded-full px-sm py-xs text-xs font-semibold ${severityBadgeClass}`}
-            >
-              {severityLabel}
-            </span>
+            {severityLabels.map(({ severity, label, badgeClass }) => (
+              <span
+                key={severity}
+                className={`self-start rounded-full px-sm py-xs text-xs font-semibold ${badgeClass}`}
+              >
+                {label}
+              </span>
+            ))}
             <button
               type="button"
               className="flex h-5 w-5 items-center justify-center rounded-full bg-primary-50 text-primary-700 transition hover:bg-primary-100"
@@ -162,12 +184,7 @@ const HotspotDetailPopup = ({
           className="ml-sm rounded-md p-xs text-text-secondary transition-colors hover:bg-gray-50 hover:text-text-primary"
           aria-label="關閉"
         >
-          <svg
-            className="h-5 w-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
+          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -186,15 +203,11 @@ const HotspotDetailPopup = ({
           <div className="grid grid-cols-2 gap-sm">
             <div className="rounded-md bg-surface-muted px-sm py-xs">
               <p className="text-xs text-text-secondary">總事故數</p>
-              <p className="text-lg font-semibold text-primary-700">
-                {filteredTotalAccidents}
-              </p>
+              <p className="text-lg font-semibold text-primary-700">{filteredTotalAccidents}</p>
             </div>
             <div className="rounded-md bg-surface-muted px-sm py-xs">
               <p className="text-xs text-text-secondary">影響半徑</p>
-              <p className="text-lg font-semibold text-primary-700">
-                {hotspot.radiusMeters}m
-              </p>
+              <p className="text-lg font-semibold text-primary-700">{hotspot.radiusMeters}m</p>
             </div>
           </div>
 
@@ -224,11 +237,11 @@ const HotspotDetailPopup = ({
           hotspot.earliestAccidentAt ||
           hotspot.latestAccidentAt) && (
           <div className="flex flex-col gap-sm">
-            <h4 className="text-sm font-semibold text-text-primary">時間範圍</h4>
+            <h4 className="text-sm font-semibold text-text-primary">日期範圍</h4>
             <div className="flex flex-col gap-xs text-xs text-text-secondary">
               {detail?.analysisPeriodStart ? (
                 <p>
-                  <span className="font-semibold">分析開始：</span>
+                  <span className="font-semibold">最早：</span>
                   {formatDateTime(detail.analysisPeriodStart)}
                 </p>
               ) : (
@@ -241,7 +254,7 @@ const HotspotDetailPopup = ({
               )}
               {detail?.analysisPeriodEnd ? (
                 <p>
-                  <span className="font-semibold">分析結束：</span>
+                  <span className="font-semibold">最近：</span>
                   {formatDateTime(detail.analysisPeriodEnd)}
                 </p>
               ) : (
@@ -316,7 +329,7 @@ const HotspotDetailPopup = ({
         </button>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default HotspotDetailPopup
+export default HotspotDetailPopup;
