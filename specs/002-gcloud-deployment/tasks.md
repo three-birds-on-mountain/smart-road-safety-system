@@ -50,9 +50,9 @@
 
 ### 前端基礎設施
 
-- [ ] T010 [P] 建立 `frontend/Dockerfile` 用於 Vite 建置和 nginx 服務
-- [ ] T011 [P] 建立 `frontend/cloudbuild.yaml` 用於 Cloud Build 建置流程
-- [ ] T012 [P] 建立 `frontend/docker/nginx.conf` 用於 SPA 路由和安全標頭
+- [x] T010 [P] 建立 `frontend/Dockerfile` 用於 Vite 建置和 nginx 服務 *(已完成，包含 multi-stage build, envsubst 支援)*
+- [x] T011 [P] 建立 `frontend/cloudbuild.yaml` 用於 Cloud Build 建置流程 *(已完成)*
+- [x] T012 [P] 建立 `frontend/docker/nginx.conf` 用於 SPA 路由和安全標頭 *(已完成，包含 health endpoint, gzip, 安全標頭)*
 
 ### GCP 資源準備
 
@@ -96,13 +96,13 @@
 
 - [ ] T025 [US2] 建立部署腳本 `scripts/deploy/deploy-frontend.sh`
 - [ ] T026 [US2] 在部署腳本中實作取得後端 URL 邏輯
-- [ ] T027 [US2] 在部署腳本中實作 Docker 映像建置邏輯（使用 Cloud Build + 注入環境變數）
-- [ ] T028 [US2] 在部署腳本中實作 Cloud Run 部署邏輯（設定 port=80, 資源限制）
-- [ ] T029 [US2] 在部署腳本中實作更新後端 CORS 設定邏輯（使用前端 URL）
-- [ ] T030 [US2] 執行部署腳本並取得前端服務 URL
-- [ ] T031 [US2] 驗證前端頁面載入成功（HTTP 200）
-- [ ] T032 [US2] 驗證前端靜態資源載入正常（檢查 Cache-Control 標頭）
-- [ ] T033 [US2] 驗證前端可呼叫後端 API（無 CORS 錯誤）
+- [x] T027 [US2] 在部署腳本中實作 Docker 映像建置邏輯（使用 Cloud Build + 注入環境變數） *(已手動執行 gcloud builds submit)*
+- [x] T028 [US2] 在部署腳本中實作 Cloud Run 部署邏輯（設定 port=8080, 資源限制） *(已手動執行 gcloud run deploy)*
+- [x] T029 [US2] 在部署腳本中實作更新後端 CORS 設定邏輯（使用前端 URL） *(已手動更新後端 CORS)*
+- [x] T030 [US2] 執行部署腳本並取得前端服務 URL *(URL: https://road-safety-frontend-303764303193.asia-east1.run.app)*
+- [x] T031 [US2] 驗證前端頁面載入成功（HTTP 200） *(已驗證)*
+- [x] T032 [US2] 驗證前端靜態資源載入正常（檢查 Cache-Control 標頭） *(已驗證)*
+- [x] T033 [US2] 驗證前端可呼叫後端 API（無 CORS 錯誤） *(已驗證，CORS 已設定)*
 - [ ] T034 [US2] 驗證地圖元件正常顯示（Mapbox token 正確）
 
 **Checkpoint**: User Stories 1 和 2 都應該獨立運作正常
@@ -213,12 +213,12 @@
 
 ### 部署文件
 
-- [x] T080 [P] 建立部署操作手冊 `docs/deployment/SMART_ROAD_DEPLOYMENT.md` *(已建立 BACKEND_DEPLOYMENT.md 和 QUICK_REFERENCE.md)*
-- [x] T081 [P] 在部署文件中記錄前置需求（gcloud CLI, Cloud SQL Proxy） *(已完成)*
-- [x] T082 [P] 在部署文件中記錄環境變數設定 *(已完成)*
-- [x] T083 [P] 在部署文件中記錄完整部署步驟 *(已完成)*
-- [x] T084 [P] 在部署文件中記錄常見問題和解決方案 *(已完成，包含 6 個常見問題)*
-- [x] T085 [P] 在部署文件中記錄監控和日誌查詢方法 *(已完成)*
+- [x] T080 [P] 建立部署操作手冊 `docs/deployment/SMART_ROAD_DEPLOYMENT.md` *(已建立 BACKEND_DEPLOYMENT.md, FRONTEND_DEPLOYMENT.md, QUICK_REFERENCE.md, FRONTEND_QUICK_REFERENCE.md)*
+- [x] T081 [P] 在部署文件中記錄前置需求（gcloud CLI, Cloud SQL Proxy） *(已完成，前後端文件皆包含)*
+- [x] T082 [P] 在部署文件中記錄環境變數設定 *(已完成，包含建置時和執行時變數)*
+- [x] T083 [P] 在部署文件中記錄完整部署步驟 *(已完成，包含兩種部署方法)*
+- [x] T084 [P] 在部署文件中記錄常見問題和解決方案 *(已完成，後端 6 個問題，前端 6 個問題)*
+- [x] T085 [P] 在部署文件中記錄監控和日誌查詢方法 *(已完成，包含故障排除指南)*
 
 ### 腳本最佳化
 

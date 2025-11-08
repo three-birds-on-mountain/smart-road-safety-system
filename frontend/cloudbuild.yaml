@@ -1,0 +1,22 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '--build-arg'
+      - 'VITE_API_BASE_URL=${_VITE_API_BASE_URL}'
+      - '--build-arg'
+      - 'VITE_MAPBOX_ACCESS_TOKEN=${_VITE_MAPBOX_ACCESS_TOKEN}'
+      - '-t'
+      - 'asia-east1-docker.pkg.dev/${PROJECT_ID}/containers/frontend:latest'
+      - '.'
+
+images:
+  - 'asia-east1-docker.pkg.dev/${PROJECT_ID}/containers/frontend:latest'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: 'N1_HIGHCPU_8'
+
+# Substitution variables (will be provided via --substitutions flag)
+# _VITE_API_BASE_URL: Backend API URL (e.g., https://backend-xxx.run.app/api/v1)
+# _VITE_MAPBOX_ACCESS_TOKEN: Mapbox access token
