@@ -21,6 +21,7 @@ const baseSettings: AlertSettings = {
   alertChannels: ['sound'],
   ignoredHotspotIds: [],
   autoSilenceSeconds: 30,
+  accidentThreshold: 1, // 新增：數量篩選，預設 1
 };
 
 const cloneSettings = (settings: AlertSettings): AlertSettings => ({
@@ -110,6 +111,15 @@ const sanitizeSettings = (
     result.autoSilenceSeconds,
   );
 
+  // 處理 accidentThreshold (1-10)
+  if (
+    candidate?.accidentThreshold != null &&
+    typeof candidate.accidentThreshold === 'number' &&
+    !Number.isNaN(candidate.accidentThreshold)
+  ) {
+    result.accidentThreshold = Math.max(1, Math.min(10, Math.round(candidate.accidentThreshold)));
+  }
+
   return result;
 };
 
@@ -182,6 +192,11 @@ const settingsSlice = createSlice({
         state.current,
       );
     },
+    updateAccidentThreshold(state, action: PayloadAction<number>) {
+      // 確保範圍在 1-10 之間
+      const value = Math.max(1, Math.min(10, Math.round(action.payload)));
+      state.current = { ...state.current, accidentThreshold: value };
+    },
     hydrateSettings(state, action: PayloadAction<AlertSettings>) {
       state.current = sanitizeSettings(action.payload, createDefaultSettings());
     },
@@ -203,6 +218,7 @@ export const {
   updateAlertChannels,
   toggleIgnoredHotspot,
   updateAutoSilence,
+  updateAccidentThreshold,
   hydrateSettings,
   resetSettings,
 } = settingsSlice.actions;

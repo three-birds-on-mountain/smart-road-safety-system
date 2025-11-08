@@ -13,6 +13,7 @@ export interface AlertSettings {
   alertChannels: AlertChannel[];
   ignoredHotspotIds: string[];
   autoSilenceSeconds: number;
+  accidentThreshold: number; // 數量篩選 (1-10)
 }
 
 export type GPSStatus = 'idle' | 'locating' | 'active' | 'error' | 'unsupported';

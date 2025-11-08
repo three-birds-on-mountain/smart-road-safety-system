@@ -3,6 +3,7 @@ import AlertModeSelector from '../components/Settings/AlertModeSelector'
 import AccidentLevelFilter from '../components/Settings/AccidentLevelFilter'
 import DistanceSelector from '../components/Settings/DistanceSelector'
 import TimeRangeFilter from '../components/Settings/TimeRangeFilter'
+import ThresholdSlider from '../components/Settings/ThresholdSlider'
 import { useAppSelector } from '../hooks/store'
 import type { AlertChannel, TimeRangeOption } from '../types/settings'
 import type { AccidentSeverity } from '../types/accident'
@@ -125,6 +126,10 @@ const SettingsPage = ({ onClose }: SettingsPageProps) => {
           <div className="space-y-4">
             <div className="rounded-lg bg-surface-white p-4 shadow-md">
               <AccidentLevelFilter />
+            </div>
+
+            <div className="rounded-lg bg-surface-white p-4 shadow-md">
+              <ThresholdSlider />
             </div>
 
             <div className="rounded-lg bg-surface-white p-4 shadow-md">

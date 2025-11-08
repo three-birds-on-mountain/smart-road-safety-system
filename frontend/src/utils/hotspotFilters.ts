@@ -103,3 +103,18 @@ export function filterByTimeRange(
     return false;
   });
 }
+
+/**
+ * 根據事故數量門檻過濾熱點
+ * 只保留事故總數 >= threshold 的熱點
+ */
+export function filterByAccidentThreshold(
+  hotspots: HotspotSummary[],
+  threshold: number,
+): HotspotSummary[] {
+  if (threshold <= 1) {
+    return hotspots;
+  }
+
+  return hotspots.filter((hotspot) => hotspot.totalAccidents >= threshold);
+}

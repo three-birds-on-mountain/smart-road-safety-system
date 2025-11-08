@@ -96,7 +96,7 @@ const MapPage = () => {
 
     // 匯入過濾函式並執行過濾
     (async () => {
-      const { filterBySeverity, filterByTimeRange, filterByDistance } = await import(
+      const { filterBySeverity, filterByTimeRange, filterByDistance, filterByAccidentThreshold } = await import(
         '../utils/hotspotFilters'
       );
 
@@ -105,10 +105,13 @@ const MapPage = () => {
 
       filtered = filterBySeverity(filtered, settings.severityFilter);
 
-      // 2. 設定地圖顯示的熱點（所有符合條件的）
+      // 2. 套用事故數量門檻過濾
+      filtered = filterByAccidentThreshold(filtered, settings.accidentThreshold ?? 1);
+
+      // 3. 設定地圖顯示的熱點（所有符合條件的）
       dispatch(setHotspots(filtered));
 
-      // 3. 如果有使用者位置，計算附近熱點用於警示
+      // 4. 如果有使用者位置，計算附近熱點用於警示
       if (latitude != null && longitude != null) {
         const nearby = filterByDistance(filtered, latitude, longitude, settings.distanceMeters);
         dispatch(setNearbyHotspots(nearby));
@@ -119,6 +122,7 @@ const MapPage = () => {
     settings.timeRange,
     settings.severityFilter,
     settings.distanceMeters,
+    settings.accidentThreshold,
     latitude,
     longitude,
     dispatch,
