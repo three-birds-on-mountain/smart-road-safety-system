@@ -1,6 +1,7 @@
 import type { AccidentSeverity } from '../../types/accident';
 import { useAppDispatch, useAppSelector } from '../../hooks/store';
 import { updateSeverityFilter } from '../../store/settingsSlice';
+import checkIcon from '../../assets/check.svg';
 
 const SEVERITY_OPTIONS: Array<{
   value: AccidentSeverity;
@@ -93,20 +94,15 @@ const AccidentLevelFilter = () => {
                     className={[
                       'pointer-events-none flex h-4 w-4 items-center justify-center rounded border border-primary-500 bg-white transition',
                       'peer-checked:bg-primary-500 peer-focus-visible:ring-2 peer-focus-visible:ring-primary-500',
-                      'peer-checked:[&>svg]:opacity-100',
+                      'peer-checked:[&>img]:opacity-100',
                     ].join(' ')}
                     aria-hidden="true"
                   >
-                    <svg
-                      className="h-3 w-3 text-white opacity-0 transition"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth={3}
-                      viewBox="0 0 12 10"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path d="M1 5l3 3 7-7" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
+                    <img
+                      src={checkIcon}
+                      alt=""
+                      className="h-3 w-3 opacity-0 transition-opacity duration-150"
+                    />
                   </span>
                 </div>
               </div>

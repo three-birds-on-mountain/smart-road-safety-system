@@ -20,6 +20,8 @@ import type { NearbyHotspot, HotspotSummary } from '../types/hotspot';
 import type { AlertChannel } from '../types/settings';
 import { getMockNearbyHotspots } from '../mocks/hotspots';
 import type { MapboxInstance } from '../lib/mapbox';
+import mapMarkPointer from '../assets/map-mark-pointer.svg';
+import mapMarkPointerPress from '../assets/map-mark-pointer-press.svg';
 
 interface ActiveAlertState {
   hotspot: NearbyHotspot;
@@ -74,6 +76,7 @@ const MapPage = () => {
   const [selectedHotspot, setSelectedHotspot] = useState<HotspotSummary | null>(null);
   const [isDetailModalOpen, setDetailModalOpen] = useState(false);
   const [followUser, setFollowUser] = useState(true);
+  const [isRecenterPressed, setIsRecenterPressed] = useState(false);
 
   const activeAlertRef = useRef<ActiveAlertState | null>(null);
   const geolocationServiceRef = useRef<ReturnType<typeof createGeolocationService> | null>(null);
@@ -168,7 +171,6 @@ const MapPage = () => {
       }
     };
   }, [settings.autoSilenceSeconds]);
-
 
   useEffect(() => {
     const alertService = alertServiceRef.current;
@@ -324,6 +326,14 @@ const MapPage = () => {
     geolocationServiceRef.current?.startWatching();
   }, [latitude, longitude]);
 
+  const handleRecenterPressStart = useCallback(() => {
+    setIsRecenterPressed(true);
+  }, []);
+
+  const handleRecenterPressEnd = useCallback(() => {
+    setIsRecenterPressed(false);
+  }, []);
+
   const handleOpenLocationSettings = () => {
     geolocationServiceRef.current?.startWatching();
 
@@ -410,14 +420,7 @@ const MapPage = () => {
     }
 
     hasAppliedPreviewRef.current = true;
-  }, [
-    currentLocation,
-    dispatch,
-    hotspotsState.nearby,
-    isMapReady,
-    locationStatus,
-    settings,
-  ]);
+  }, [currentLocation, dispatch, hotspotsState.nearby, isMapReady, locationStatus, settings]);
 
   const mapCenter =
     followUser && latitude != null && longitude != null
@@ -475,32 +478,34 @@ const MapPage = () => {
         <button
           type="button"
           onClick={handleRecenter}
-          className="pointer-events-auto flex h-11 w-11 items-center justify-center rounded-md bg-surface-white p-1.5 text-text-primary shadow-md transition hover:bg-primary-50 hover:text-primary-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 active:shadow-sm"
+          onPointerDown={handleRecenterPressStart}
+          onPointerUp={handleRecenterPressEnd}
+          onPointerLeave={handleRecenterPressEnd}
+          onBlur={handleRecenterPressEnd}
+          className="pointer-events-auto flex h-[54px] w-[54px] items-center justify-center rounded-full text-text-primary shadow-lg transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+          style={{ backgroundColor: 'rgba(255, 255, 255, 1)' }}
           aria-label="回到我的位置"
         >
-          <svg
-            className="h-5 w-5"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-            aria-hidden="true"
-          >
-            <path
-              d="M12 3v2.75M12 18.25V21M3 12h2.75M18.25 12H21"
-              fill="none"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeWidth={1.8}
+          <span className="relative block h-6 w-6">
+            <img
+              src={mapMarkPointer}
+              alt=""
+              className={[
+                'absolute inset-0 h-full w-full transition-opacity duration-150',
+                isRecenterPressed ? 'opacity-0' : 'opacity-100',
+              ].join(' ')}
+              aria-hidden="true"
             />
-            <circle
-              cx="12"
-              cy="12"
-              r="6.5"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={1.8}
+            <img
+              src={mapMarkPointerPress}
+              alt=""
+              className={[
+                'absolute inset-0 h-full w-full transition-opacity duration-150',
+                isRecenterPressed ? 'opacity-100' : 'opacity-0',
+              ].join(' ')}
+              aria-hidden="true"
             />
-            <circle cx="12" cy="12" r="2.5" fill="currentColor" />
-          </svg>
+          </span>
         </button>
       </div>
 
@@ -612,9 +617,7 @@ const MapPage = () => {
                         d="M10.29 3.86L1.82 18a1 1 0 00.86 1.5h18.64a1 1 0 00.86-1.5L13.71 3.86a1 1 0 00-1.72 0z"
                       />
                     </svg>
-                    <p className="text-sm font-semibold text-danger-600">
-                      無法載入事故詳情
-                    </p>
+                    <p className="text-sm font-semibold text-danger-600">無法載入事故詳情</p>
                     {detailError && (
                       <p className="text-xs text-text-secondary text-center">{detailError}</p>
                     )}

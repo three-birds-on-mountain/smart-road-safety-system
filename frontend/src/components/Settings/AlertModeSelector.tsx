@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import type { AlertChannel } from '../../types/settings';
 import { useAppDispatch, useAppSelector } from '../../hooks/store';
 import { updateAlertChannels } from '../../store/settingsSlice';
+import checkIcon from '../../assets/check.svg';
 
 const CHANNEL_OPTIONS: Array<{
   value: AlertChannel;
@@ -103,24 +104,15 @@ const AlertModeSelector = () => {
                     'peer-checked:bg-primary-500',
                     'peer-disabled:border-gray-300 peer-disabled:bg-gray-100 peer-disabled:opacity-80',
                     'peer-focus-visible:ring-2 peer-focus-visible:ring-primary-500',
-                    'peer-checked:[&>svg]:opacity-100 peer-disabled:[&>svg]:opacity-0',
+                    'peer-checked:[&>img]:opacity-100 peer-disabled:[&>img]:opacity-0',
                   ].join(' ')}
                   aria-hidden="true"
                 >
-                  <svg
-                    className="h-3 w-3 text-white opacity-0 transition"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={3}
-                    viewBox="0 0 12 10"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      d="M1 5l3 3 7-7"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
+                  <img
+                    src={checkIcon}
+                    alt=""
+                    className="h-3 w-3 opacity-0 transition-opacity duration-150"
+                  />
                 </span>
               </div>
               <div className="flex flex-col gap-xs">
@@ -152,8 +144,9 @@ const AlertModeSelector = () => {
           />
           <span
             className={[
-              'h-6 w-11 rounded-full bg-gray-200 transition peer-checked:bg-primary-500',
-              'after:absolute after:left-1 after:top-1 after:h-4 after:w-4 after:rounded-full after:bg-white after:transition peer-checked:after:translate-x-5',
+              'relative block h-[26px] w-[40px] rounded-full border border-gray-200 bg-gray-100 transition-colors duration-200',
+              "after:absolute after:left-[3px] after:top-[2px] after:h-[20px] after:w-[20px] after:rounded-full after:bg-surface-white after:shadow-sm after:transition-transform after:duration-200 after:content-['']",
+              'peer-checked:border-primary-500 peer-checked:bg-primary-500 peer-checked:after:translate-x-[13px]',
             ].join(' ')}
           />
         </label>
