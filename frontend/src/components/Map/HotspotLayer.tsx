@@ -170,15 +170,15 @@ const HotspotLayer = ({
         source: sourceId,
         filter: ['has', 'point_count'],
         paint: {
-          // 根據聚合點數量調整顏色（漸層：藍 -> 黃 -> 紅）
+          // 根據聚合點數量調整顏色（漸層：primary-300 -> primary-500 -> primary-600）
           'circle-color': [
             'step',
             ['get', 'point_count'],
-            '#5AB4C5', // Primary 色 (< 10)
+            '#93D4DF', // primary-300 (< 10)
             10,
-            '#F5BA4B', // Secondary 色 (10-49)
+            '#5AB4C5', // primary-500 (10-49)
             50,
-            '#D45251', // Danger 色 (≥ 50)
+            '#468D9B', // primary-600 (≥ 50)
           ],
           // 根據聚合點數量調整圓圈大小
           'circle-radius': [
