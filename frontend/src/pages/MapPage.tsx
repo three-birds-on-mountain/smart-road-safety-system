@@ -473,8 +473,8 @@ const MapPage = () => {
         )}
       </div>
 
-      {/* 回到定位按鈕 */}
-      <div className="pointer-events-none absolute right-4 top-[120px] z-10">
+      {/* 回到定位按鈕（位於設定按鈕上方） */}
+      <div className="pointer-events-none fixed right-6 bottom-[90px] z-50">
         <button
           type="button"
           onClick={handleRecenter}

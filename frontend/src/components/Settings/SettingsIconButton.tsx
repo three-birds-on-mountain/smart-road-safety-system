@@ -18,7 +18,7 @@ const SettingsIconButton = ({ onClick, className = '' }: SettingsIconButtonProps
         // 固定定位於右下角
         'fixed bottom-6 right-6 z-50',
         // 尺寸與形狀
-        'h-14 w-14 rounded-full',
+        'h-[54px] w-[54px] rounded-full',
         // 設計系統色彩
         'bg-primary-500 hover:bg-primary-600 active:bg-primary-700',
         // 陰影效果
