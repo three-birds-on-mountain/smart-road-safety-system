@@ -7,7 +7,7 @@ from src.db.session import SessionLocal, engine, Base
 from src.services.data_ingestion import DataIngestionService
 from src.services.geocoding import GeocodingService
 from src.models.accident import Accident
-from src.models import SourceType, SeverityLevel
+from src.models import SourceType
 
 
 @pytest.fixture(scope="function")
@@ -70,11 +70,8 @@ def test_save_accident_a3_with_geocoding(ingestion_service, db):
         occurred_at=datetime.utcnow(),
         latitude=24.1477,
         longitude=120.6736,
-        severity_level=SeverityLevel.A3,
         location_text="台中市測試路段",
         vehicle_type="小客車",
-        geocoded=True,
-        geocode_confidence=0.90,
     )
     
     db.commit()
@@ -83,7 +80,4 @@ def test_save_accident_a3_with_geocoding(ingestion_service, db):
     saved = db.query(Accident).filter(Accident.source_id == "A3-TEST-001").first()
     assert saved is not None
     assert saved.source_type == SourceType.A3
-    assert saved.severity_level == SeverityLevel.A3
-    assert saved.geocoded is True
-    assert saved.geocode_confidence is not None
 

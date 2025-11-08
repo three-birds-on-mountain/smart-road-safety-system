@@ -14,7 +14,6 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 
 from src.models.hotspot import Hotspot
-from src.models import SeverityLevel
 from src.core.errors import BadRequestError
 
 

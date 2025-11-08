@@ -7,7 +7,7 @@ from uuid import uuid4
 from src.db.session import SessionLocal, engine, Base
 from src.services.hotspot_analysis import HotspotAnalysisService
 from src.models.accident import Accident
-from src.models import SourceType, SeverityLevel
+from src.models import SourceType
 from geoalchemy2 import WKTElement
 
 
@@ -43,13 +43,12 @@ def clustered_accidents(db):
         
         accident = Accident(
             id=uuid4(),
-            source_type=SourceType.A2,
+            source_type=SourceType.A2 if i % 2 == 0 else SourceType.A3,
             source_id=f"A2-TEST-{i:03d}",
             occurred_at=datetime.utcnow() - timedelta(days=i),
             latitude=Decimal(str(base_lat + offset_lat)),
             longitude=Decimal(str(base_lng + offset_lng)),
             geom=WKTElement(f"POINT({base_lng + offset_lng} {base_lat + offset_lat})", srid=4326),
-            severity_level=SeverityLevel.A2 if i % 2 == 0 else SeverityLevel.A3,
             location_text=f"測試路段 {i}",
         )
         db.add(accident)
@@ -82,7 +81,6 @@ def test_analyze_with_insufficient_accidents(analysis_service, db):
             latitude=Decimal("25.0479"),
             longitude=Decimal("121.5170"),
             geom=WKTElement("POINT(121.5170 25.0479)", srid=4326),
-            severity_level=SeverityLevel.A2,
         )
         db.add(accident)
     db.commit()
@@ -107,7 +105,6 @@ def test_analyze_respects_period_days(analysis_service, db):
         latitude=Decimal("25.0479"),
         longitude=Decimal("121.5170"),
         geom=WKTElement("POINT(121.5170 25.0479)", srid=4326),
-        severity_level=SeverityLevel.A2,
     )
     db.add(old_accident)
     db.commit()
