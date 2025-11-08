@@ -1,0 +1,1587 @@
+openapi: 3.0.3
+info:
+  title: 智慧道路守護系統 - 背景警示與路線規劃 API
+  description: |
+    提供背景警示、路線規劃、地址搜尋、監控檢查等功能的 RESTful API。
+
+    ## 功能概述
+    - **使用者設定管理**: 警示偏好、數量篩選閾值
+    - **路線規劃**: 整合 Mapbox Directions API，提供路線安全性評估
+    - **地址搜尋**: 地址自動完成與反向地理編碼
+    - **背景監控**: 接近熱點檢查、附近熱點查詢
+    - **搜尋歷史**: 使用者搜尋記錄管理
+
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@roadguard.com
+
+servers:
+  - url: https://api.roadguard.com/v1
+    description: 生產環境
+  - url: https://staging-api.roadguard.com/v1
+    description: 測試環境
+  - url: http://localhost:8000/v1
+    description: 本地開發環境
+
+tags:
+  - name: Settings
+    description: 使用者設定相關 API
+  - name: Routes
+    description: 路線規劃相關 API
+  - name: Geocoding
+    description: 地址搜尋與地理編碼 API
+  - name: Monitoring
+    description: 背景監控相關 API
+  - name: SearchHistory
+    description: 搜尋歷史相關 API
+
+paths:
+  /api/settings:
+    get:
+      tags:
+        - Settings
+      summary: 取得使用者設定
+      description: 取得使用者的背景警示設定，包括警示方式、數量篩選閾值等
+      operationId: getSettings
+      responses:
+        '200':
+          description: 成功取得設定
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BackgroundAlertSettings'
+              examples:
+                defaultSettings:
+                  summary: 預設設定
+                  value:
+                    id: 1
+                    userId: 123
+                    alertMode: "both"
+                    accidentThreshold: 1
+                    alertDistanceMeters: 200
+                    isEnabled: true
+                    createdAt: "2025-11-08T10:30:00Z"
+                    updatedAt: "2025-11-08T10:30:00Z"
+                customSettings:
+                  summary: 自訂設定
+                  value:
+                    id: 1
+                    userId: 123
+                    alertMode: "vibration_only"
+                    accidentThreshold: 3
+                    alertDistanceMeters: 250
+                    isEnabled: true
+                    createdAt: "2025-11-08T10:30:00Z"
+                    updatedAt: "2025-11-08T11:45:00Z"
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    put:
+      tags:
+        - Settings
+      summary: 更新使用者設定
+      description: 更新使用者的背景警示設定
+      operationId: updateSettings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSettingsRequest'
+            examples:
+              updateAlertMode:
+                summary: 僅更新警示方式
+                value:
+                  alertMode: "sound_only"
+              updateThreshold:
+                summary: 更新數量篩選閾值
+                value:
+                  accidentThreshold: 5
+              fullUpdate:
+                summary: 完整更新
+                value:
+                  alertMode: "both"
+                  accidentThreshold: 3
+                  alertDistanceMeters: 300
+                  isEnabled: true
+      responses:
+        '200':
+          description: 設定更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BackgroundAlertSettings'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/routes/plan:
+    post:
+      tags:
+        - Routes
+      summary: 規劃路線
+      description: |
+        根據起點和終點座標規劃路線，並計算路線經過的事故熱點統計。
+
+        路線會經過 Mapbox Directions API 規劃，並查詢路線 200 公尺範圍內的所有事故熱點。
+        系統會根據使用者設定的數量篩選閾值和嚴重程度篩選來過濾熱點。
+      operationId: planRoute
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlanRouteRequest'
+            examples:
+              basicRoute:
+                summary: 基本路線規劃
+                value:
+                  originLat: 25.0408
+                  originLng: 121.5678
+                  originAddress: "台北市信義區市府路1號"
+                  destinationLat: 25.0448
+                  destinationLng: 121.5154
+                  destinationAddress: "台北市中正區重慶南路一段122號"
+              withProfile:
+                summary: 指定導航模式
+                value:
+                  originLat: 25.0408
+                  originLng: 121.5678
+                  originAddress: "台北市信義區市府路1號"
+                  destinationLat: 25.0448
+                  destinationLng: 121.5154
+                  destinationAddress: "台北市中正區重慶南路一段122號"
+                  profile: "driving"
+      responses:
+        '201':
+          description: 路線規劃成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RouteResponse'
+              examples:
+                successfulRoute:
+                  $ref: '#/components/examples/SuccessfulRouteResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          description: Mapbox API 服務不可用
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "service_unavailable"
+                message: "路線規劃服務暫時無法使用，請稍後再試"
+
+  /api/routes/{routeId}:
+    get:
+      tags:
+        - Routes
+      summary: 取得路線資訊
+      description: 取得指定路線的詳細資訊，包括路線幾何、距離、時間等
+      operationId: getRoute
+      parameters:
+        - name: routeId
+          in: path
+          required: true
+          description: 路線 ID
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: 成功取得路線
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Route'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/routes/{routeId}/safety:
+    get:
+      tags:
+        - Routes
+      summary: 取得路線安全統計
+      description: |
+        取得路線的安全性評估資訊，包括：
+        - 路線經過的總事故數
+        - 各等級事故數（A1、A2、A3）
+        - 風險評分（加權計算）
+        - 是否建議使用大眾交通工具
+        - 路線經過的所有事故熱點清單
+      operationId: getRouteSafety
+      parameters:
+        - name: routeId
+          in: path
+          required: true
+          description: 路線 ID
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: 成功取得安全統計
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RouteSafetyResponse'
+              examples:
+                highRisk:
+                  summary: 高風險路線
+                  value:
+                    safetySummary:
+                      id: 1
+                      routeId: 1
+                      totalAccidents: 12
+                      a1Count: 2
+                      a2Count: 5
+                      a3Count: 5
+                      riskScore: 21.0
+                      suggestPublicTransport: true
+                      createdAt: "2025-11-08T10:30:00Z"
+                      updatedAt: "2025-11-08T10:30:00Z"
+                    hotspots:
+                      - id: 42
+                        locationName: "忠孝東路與敦化南路口"
+                        severity: "A1"
+                        totalCount: 5
+                        distanceToRoute: 85.3
+                      - id: 43
+                        locationName: "信義路與基隆路口"
+                        severity: "A2"
+                        totalCount: 3
+                        distanceToRoute: 125.7
+                lowRisk:
+                  summary: 低風險路線
+                  value:
+                    safetySummary:
+                      id: 2
+                      routeId: 2
+                      totalAccidents: 3
+                      a1Count: 0
+                      a2Count: 1
+                      a3Count: 2
+                      riskScore: 4.0
+                      suggestPublicTransport: false
+                      createdAt: "2025-11-08T11:00:00Z"
+                      updatedAt: "2025-11-08T11:00:00Z"
+                    hotspots:
+                      - id: 55
+                        locationName: "和平東路與復興南路口"
+                        severity: "A2"
+                        totalCount: 1
+                        distanceToRoute: 178.2
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/geocoding/search:
+    get:
+      tags:
+        - Geocoding
+      summary: 地址搜尋
+      description: |
+        搜尋地址並回傳建議清單，支援模糊搜尋和自動完成。
+
+        搜尋來源：
+        1. 使用者的搜尋歷史（優先顯示）
+        2. Mapbox Geocoding API 的搜尋結果
+      operationId: searchAddress
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: 搜尋關鍵字
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 100
+            example: "市府路"
+        - name: limit
+          in: query
+          required: false
+          description: 回傳結果數量上限
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 20
+            default: 10
+            example: 5
+        - name: proximity
+          in: query
+          required: false
+          description: 優先搜尋接近此座標的結果（格式：lng,lat）
+          schema:
+            type: string
+            pattern: '^-?[0-9]+\.?[0-9]*,-?[0-9]+\.?[0-9]*$'
+            example: "121.5678,25.0408"
+      responses:
+        '200':
+          description: 搜尋成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GeocodingSearchResponse'
+              examples:
+                searchResults:
+                  summary: 搜尋結果
+                  value:
+                    results:
+                      - address: "台北市信義區市府路1號"
+                        lat: 25.0408
+                        lng: 121.5678
+                        source: "history"
+                        relevance: 1.0
+                      - address: "新北市板橋區府中路29號"
+                        lat: 25.0119
+                        lng: 121.4627
+                        source: "mapbox"
+                        relevance: 0.85
+                    total: 2
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/geocoding/reverse:
+    get:
+      tags:
+        - Geocoding
+      summary: 反向地理編碼
+      description: 根據座標取得地址資訊
+      operationId: reverseGeocode
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          description: 緯度
+          schema:
+            type: number
+            format: double
+            minimum: -90
+            maximum: 90
+            example: 25.0408
+        - name: lng
+          in: query
+          required: true
+          description: 經度
+          schema:
+            type: number
+            format: double
+            minimum: -180
+            maximum: 180
+            example: 121.5678
+      responses:
+        '200':
+          description: 反向地理編碼成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReverseGeocodeResponse'
+              example:
+                address: "台北市信義區市府路1號"
+                lat: 25.0408
+                lng: 121.5678
+                placeType: "address"
+                context:
+                  district: "信義區"
+                  city: "台北市"
+                  country: "台灣"
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '404':
+          description: 找不到對應地址
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "not_found"
+                message: "此座標無法找到對應的地址"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/monitoring/check-proximity:
+    post:
+      tags:
+        - Monitoring
+      summary: 檢查是否接近熱點
+      description: |
+        檢查使用者目前位置是否接近任何事故熱點，用於背景監控和即時警示。
+
+        系統會根據使用者設定的警示距離和數量篩選閾值來判斷是否需要觸發警示。
+      operationId: checkProximity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckProximityRequest'
+            examples:
+              currentLocation:
+                summary: 檢查目前位置
+                value:
+                  lat: 25.0420
+                  lng: 121.5654
+      responses:
+        '200':
+          description: 檢查完成
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProximityCheckResponse'
+              examples:
+                nearHotspot:
+                  summary: 接近熱點
+                  value:
+                    isNearHotspot: true
+                    shouldAlert: true
+                    nearbyHotspots:
+                      - id: 42
+                        locationName: "忠孝東路與敦化南路口"
+                        severity: "A1"
+                        totalCount: 5
+                        distance: 185.3
+                        direction: "東北方"
+                    message: "前方 185 公尺處有高風險路段"
+                notNearHotspot:
+                  summary: 未接近熱點
+                  value:
+                    isNearHotspot: false
+                    shouldAlert: false
+                    nearbyHotspots: []
+                    message: "目前路段安全"
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/monitoring/nearby-hotspots:
+    get:
+      tags:
+        - Monitoring
+      summary: 取得附近熱點
+      description: 取得指定座標附近的所有事故熱點清單，支援距離和數量篩選
+      operationId: getNearbyHotspots
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          description: 緯度
+          schema:
+            type: number
+            format: double
+            minimum: -90
+            maximum: 90
+            example: 25.0420
+        - name: lng
+          in: query
+          required: true
+          description: 經度
+          schema:
+            type: number
+            format: double
+            minimum: -180
+            maximum: 180
+            example: 121.5654
+        - name: radius
+          in: query
+          required: false
+          description: 搜尋半徑（公尺）
+          schema:
+            type: integer
+            minimum: 50
+            maximum: 1000
+            default: 500
+            example: 500
+        - name: limit
+          in: query
+          required: false
+          description: 回傳結果數量上限
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+            example: 10
+      responses:
+        '200':
+          description: 成功取得附近熱點
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NearbyHotspotsResponse'
+              example:
+                hotspots:
+                  - id: 42
+                    locationName: "忠孝東路與敦化南路口"
+                    severity: "A1"
+                    totalCount: 5
+                    lat: 25.0418
+                    lng: 121.5650
+                    distance: 185.3
+                  - id: 43
+                    locationName: "信義路與基隆路口"
+                    severity: "A2"
+                    totalCount: 3
+                    lat: 25.0425
+                    lng: 121.5660
+                    distance: 325.8
+                total: 2
+                radius: 500
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/search-history:
+    get:
+      tags:
+        - SearchHistory
+      summary: 取得搜尋歷史
+      description: 取得使用者的地址搜尋歷史，依搜尋次數和最後搜尋時間排序
+      operationId: getSearchHistory
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          description: 回傳結果數量上限
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 10
+            example: 10
+      responses:
+        '200':
+          description: 成功取得搜尋歷史
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchHistoryResponse'
+              example:
+                history:
+                  - id: 1
+                    userId: 123
+                    address: "台北市信義區市府路1號"
+                    lat: 25.0408
+                    lng: 121.5678
+                    searchCount: 5
+                    lastSearchedAt: "2025-11-08T14:30:00Z"
+                    createdAt: "2025-11-05T10:00:00Z"
+                  - id: 2
+                    userId: 123
+                    address: "台北市中正區重慶南路一段122號"
+                    lat: 25.0448
+                    lng: 121.5154
+                    searchCount: 3
+                    lastSearchedAt: "2025-11-08T10:15:00Z"
+                    createdAt: "2025-11-06T09:30:00Z"
+                total: 2
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - SearchHistory
+      summary: 新增搜尋記錄
+      description: |
+        新增或更新搜尋記錄。如果該地址已存在於使用者的搜尋歷史中，則更新搜尋次數和最後搜尋時間。
+
+        使用 UPSERT 邏輯（INSERT ... ON CONFLICT）。
+      operationId: addSearchHistory
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddSearchHistoryRequest'
+            examples:
+              newSearch:
+                summary: 新增搜尋記錄
+                value:
+                  address: "台北市大安區敦化南路二段105號"
+                  lat: 25.0264
+                  lng: 121.5496
+      responses:
+        '201':
+          description: 搜尋記錄新增成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchHistory'
+              example:
+                id: 3
+                userId: 123
+                address: "台北市大安區敦化南路二段105號"
+                lat: 25.0264
+                lng: 121.5496
+                searchCount: 1
+                lastSearchedAt: "2025-11-08T15:00:00Z"
+                createdAt: "2025-11-08T15:00:00Z"
+        '200':
+          description: 搜尋記錄已存在，更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchHistory'
+              example:
+                id: 1
+                userId: 123
+                address: "台北市信義區市府路1號"
+                lat: 25.0408
+                lng: 121.5678
+                searchCount: 6
+                lastSearchedAt: "2025-11-08T15:00:00Z"
+                createdAt: "2025-11-05T10:00:00Z"
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  schemas:
+    # ============ Settings ============
+    BackgroundAlertSettings:
+      type: object
+      required:
+        - id
+        - userId
+        - alertMode
+        - accidentThreshold
+        - alertDistanceMeters
+        - isEnabled
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: integer
+          description: 設定唯一識別碼
+          example: 1
+        userId:
+          type: integer
+          description: 使用者 ID
+          example: 123
+        alertMode:
+          type: string
+          enum:
+            - vibration_only
+            - sound_only
+            - both
+            - disabled
+          description: |
+            警示方式：
+            - vibration_only: 僅震動（僅 Android）
+            - sound_only: 僅音效
+            - both: 震動+音效
+            - disabled: 關閉警示
+          example: "both"
+        accidentThreshold:
+          type: integer
+          minimum: 1
+          maximum: 10
+          description: 事故數量篩選閾值（只顯示和警示總事故數 >= 此值的熱點）
+          example: 1
+        alertDistanceMeters:
+          type: integer
+          minimum: 50
+          maximum: 500
+          description: 警示距離（公尺）
+          example: 200
+        isEnabled:
+          type: boolean
+          description: 是否啟用背景警示
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+          description: 建立時間（ISO 8601 格式）
+          example: "2025-11-08T10:30:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: 更新時間（ISO 8601 格式）
+          example: "2025-11-08T10:30:00Z"
+
+    UpdateSettingsRequest:
+      type: object
+      properties:
+        alertMode:
+          type: string
+          enum:
+            - vibration_only
+            - sound_only
+            - both
+            - disabled
+          example: "both"
+        accidentThreshold:
+          type: integer
+          minimum: 1
+          maximum: 10
+          example: 3
+        alertDistanceMeters:
+          type: integer
+          minimum: 50
+          maximum: 500
+          example: 250
+        isEnabled:
+          type: boolean
+          example: true
+
+    # ============ Routes ============
+    Route:
+      type: object
+      required:
+        - id
+        - userId
+        - originAddress
+        - originLat
+        - originLng
+        - destinationAddress
+        - destinationLat
+        - destinationLng
+        - routeGeom
+        - distanceMeters
+        - durationSeconds
+        - profile
+        - hotspotIds
+        - isActive
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: integer
+          description: 路線唯一識別碼
+          example: 1
+        userId:
+          type: integer
+          description: 使用者 ID
+          example: 123
+        originAddress:
+          type: string
+          maxLength: 500
+          description: 起點地址
+          example: "台北市信義區市府路1號"
+        originLat:
+          type: number
+          format: double
+          minimum: -90
+          maximum: 90
+          description: 起點緯度
+          example: 25.0408
+        originLng:
+          type: number
+          format: double
+          minimum: -180
+          maximum: 180
+          description: 起點經度
+          example: 121.5678
+        destinationAddress:
+          type: string
+          maxLength: 500
+          description: 目的地地址
+          example: "台北市中正區重慶南路一段122號"
+        destinationLat:
+          type: number
+          format: double
+          minimum: -90
+          maximum: 90
+          description: 目的地緯度
+          example: 25.0448
+        destinationLng:
+          type: number
+          format: double
+          minimum: -180
+          maximum: 180
+          description: 目的地經度
+          example: 121.5154
+        routeGeom:
+          type: object
+          description: 路線幾何（GeoJSON LineString 格式）
+          example:
+            type: "LineString"
+            coordinates:
+              - [121.5678, 25.0408]
+              - [121.5654, 25.0420]
+              - [121.5154, 25.0448]
+        distanceMeters:
+          type: number
+          format: double
+          description: 路線總距離（公尺）
+          example: 5234.5
+        durationSeconds:
+          type: number
+          format: double
+          description: 預估行駛時間（秒）
+          example: 892.3
+        profile:
+          type: string
+          enum:
+            - driving-traffic
+            - driving
+            - walking
+            - cycling
+          description: |
+            導航模式：
+            - driving-traffic: 一般駕駛（考慮路況）
+            - driving: 駕駛（不考慮路況）
+            - walking: 步行
+            - cycling: 自行車
+          example: "driving-traffic"
+        hotspotIds:
+          type: array
+          items:
+            type: integer
+          description: 路線經過的事故熱點 ID 清單
+          example: [42, 43, 55]
+        isActive:
+          type: boolean
+          description: 是否為目前使用中的路線
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+          description: 建立時間
+          example: "2025-11-08T10:30:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: 更新時間
+          example: "2025-11-08T10:30:00Z"
+
+    PlanRouteRequest:
+      type: object
+      required:
+        - originLat
+        - originLng
+        - originAddress
+        - destinationLat
+        - destinationLng
+        - destinationAddress
+      properties:
+        originLat:
+          type: number
+          format: double
+          minimum: -90
+          maximum: 90
+          description: 起點緯度
+          example: 25.0408
+        originLng:
+          type: number
+          format: double
+          minimum: -180
+          maximum: 180
+          description: 起點經度
+          example: 121.5678
+        originAddress:
+          type: string
+          maxLength: 500
+          description: 起點地址
+          example: "台北市信義區市府路1號"
+        destinationLat:
+          type: number
+          format: double
+          minimum: -90
+          maximum: 90
+          description: 目的地緯度
+          example: 25.0448
+        destinationLng:
+          type: number
+          format: double
+          minimum: -180
+          maximum: 180
+          description: 目的地經度
+          example: 121.5154
+        destinationAddress:
+          type: string
+          maxLength: 500
+          description: 目的地地址
+          example: "台北市中正區重慶南路一段122號"
+        profile:
+          type: string
+          enum:
+            - driving-traffic
+            - driving
+            - walking
+            - cycling
+          default: "driving-traffic"
+          description: 導航模式
+          example: "driving-traffic"
+
+    RouteResponse:
+      type: object
+      required:
+        - route
+        - safetySummary
+        - hotspots
+      properties:
+        route:
+          $ref: '#/components/schemas/Route'
+        safetySummary:
+          $ref: '#/components/schemas/RouteSafetySummary'
+        hotspots:
+          type: array
+          items:
+            $ref: '#/components/schemas/HotspotWithDistance'
+          description: 路線經過的事故熱點清單
+
+    RouteSafetySummary:
+      type: object
+      required:
+        - id
+        - routeId
+        - totalAccidents
+        - a1Count
+        - a2Count
+        - a3Count
+        - riskScore
+        - suggestPublicTransport
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: integer
+          description: 統計資料唯一識別碼
+          example: 1
+        routeId:
+          type: integer
+          description: 路線 ID
+          example: 1
+        totalAccidents:
+          type: integer
+          minimum: 0
+          description: 路線經過的總事故數
+          example: 12
+        a1Count:
+          type: integer
+          minimum: 0
+          description: A1 等級事故數（死亡）
+          example: 2
+        a2Count:
+          type: integer
+          minimum: 0
+          description: A2 等級事故數（受傷）
+          example: 5
+        a3Count:
+          type: integer
+          minimum: 0
+          description: A3 等級事故數（財損）
+          example: 5
+        riskScore:
+          type: number
+          format: double
+          minimum: 0
+          description: |
+            風險評分（加權計算）
+            計算公式：A1 × 3 + A2 × 2 + A3 × 1
+          example: 21.0
+        suggestPublicTransport:
+          type: boolean
+          description: |
+            是否建議使用大眾交通工具
+            當 riskScore > 15 時為 true
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+          description: 建立時間
+          example: "2025-11-08T10:30:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: 更新時間
+          example: "2025-11-08T10:30:00Z"
+
+    RouteSafetyResponse:
+      type: object
+      required:
+        - safetySummary
+        - hotspots
+      properties:
+        safetySummary:
+          $ref: '#/components/schemas/RouteSafetySummary'
+        hotspots:
+          type: array
+          items:
+            $ref: '#/components/schemas/HotspotWithDistance'
+          description: 路線經過的事故熱點清單
+
+    HotspotWithDistance:
+      type: object
+      required:
+        - id
+        - locationName
+        - severity
+        - totalCount
+        - distanceToRoute
+      properties:
+        id:
+          type: integer
+          description: 熱點 ID
+          example: 42
+        locationName:
+          type: string
+          description: 地點名稱
+          example: "忠孝東路與敦化南路口"
+        severity:
+          type: string
+          enum:
+            - A1
+            - A2
+            - A3
+          description: 最高嚴重程度
+          example: "A1"
+        totalCount:
+          type: integer
+          minimum: 1
+          description: 總事故數
+          example: 5
+        distanceToRoute:
+          type: number
+          format: double
+          minimum: 0
+          description: 與路線的距離（公尺）
+          example: 85.3
+
+    # ============ Geocoding ============
+    GeocodingSearchResponse:
+      type: object
+      required:
+        - results
+        - total
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/GeocodingResult'
+          description: 搜尋結果清單
+        total:
+          type: integer
+          minimum: 0
+          description: 結果總數
+          example: 5
+
+    GeocodingResult:
+      type: object
+      required:
+        - address
+        - lat
+        - lng
+        - source
+        - relevance
+      properties:
+        address:
+          type: string
+          description: 地址
+          example: "台北市信義區市府路1號"
+        lat:
+          type: number
+          format: double
+          minimum: -90
+          maximum: 90
+          description: 緯度
+          example: 25.0408
+        lng:
+          type: number
+          format: double
+          minimum: -180
+          maximum: 180
+          description: 經度
+          example: 121.5678
+        source:
+          type: string
+          enum:
+            - history
+            - mapbox
+          description: |
+            搜尋結果來源：
+            - history: 使用者搜尋歷史
+            - mapbox: Mapbox Geocoding API
+          example: "history"
+        relevance:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1
+          description: 相關度評分（0-1，1 為最相關）
+          example: 0.95
+
+    ReverseGeocodeResponse:
+      type: object
+      required:
+        - address
+        - lat
+        - lng
+        - placeType
+      properties:
+        address:
+          type: string
+          description: 地址
+          example: "台北市信義區市府路1號"
+        lat:
+          type: number
+          format: double
+          description: 緯度
+          example: 25.0408
+        lng:
+          type: number
+          format: double
+          description: 經度
+          example: 121.5678
+        placeType:
+          type: string
+          description: 地點類型（address、street、district、city 等）
+          example: "address"
+        context:
+          type: object
+          description: 地址上下文資訊
+          properties:
+            district:
+              type: string
+              example: "信義區"
+            city:
+              type: string
+              example: "台北市"
+            country:
+              type: string
+              example: "台灣"
+
+    # ============ Monitoring ============
+    CheckProximityRequest:
+      type: object
+      required:
+        - lat
+        - lng
+      properties:
+        lat:
+          type: number
+          format: double
+          minimum: -90
+          maximum: 90
+          description: 使用者目前緯度
+          example: 25.0420
+        lng:
+          type: number
+          format: double
+          minimum: -180
+          maximum: 180
+          description: 使用者目前經度
+          example: 121.5654
+
+    ProximityCheckResponse:
+      type: object
+      required:
+        - isNearHotspot
+        - shouldAlert
+        - nearbyHotspots
+        - message
+      properties:
+        isNearHotspot:
+          type: boolean
+          description: 是否接近熱點
+          example: true
+        shouldAlert:
+          type: boolean
+          description: 是否應觸發警示（考慮冷卻時間）
+          example: true
+        nearbyHotspots:
+          type: array
+          items:
+            $ref: '#/components/schemas/NearbyHotspot'
+          description: 附近的熱點清單
+        message:
+          type: string
+          description: 警示訊息
+          example: "前方 185 公尺處有高風險路段"
+
+    NearbyHotspot:
+      type: object
+      required:
+        - id
+        - locationName
+        - severity
+        - totalCount
+        - distance
+      properties:
+        id:
+          type: integer
+          description: 熱點 ID
+          example: 42
+        locationName:
+          type: string
+          description: 地點名稱
+          example: "忠孝東路與敦化南路口"
+        severity:
+          type: string
+          enum:
+            - A1
+            - A2
+            - A3
+          description: 最高嚴重程度
+          example: "A1"
+        totalCount:
+          type: integer
+          minimum: 1
+          description: 總事故數
+          example: 5
+        distance:
+          type: number
+          format: double
+          minimum: 0
+          description: 距離（公尺）
+          example: 185.3
+        direction:
+          type: string
+          description: 方向（東、南、西、北、東北、東南、西北、西南）
+          example: "東北方"
+
+    NearbyHotspotsResponse:
+      type: object
+      required:
+        - hotspots
+        - total
+        - radius
+      properties:
+        hotspots:
+          type: array
+          items:
+            $ref: '#/components/schemas/NearbyHotspotWithCoords'
+          description: 附近的熱點清單
+        total:
+          type: integer
+          minimum: 0
+          description: 結果總數
+          example: 5
+        radius:
+          type: integer
+          description: 搜尋半徑（公尺）
+          example: 500
+
+    NearbyHotspotWithCoords:
+      allOf:
+        - $ref: '#/components/schemas/NearbyHotspot'
+        - type: object
+          required:
+            - lat
+            - lng
+          properties:
+            lat:
+              type: number
+              format: double
+              description: 熱點緯度
+              example: 25.0418
+            lng:
+              type: number
+              format: double
+              description: 熱點經度
+              example: 121.5650
+
+    # ============ Search History ============
+    SearchHistory:
+      type: object
+      required:
+        - id
+        - userId
+        - address
+        - lat
+        - lng
+        - searchCount
+        - lastSearchedAt
+        - createdAt
+      properties:
+        id:
+          type: integer
+          description: 搜尋記錄唯一識別碼
+          example: 1
+        userId:
+          type: integer
+          description: 使用者 ID
+          example: 123
+        address:
+          type: string
+          maxLength: 500
+          description: 搜尋的地址
+          example: "台北市信義區市府路1號"
+        lat:
+          type: number
+          format: double
+          minimum: -90
+          maximum: 90
+          description: 地址緯度
+          example: 25.0408
+        lng:
+          type: number
+          format: double
+          minimum: -180
+          maximum: 180
+          description: 地址經度
+          example: 121.5678
+        searchCount:
+          type: integer
+          minimum: 1
+          description: 搜尋次數
+          example: 5
+        lastSearchedAt:
+          type: string
+          format: date-time
+          description: 最後搜尋時間
+          example: "2025-11-08T14:30:00Z"
+        createdAt:
+          type: string
+          format: date-time
+          description: 首次搜尋時間
+          example: "2025-11-05T10:00:00Z"
+
+    SearchHistoryResponse:
+      type: object
+      required:
+        - history
+        - total
+      properties:
+        history:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchHistory'
+          description: 搜尋歷史清單
+        total:
+          type: integer
+          minimum: 0
+          description: 結果總數
+          example: 10
+
+    AddSearchHistoryRequest:
+      type: object
+      required:
+        - address
+        - lat
+        - lng
+      properties:
+        address:
+          type: string
+          maxLength: 500
+          minLength: 1
+          description: 搜尋的地址
+          example: "台北市大安區敦化南路二段105號"
+        lat:
+          type: number
+          format: double
+          minimum: -90
+          maximum: 90
+          description: 地址緯度
+          example: 25.0264
+        lng:
+          type: number
+          format: double
+          minimum: -180
+          maximum: 180
+          description: 地址經度
+          example: 121.5496
+
+    # ============ Error Responses ============
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: 錯誤代碼
+          example: "validation_error"
+        message:
+          type: string
+          description: 錯誤訊息
+          example: "請求資料驗證失敗"
+        details:
+          type: object
+          description: 詳細錯誤資訊（可選）
+          additionalProperties: true
+
+    ValidationErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+        - errors
+      properties:
+        error:
+          type: string
+          enum:
+            - validation_error
+          example: "validation_error"
+        message:
+          type: string
+          example: "請求資料驗證失敗"
+        errors:
+          type: array
+          items:
+            type: object
+            required:
+              - field
+              - message
+            properties:
+              field:
+                type: string
+                description: 欄位名稱
+                example: "accidentThreshold"
+              message:
+                type: string
+                description: 欄位錯誤訊息
+                example: "必須介於 1 和 10 之間"
+
+  responses:
+    BadRequestError:
+      description: 請求參數錯誤
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "bad_request"
+            message: "請求參數格式錯誤"
+
+    UnauthorizedError:
+      description: 未授權（需要登入）
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "unauthorized"
+            message: "請先登入"
+
+    NotFoundError:
+      description: 資源不存在
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "not_found"
+            message: "找不到指定的資源"
+
+    ValidationError:
+      description: 資料驗證失敗
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationErrorResponse'
+          example:
+            error: "validation_error"
+            message: "請求資料驗證失敗"
+            errors:
+              - field: "accidentThreshold"
+                message: "必須介於 1 和 10 之間"
+              - field: "alertMode"
+                message: "必須為 vibration_only、sound_only、both 或 disabled"
+
+    InternalServerError:
+      description: 伺服器內部錯誤
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: "internal_server_error"
+            message: "伺服器發生錯誤，請稍後再試"
+
+  examples:
+    SuccessfulRouteResponse:
+      summary: 成功的路線規劃回應
+      value:
+        route:
+          id: 1
+          userId: 123
+          originAddress: "台北市信義區市府路1號"
+          originLat: 25.0408
+          originLng: 121.5678
+          destinationAddress: "台北市中正區重慶南路一段122號"
+          destinationLat: 25.0448
+          destinationLng: 121.5154
+          routeGeom:
+            type: "LineString"
+            coordinates:
+              - [121.5678, 25.0408]
+              - [121.5654, 25.0420]
+              - [121.5154, 25.0448]
+          distanceMeters: 5234.5
+          durationSeconds: 892.3
+          profile: "driving-traffic"
+          hotspotIds: [42, 43, 55]
+          isActive: true
+          createdAt: "2025-11-08T10:30:00Z"
+          updatedAt: "2025-11-08T10:30:00Z"
+        safetySummary:
+          id: 1
+          routeId: 1
+          totalAccidents: 12
+          a1Count: 2
+          a2Count: 5
+          a3Count: 5
+          riskScore: 21.0
+          suggestPublicTransport: true
+          createdAt: "2025-11-08T10:30:00Z"
+          updatedAt: "2025-11-08T10:30:00Z"
+        hotspots:
+          - id: 42
+            locationName: "忠孝東路與敦化南路口"
+            severity: "A1"
+            totalCount: 5
+            distanceToRoute: 85.3
+          - id: 43
+            locationName: "信義路與基隆路口"
+            severity: "A2"
+            totalCount: 3
+            distanceToRoute: 125.7
+          - id: 55
+            locationName: "和平東路與復興南路口"
+            severity: "A3"
+            totalCount: 4
+            distanceToRoute: 198.5
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT 認證 token
+
+security:
+  - bearerAuth: []

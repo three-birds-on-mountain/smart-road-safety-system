@@ -90,3 +90,9 @@ docs: update designer portal flow in README
 
 # Chore/maintenance
 chore: upgrade Element Plus to v2.4.0
+
+## Active Technologies
+- PostgreSQL with PostGIS extension for geospatial data (003-background-alerts-route-planning)
+
+## Recent Changes
+- 003-background-alerts-route-planning: Added PostgreSQL with PostGIS extension for geospatial data
