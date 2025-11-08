@@ -42,7 +42,7 @@ METADATA_FILENAME = "metadata.json"
 DEFAULT_TABLE_NAME = "raw_moi_a2"
 DEFAULT_ACCIDENT_LEVEL = "A2"
 AUTO_LOCAL_PATTERN = "A2_*.csv"
-DB_EXTRA_COLUMNS = ["accident_level", "etl_dt"]
+DB_EXTRA_COLUMNS = ["source_id", "accident_level", "etl_dt"]
 EXPECTED_COLUMNS = CHINESE_COLUMNS
 
 
@@ -209,7 +209,9 @@ class A2DatasetFetcher:
     def _ensure_table(self, cur, db_columns: Iterable[str]) -> None:
         columns_sql = []
         for column in db_columns:
-            if column == "etl_dt":
+            if column == "source_id":
+                columns_sql.append(sql.SQL("{} TEXT PRIMARY KEY").format(sql.Identifier(column)))
+            elif column == "etl_dt":
                 columns_sql.append(sql.SQL("{} TIMESTAMPTZ NOT NULL").format(sql.Identifier(column)))
             else:
                 columns_sql.append(sql.SQL("{} TEXT").format(sql.Identifier(column)))
@@ -223,10 +225,13 @@ class A2DatasetFetcher:
     def _read_rows(self, header: list[str]) -> list[list[Any]]:
         rows: list[list[Any]] = []
         etl_timestamp = datetime.now(timezone.utc)
+        etl_date_str = etl_timestamp.strftime("%Y%m%d%H%M%S%f")  # 加上微秒避免衝突
         with self.config.csv_path.open("r", encoding="utf-8-sig") as fh:
             reader = csv.DictReader(fh)
-            for line in reader:
+            for idx, line in enumerate(reader, 1):
                 record = [line.get(col, "") or "" for col in header]
+                source_id = f"{self.config.accident_level}-{etl_date_str}-{idx:08d}"
+                record.append(source_id)
                 record.append(self.config.accident_level)
                 record.append(etl_timestamp)
                 rows.append(record)

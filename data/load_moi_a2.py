@@ -7,6 +7,7 @@ import csv
 import os
 import sys
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable
 
@@ -27,7 +28,9 @@ DATACLASS_KWARGS = {"slots": True} if sys.version_info >= (3, 10) else {}
 DEFAULT_INPUT_SUBDIR = "moi_a2"
 DEFAULT_GLOB_PATTERN = "A2_*.csv"
 DEFAULT_TABLE_NAME = "raw_moi_a2"
+DEFAULT_ACCIDENT_LEVEL = "A2"
 DEFAULT_BATCH_SIZE = 1000
+DB_EXTRA_COLUMNS = ["source_id", "accident_level", "etl_dt"]
 
 EXPECTED_COLUMNS = [
     "發生年度",
@@ -89,6 +92,7 @@ class LoaderConfig:
     input_dir: Path = DATA_ROOT / DEFAULT_INPUT_SUBDIR
     glob_pattern: str = DEFAULT_GLOB_PATTERN
     table_name: str = DEFAULT_TABLE_NAME
+    accident_level: str = DEFAULT_ACCIDENT_LEVEL
     database_url: str | None = os.environ.get("DATABASE_URL")
     batch_size: int = DEFAULT_BATCH_SIZE
     truncate_before_load: bool = True
@@ -98,6 +102,7 @@ class LoaderConfig:
         self.input_dir = self.input_dir.expanduser().resolve()
         self.glob_pattern = self.glob_pattern.strip() or DEFAULT_GLOB_PATTERN
         self.table_name = self.table_name.strip() or DEFAULT_TABLE_NAME
+        self.accident_level = self.accident_level.strip() or DEFAULT_ACCIDENT_LEVEL
 
 
 class A2DatasetLoader:
@@ -106,7 +111,9 @@ class A2DatasetLoader:
 
     def run(self) -> None:
         if not self.config.database_url:
-            raise SystemExit("DATABASE_URL is not set. Provide it via env var or --database-url.")
+            raise SystemExit(
+                "DATABASE_URL is not set. Provide it via env var or --database-url."
+            )
 
         csv_files = self._list_csv_files()
         if not csv_files:
@@ -122,19 +129,30 @@ class A2DatasetLoader:
             return
 
         if header != EXPECTED_COLUMNS:
-            print("⚠️ CSV header differs from the expected MOI A2 schema; proceeding with detected columns.")
+            print(
+                "⚠️ CSV header differs from the expected MOI A2 schema; proceeding with detected columns."
+            )
 
+        db_columns = header + DB_EXTRA_COLUMNS
         with psycopg2.connect(self.config.database_url) as conn:
-            insert_sql = self._build_insert_sql(header, conn)
+            insert_sql = self._build_insert_sql(db_columns, conn)
             with conn.cursor() as cur:
-                self._ensure_table(cur, header)
+                self._ensure_table(cur, db_columns)
                 if self.config.truncate_before_load:
-                    cur.execute(sql.SQL("TRUNCATE TABLE {}").format(sql.Identifier(self.config.table_name)))
+                    cur.execute(
+                        sql.SQL("TRUNCATE TABLE {}").format(
+                            sql.Identifier(self.config.table_name)
+                        )
+                    )
             conn.commit()
 
             total_rows = 0
-            for path in csv_files:
-                inserted = self._load_single_file(conn, path, header, insert_sql)
+            etl_timestamp = datetime.now(timezone.utc)
+            row_counter = 0
+            for file_idx, path in enumerate(csv_files, 1):
+                inserted, row_counter = self._load_single_file(
+                    conn, path, header, insert_sql, etl_timestamp, row_counter
+                )
                 conn.commit()
                 total_rows += inserted
                 print(f"Loaded {inserted} rows from {path.name}.")
@@ -163,14 +181,23 @@ class A2DatasetLoader:
                 return []
         return [col.strip() for col in raw_header]
 
-    def _ensure_table(self, cur, header: list[str]) -> None:
-        columns_sql = sql.SQL(", ").join(
-            sql.SQL("{} TEXT").format(sql.Identifier(column)) for column in header
-        )
+    def _ensure_table(self, cur, db_columns: Iterable[str]) -> None:
+        column_defs = []
+        for column in db_columns:
+            if column == "source_id":
+                column_defs.append(
+                    sql.SQL("{} TEXT PRIMARY KEY").format(sql.Identifier(column))
+                )
+            elif column == "etl_dt":
+                column_defs.append(
+                    sql.SQL("{} TIMESTAMPTZ NOT NULL").format(sql.Identifier(column))
+                )
+            else:
+                column_defs.append(sql.SQL("{} TEXT").format(sql.Identifier(column)))
         cur.execute(
             sql.SQL("CREATE TABLE IF NOT EXISTS {} ({})").format(
                 sql.Identifier(self.config.table_name),
-                columns_sql,
+                sql.SQL(", ").join(column_defs),
             )
         )
 
@@ -182,22 +209,46 @@ class A2DatasetLoader:
         )
         return insert_query.as_string(conn)
 
-    def _load_single_file(self, conn, path: Path, header: list[str], insert_sql: str) -> int:
+    def _load_single_file(
+        self,
+        conn,
+        path: Path,
+        header: list[str],
+        insert_sql: str,
+        etl_timestamp: datetime,
+        start_row_counter: int,
+    ) -> tuple[int, int]:
+        """Load a single CSV file and return (rows_inserted, next_row_counter)"""
         rows_inserted = 0
         batch: list[list[str]] = []
+        etl_date_str = etl_timestamp.strftime("%Y%m%d%H%M%S%f")  # 加上微秒
+        row_counter = start_row_counter
+
         with path.open("r", encoding=self.config.encoding, newline="") as fh:
             reader = csv.DictReader(fh)
             with conn.cursor() as cur:
                 for record in reader:
-                    batch.append([record.get(column) or "" for column in header])
+                    row_counter += 1
+                    row = [record.get(column) or "" for column in header]
+                    source_id = (
+                        f"{self.config.accident_level}-{etl_date_str}-{row_counter:08d}"
+                    )
+                    row.append(source_id)
+                    row.append(self.config.accident_level)
+                    row.append(etl_timestamp)
+                    batch.append(row)
                     if len(batch) >= self.config.batch_size:
-                        execute_batch(cur, insert_sql, batch, page_size=self.config.batch_size)
+                        execute_batch(
+                            cur, insert_sql, batch, page_size=self.config.batch_size
+                        )
                         rows_inserted += len(batch)
                         batch.clear()
                 if batch:
-                    execute_batch(cur, insert_sql, batch, page_size=self.config.batch_size)
+                    execute_batch(
+                        cur, insert_sql, batch, page_size=self.config.batch_size
+                    )
                     rows_inserted += len(batch)
-        return rows_inserted
+        return rows_inserted, row_counter
 
 
 def parse_args() -> argparse.Namespace:
@@ -221,6 +272,12 @@ def parse_args() -> argparse.Namespace:
         type=str,
         default=DEFAULT_TABLE_NAME,
         help="Destination PostgreSQL table name (default: raw_moi_a2).",
+    )
+    parser.add_argument(
+        "--accident-level",
+        type=str,
+        default=DEFAULT_ACCIDENT_LEVEL,
+        help="Value to store in the accident_level column (default: A2).",
     )
     parser.add_argument(
         "--database-url",
@@ -259,6 +316,7 @@ def main() -> None:
         input_dir=args.input_dir,
         glob_pattern=args.glob_pattern,
         table_name=args.table_name,
+        accident_level=args.accident_level,
         database_url=args.database_url,
         batch_size=args.batch_size,
         truncate_before_load=not args.no_truncate,
