@@ -28,9 +28,9 @@ const DistanceSelector = () => {
   return (
     <section className="flex flex-col gap-md">
       <header className="flex flex-col gap-xs">
-        <h2 className="text-lg font-semibold text-text-primary">提醒距離</h2>
+        <h2 className="text-lg font-semibold text-text-primary">警示距離</h2>
         <p className="text-sm text-text-secondary">
-          選擇距離範圍，系統將在進入距離內的事故熱點時提醒您。
+          選擇警示距離範圍，系統會在進入範圍內的事故熱點時提醒並顯示標記。
         </p>
       </header>
       <div className="grid gap-sm md:grid-cols-2">

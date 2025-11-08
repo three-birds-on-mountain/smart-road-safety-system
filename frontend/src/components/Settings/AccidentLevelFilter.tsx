@@ -55,7 +55,7 @@ const AccidentLevelFilter = () => {
       <header className="flex flex-col gap-xs">
         <h2 className="text-lg font-semibold text-text-primary">事故等級</h2>
         <p className="text-sm text-text-secondary">
-          選擇希望提醒的事故等級，至少需保留一項。
+          選擇於地圖上顯示並警示的事故等級，至少需保留一項。
         </p>
       </header>
 

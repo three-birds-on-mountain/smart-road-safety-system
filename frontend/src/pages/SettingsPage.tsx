@@ -57,7 +57,7 @@ const SettingsPage = ({ onClose }: SettingsPageProps) => {
     <div className="flex h-screen w-screen flex-col overflow-y-auto bg-surface-muted">
       {/* 標題列 + 關閉按鈕 */}
       <header className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 bg-surface-white px-4 py-3 shadow-sm">
-        <h1 className="text-xl font-semibold text-primary-700">警示設定</h1>
+        <h1 className="text-xl font-semibold text-primary-700">設定</h1>
         <button
           onClick={onClose}
           className="flex h-10 w-10 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-gray-100 hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -106,14 +106,14 @@ const SettingsPage = ({ onClose }: SettingsPageProps) => {
               當前設定
             </div>
             <div className="flex flex-wrap gap-2 text-xs">
-              <span className="rounded-full bg-primary-600 px-3 py-1 text-white">
-                {settings.distanceMeters}m
-              </span>
               <span className="rounded-full bg-secondary-600 px-3 py-1 text-white">
                 {severitySummary}
               </span>
               <span className="rounded-full bg-gray-600 px-3 py-1 text-white">
                 {TIME_RANGE_TEXT[settings.timeRange]}
+              </span>
+              <span className="rounded-full bg-primary-600 px-3 py-1 text-white">
+                {settings.distanceMeters}m
               </span>
               <span className="rounded-full bg-warning-50 px-3 py-1 text-text-secondary">
                 {channelSummary}
@@ -124,15 +124,15 @@ const SettingsPage = ({ onClose }: SettingsPageProps) => {
           {/* 設定項目 */}
           <div className="space-y-4">
             <div className="rounded-lg bg-surface-white p-4 shadow-md">
-              <DistanceSelector />
-            </div>
-
-            <div className="rounded-lg bg-surface-white p-4 shadow-md">
               <AccidentLevelFilter />
             </div>
 
             <div className="rounded-lg bg-surface-white p-4 shadow-md">
               <TimeRangeFilter />
+            </div>
+
+            <div className="rounded-lg bg-surface-white p-4 shadow-md">
+              <DistanceSelector />
             </div>
 
             <div className="rounded-lg bg-surface-white p-4 shadow-md">

@@ -30,7 +30,7 @@ const TimeRangeFilter = () => {
       <header className="flex flex-col gap-xs">
         <h2 className="text-lg font-semibold text-text-primary">事故時間範圍</h2>
         <p className="text-sm text-text-secondary">
-          選擇要考量的事故發生時間範圍，框定提醒的熱點資料。
+          選擇於地圖上顯示並警示的事故發生時間範圍。
         </p>
       </header>
       <div className="grid gap-sm md:grid-cols-2">
