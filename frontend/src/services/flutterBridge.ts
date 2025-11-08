@@ -23,7 +23,7 @@ declare global {
       callHandler: (handlerName: string, ...args: unknown[]) => unknown;
     };
     flutterObject?: {
-      postMessage: (payload: string) => void;
+      postMessage: (payload: string) => Promise<string>;
     };
     ReactNativeWebView?: {
       postMessage: (payload: string) => void;
@@ -158,11 +158,22 @@ const createRequestId = () =>
     ? crypto.randomUUID()
     : `${Date.now()}-${Math.round(Math.random() * 10_000)}`;
 
-export const requestLocation = (): Promise<BridgePosition> => {
+export const requestLocation = async (): Promise<BridgePosition> => {
   if (!isFlutterBridgeAvailable()) {
     return Promise.reject(new Error('Flutter bridge 尚未就緒，無法取得定位資訊'));
   }
 
+  // 優先使用新的 FlutterBridge API（雙向通訊）
+  if (typeof window.flutterObject?.postMessage === 'function') {
+    try {
+      const bridge = new FlutterBridge();
+      return await bridge.getLocation();
+    } catch (error) {
+      throw new Error('定位請求失敗: ' + (error instanceof Error ? error.message : String(error)));
+    }
+  }
+
+  // Fallback: 使用舊的事件監聽方式（flutter_inappwebview）
   const requestId = createRequestId();
 
   return new Promise<BridgePosition>((resolve, reject) => {
@@ -185,6 +196,16 @@ export const sendNotification = (
     return false;
   }
 
+  // 優先使用新的 FlutterBridge API（雙向通訊）
+  if (typeof window.flutterObject?.postMessage === 'function') {
+    const bridge = new FlutterBridge();
+    bridge.notify(title, content).catch((error) => {
+      console.error('發送通知失敗:', error);
+    });
+    return true;
+  }
+
+  // Fallback: 使用舊的單向通訊方式
   return postMessage({
     name: 'notify',
     data: {
@@ -194,3 +215,54 @@ export const sendNotification = (
     },
   });
 };
+
+/**
+ * FlutterBridge 類別 - 提供與 Flutter 雙向通訊的封裝
+ * 依照 TownPass WebView Bridge 規範實作
+ */
+export class FlutterBridge {
+  public readonly available: boolean;
+
+  constructor() {
+    this.available = typeof window !== 'undefined' && typeof window.flutterObject !== 'undefined';
+  }
+
+  /**
+   * 通用的 Flutter handler 呼叫方法
+   * @param name Handler 名稱
+   * @param data 要傳送的資料
+   * @returns Promise 回傳 Flutter 的回應資料
+   */
+  async call<TData = unknown, TResult = unknown>(name: string, data: TData | null = null): Promise<TResult> {
+    if (!this.available) {
+      throw new Error('Flutter Bridge 不可用');
+    }
+
+    const response = await window.flutterObject!.postMessage(
+      JSON.stringify({ name, data }),
+    );
+
+    const result = JSON.parse(response);
+    return result.data as TResult;
+  }
+
+  // 便捷方法
+  getUserInfo = <T = unknown>() => this.call<null, T>('userinfo');
+
+  getLocation = () => this.call<null, BridgePosition>('location');
+
+  makeCall = (phone: string) => this.call<string, boolean>('phone_call', phone);
+
+  call1999 = () => this.call<null, void>('1999agree');
+
+  openMap = (url: string) => this.call<string, boolean>('launch_map', url);
+
+  getDeviceInfo = <T = unknown>() => this.call<null, T>('deviceinfo');
+
+  scanQR = () => this.call<null, string>('qr_code_scan');
+
+  notify = (title: string, content: string) =>
+    this.call<{ title: string; content: string }, void>('notify', { title, content });
+
+  openLink = (url: string) => this.call<string, void>('open_link', url);
+}
