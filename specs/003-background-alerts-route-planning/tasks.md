@@ -31,11 +31,11 @@
 - [x] T007 [P] [US2] 建立 route Redux slice - frontend/src/store/routeSlice.ts
 - [x] T008 [P] [US2] 實作 Mapbox API 客戶端 - frontend/src/services/mapboxApi.ts
 - [x] T009 [P] [US2] 實作路線事故計算工具 - frontend/src/utils/routeAccidentCalculator.ts
-- [ ] T010 [P] [US2] 實作搜尋框元件 - frontend/src/components/RouteSearch/SearchInput.tsx
-- [ ] T011 [P] [US2] 實作路線圖層元件 - frontend/src/components/Map/RouteLayer.tsx
-- [ ] T012 [P] [US2] 實作路線統計抽屜元件 - frontend/src/components/RouteDisplay/RouteSummary.tsx
-- [ ] T013 [US2] 整合搜尋框到地圖頁面 - frontend/src/pages/MapPage.tsx
-- [ ] T014 [US2] 整合路線圖層到地圖頁面 - frontend/src/components/Map/MapView.tsx
+- [x] T010 [P] [US2] 實作搜尋框元件 - frontend/src/components/RouteSearch/SearchInput.tsx
+- [x] T011 [P] [US2] 實作路線圖層元件 - frontend/src/components/Map/RouteLayer.tsx
+- [x] T012 [P] [US2] 實作路線統計抽屜元件 - frontend/src/components/RouteDisplay/RouteSummary.tsx
+- [x] T013 [US2] 整合搜尋框到地圖頁面 - frontend/src/pages/MapPage.tsx
+- [x] T014 [US2] 整合路線圖層到地圖頁面 - frontend/src/pages/MapPage.tsx
 
 ---
 

@@ -3,8 +3,11 @@ import AlertOverlay from '../components/Alert/AlertOverlay';
 import MapView from '../components/Map/MapView';
 import HotspotLayer from '../components/Map/HotspotLayer';
 import UserLocation from '../components/Map/UserLocation';
+import RouteLayer from '../components/Map/RouteLayer';
 import HotspotDetailPopup from '../components/Map/HotspotDetailPopup';
 import HotspotIncidentListModal from '../components/Map/HotspotIncidentListModal';
+import SearchInput from '../components/RouteSearch/SearchInput';
+import RouteSummary from '../components/RouteDisplay/RouteSummary';
 import { useAppDispatch, useAppSelector } from '../hooks/store';
 import { createAlertService, type TriggerAlertResult } from '../services/alerts';
 import { createGeolocationService } from '../services/geolocation';
@@ -17,10 +20,20 @@ import {
   setHotspots,
 } from '../store/hotspotsSlice';
 import { toggleIgnoredHotspot } from '../store/settingsSlice';
+import {
+  setDestination,
+  setRoute,
+  setSafetySummary,
+  setRouteLoading,
+  setRouteError,
+  clearRoute,
+} from '../store/routeSlice';
 import type { NearbyHotspot, HotspotSummary } from '../types/hotspot';
 import type { AlertChannel } from '../types/settings';
 import { getMockNearbyHotspots } from '../mocks/hotspots';
 import type { MapboxInstance } from '../lib/mapbox';
+import { getDirections, type GeocodingFeature } from '../services/mapboxApi';
+import { calculateRouteSafety } from '../utils/routeAccidentCalculator';
 import mapMarkPointer from '../assets/map-mark-pointer.svg';
 import mapMarkPointerPress from '../assets/map-mark-pointer-press.svg';
 
@@ -68,6 +81,7 @@ const MapPage = () => {
   const detailedHotspot = useAppSelector((state) => state.hotspots.detailedHotspot);
   const detailStatus = useAppSelector((state) => state.hotspots.detailStatus);
   const detailError = useAppSelector((state) => state.hotspots.detailError);
+  const routeState = useAppSelector((state) => state.route);
   const currentLocation = locationState.current;
   const locationStatus = locationState.status;
   const latitude = currentLocation?.latitude;
@@ -78,6 +92,8 @@ const MapPage = () => {
   const [isDetailModalOpen, setDetailModalOpen] = useState(false);
   const [followUser, setFollowUser] = useState(true);
   const [isRecenterPressed, setIsRecenterPressed] = useState(false);
+  const [showRouteSearch, setShowRouteSearch] = useState(false);
+  const [destinationInput, setDestinationInput] = useState('');
 
   const activeAlertRef = useRef<ActiveAlertState | null>(null);
   const geolocationServiceRef = useRef<ReturnType<typeof createGeolocationService> | null>(null);
@@ -339,6 +355,71 @@ const MapPage = () => {
     setIsRecenterPressed(false);
   }, []);
 
+  // 路線規劃相關處理
+  const handleDestinationSelect = useCallback(
+    async (feature: GeocodingFeature) => {
+      const destination = {
+        address: feature.place_name,
+        lat: feature.center[1],
+        lng: feature.center[0],
+      };
+
+      dispatch(setDestination(destination));
+      setDestinationInput(feature.place_name);
+
+      // 如果有使用者位置，自動規劃路線
+      if (!currentLocation) {
+        dispatch(setRouteError('無法取得起點位置，請確認定位權限'));
+        return;
+      }
+
+      try {
+        dispatch(setRouteLoading());
+
+        // 呼叫 Mapbox Directions API
+        const directions = await getDirections(
+          [
+            [currentLocation.longitude, currentLocation.latitude],
+            [destination.lng, destination.lat],
+          ],
+          { profile: 'driving-traffic' },
+        );
+
+        if (!directions.routes || directions.routes.length === 0) {
+          dispatch(setRouteError('無法找到路線'));
+          return;
+        }
+
+        const route = {
+          geometry: directions.routes[0].geometry,
+          distance: directions.routes[0].distance,
+          duration: directions.routes[0].duration,
+        };
+
+        dispatch(setRoute(route));
+
+        // 計算路線安全統計
+        const filteredHotspots = hotspotsState.items;
+        const safetySummary = calculateRouteSafety(route.geometry, filteredHotspots, 200);
+
+        dispatch(setSafetySummary(safetySummary));
+
+        // 停止追蹤使用者位置（讓地圖顯示完整路線）
+        setFollowUser(false);
+      } catch (error) {
+        console.error('路線規劃失敗:', error);
+        dispatch(setRouteError('路線規劃失敗，請稍後再試'));
+      }
+    },
+    [currentLocation, dispatch, hotspotsState.items],
+  );
+
+  const handleClearRoute = useCallback(() => {
+    dispatch(clearRoute());
+    setDestinationInput('');
+    setShowRouteSearch(false);
+  }, [dispatch]);
+
   const handleOpenLocationSettings = async () => {
     console.log('🔍 handleOpenLocationSettings 被呼叫');
     
@@ -563,6 +644,9 @@ const MapPage = () => {
                   heading={currentLocation?.heading ?? null}
                   accuracy={currentLocation?.accuracy ?? 20}
                 />
+                {routeState.route && (
+                  <RouteLayer map={map} routeGeometry={routeState.route.geometry} />
+                )}
               </>
             )
           }
@@ -612,8 +696,104 @@ const MapPage = () => {
         </button>
       </div>
 
-      {/* GPS 狀態指示器（左上角） */}
-      <div className="pointer-events-none absolute left-4 top-4 z-10 flex flex-col gap-2">
+      {/* 路線搜尋按鈕（左上角） */}
+      <div className="pointer-events-none absolute left-4 top-4 z-10">
+        {!showRouteSearch && (
+          <button
+            type="button"
+            onClick={() => setShowRouteSearch(true)}
+            className="pointer-events-auto flex items-center gap-2 rounded-lg bg-white px-4 py-2 shadow-lg transition hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+            aria-label="規劃路線"
+          >
+            <svg className="h-5 w-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"
+              />
+            </svg>
+            <span className="text-sm font-medium text-text-primary">規劃路線</span>
+          </button>
+        )}
+      </div>
+
+      {/* 路線搜尋框（展開時） */}
+      {showRouteSearch && (
+        <div className="pointer-events-none absolute left-4 top-4 right-4 z-20 md:right-auto md:w-96">
+          <div className="pointer-events-auto rounded-lg bg-white p-4 shadow-xl">
+            {/* 標題列 */}
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-text-primary">路線規劃</h3>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowRouteSearch(false);
+                  if (routeState.route) {
+                    handleClearRoute();
+                  }
+                }}
+                className="flex h-6 w-6 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+                aria-label="關閉"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* 起點（顯示目前位置） */}
+            <div className="mb-3">
+              <div className="flex items-center gap-2 rounded-lg border border-gray-300 bg-gray-50 px-4 py-3">
+                <svg className="h-5 w-5 flex-shrink-0 text-primary-500" fill="currentColor" viewBox="0 0 20 20">
+                  <path
+                    fillRule="evenodd"
+                    d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <span className="text-sm text-text-secondary">
+                  {currentLocation ? '目前位置' : '等待定位中...'}
+                </span>
+              </div>
+            </div>
+
+            {/* 終點搜尋框 */}
+            <div>
+              <SearchInput
+                placeholder="輸入目的地地址..."
+                value={destinationInput}
+                onSelect={handleDestinationSelect}
+                onClear={() => {
+                  setDestinationInput('');
+                  if (routeState.route) {
+                    handleClearRoute();
+                  }
+                }}
+                disabled={!currentLocation}
+              />
+            </div>
+
+            {/* 錯誤訊息 */}
+            {routeState.error && (
+              <div className="mt-3 rounded-lg bg-danger-50 border border-danger-200 px-3 py-2 text-xs text-danger-700">
+                {routeState.error}
+              </div>
+            )}
+
+            {/* 載入中 */}
+            {routeState.status === 'loading' && (
+              <div className="mt-3 flex items-center gap-2 text-xs text-text-secondary">
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-500 border-t-transparent" />
+                <span>規劃路線中...</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* GPS 狀態指示器（搜尋框下方） */}
+      <div className={`pointer-events-none absolute left-4 z-10 flex flex-col gap-2 ${showRouteSearch ? 'top-[200px]' : 'top-[60px]'}`}>
         {shouldShowGpsBadge && (
           <span
             className={[
@@ -657,8 +837,13 @@ const MapPage = () => {
         )}
       </div>
 
+      {/* 路線安全統計抽屜 */}
+      {routeState.safetySummary && (
+        <RouteSummary summary={routeState.safetySummary} onClose={handleClearRoute} />
+      )}
+
       {/* 警示覆蓋層（簡化版：底部浮動顯示） */}
-      {activeAlert && (
+      {activeAlert && !routeState.safetySummary && (
         <div className="pointer-events-none absolute top-8 left-4 right-4 z-20 flex justify-center">
           <div className="pointer-events-auto w-full max-w-md">
             <AlertOverlay
