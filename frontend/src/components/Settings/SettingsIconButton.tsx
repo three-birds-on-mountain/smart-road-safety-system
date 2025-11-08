@@ -16,7 +16,7 @@ const SettingsIconButton = ({ onClick, className = '' }: SettingsIconButtonProps
       onClick={onClick}
       className={[
         // 固定定位於右下角
-        'fixed bottom-6 right-6 z-50',
+        'fixed bottom-[80px] right-6 z-50',
         // 尺寸與形狀
         'h-[54px] w-[54px] rounded-full',
         // 設計系統色彩

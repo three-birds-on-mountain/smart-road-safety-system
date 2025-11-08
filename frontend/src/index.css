@@ -107,3 +107,12 @@ a:hover {
 #root {
   min-height: 100vh;
 }
+
+.mapboxgl-ctrl-top-right {
+  top: 120px !important;
+}
+
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl {
+  float: right;
+  margin: 10px 10px 0 0;
+}

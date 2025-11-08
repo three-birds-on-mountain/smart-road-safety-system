@@ -573,7 +573,7 @@ const MapPage = () => {
       </div>
 
       {/* 回到定位按鈕（位於設定按鈕上方） */}
-      <div className="pointer-events-none fixed right-6 bottom-[90px] z-50">
+      <div className="pointer-events-none fixed right-6 bottom-[150px] z-50">
         <button
           type="button"
           onClick={handleRecenter}
@@ -655,7 +655,7 @@ const MapPage = () => {
 
       {/* 警示覆蓋層（簡化版：底部浮動顯示） */}
       {activeAlert && (
-        <div className="pointer-events-none absolute bottom-24 left-4 right-4 z-20 flex justify-center">
+        <div className="pointer-events-none absolute top-8 left-4 right-4 z-20 flex justify-center">
           <div className="pointer-events-auto w-full max-w-md">
             <AlertOverlay
               hotspot={activeAlert.hotspot}
