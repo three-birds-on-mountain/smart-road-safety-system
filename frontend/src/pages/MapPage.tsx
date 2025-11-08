@@ -85,10 +85,8 @@ const MapPage = () => {
   // 前端過濾邏輯：根據設定篩選和過濾熱點
   useEffect(() => {
     const allHotspots = hotspotsState.allHotspots;
-    console.log('🔍 [Filter] allHotspots:', allHotspots.length, allHotspots);
 
     if (allHotspots.length === 0) {
-      console.log('⚠️ [Filter] No hotspots to filter');
       return;
     }
 
@@ -98,28 +96,18 @@ const MapPage = () => {
         '../utils/hotspotFilters'
       );
 
-      console.log('📋 [Filter] Settings:', {
-        timeRange: settings.timeRange,
-        severityFilter: settings.severityFilter,
-        distanceMeters: settings.distanceMeters,
-      });
-
       // 1. 先套用時間範圍和嚴重程度過濾
       let filtered = filterByTimeRange(allHotspots, settings.timeRange);
-      console.log('⏱️ [Filter] After time range filter:', filtered.length);
 
       filtered = filterBySeverity(filtered, settings.severityFilter);
-      console.log('🎯 [Filter] After severity filter:', filtered.length, filtered);
 
       // 2. 設定地圖顯示的熱點（所有符合條件的）
       dispatch(setHotspots(filtered));
-      console.log('✅ [Filter] Dispatched setHotspots with', filtered.length, 'hotspots');
 
       // 3. 如果有使用者位置，計算附近熱點用於警示
       if (latitude != null && longitude != null) {
         const nearby = filterByDistance(filtered, latitude, longitude, settings.distanceMeters);
         dispatch(setNearbyHotspots(nearby));
-        console.log('📍 [Filter] Dispatched setNearbyHotspots with', nearby.length, 'hotspots');
       }
     })();
   }, [

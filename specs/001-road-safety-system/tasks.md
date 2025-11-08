@@ -434,17 +434,17 @@
 
 #### 後端 CORS 與環境變數修正
 
-- [ ] T246 [P] 更新 backend/src/core/config.py 加入 CORS_ORIGINS 環境變數（支援多個來源，逗號分隔）
-- [ ] T247 更新 backend/src/main.py 使用 CORS_ORIGINS 環境變數（替換硬編碼的 allow_origins=["*"]）
-- [ ] T248 [P] 驗證後端 /api/v1/hotspots/all 端點回應格式（確認包含 meta.period_days, 支援 period_days 和 severity_levels 參數）
+- [x] T246 [P] 更新 backend/src/core/config.py 加入 CORS_ORIGINS 環境變數（支援多個來源，逗號分隔）
+- [x] T247 更新 backend/src/main.py 使用 CORS_ORIGINS 環境變數（替換硬編碼的 allow_origins=["*"]）
+- [x] T248 [P] 驗證後端 /api/v1/hotspots/all 端點回應格式（確認包含 meta.period_days, 支援 period_days 和 severity_levels 參數）
 - [ ] T249 [P] 撰寫 CORS 設定單元測試 in backend/tests/unit/test_cors_config.py（驗證環境變數讀取與多來源解析）
 
 #### 前端 API 呼叫更新
 
-- [ ] T250 移除 frontend/src/store/hotspotsSlice.ts 中的 fetchNearbyHotspots 函數（已廢棄的 /hotspots/nearby 端點）
-- [ ] T251 移除 frontend/src/store/hotspotsSlice.ts 中的 fetchHotspotsInBounds 函數（已廢棄的 /hotspots/in-bounds 端點）
-- [ ] T252 移除 hotspotsSlice 中舊 API 相關的 reducer cases（fetchNearbyHotspots.pending/fulfilled/rejected, fetchHotspotsInBounds.pending/fulfilled/rejected）
-- [ ] T253 更新 frontend/src/pages/MapPage.tsx 使用 fetchAllHotspots + 本地過濾邏輯（實作地圖範圍過濾和距離過濾）
+- [x] T250 移除 frontend/src/store/hotspotsSlice.ts 中的 fetchNearbyHotspots 函數（已廢棄的 /hotspots/nearby 端點）
+- [x] T251 移除 frontend/src/store/hotspotsSlice.ts 中的 fetchHotspotsInBounds 函數（已廢棄的 /hotspots/in-bounds 端點）
+- [x] T252 移除 hotspotsSlice 中舊 API 相關的 reducer cases（fetchNearbyHotspots.pending/fulfilled/rejected, fetchHotspotsInBounds.pending/fulfilled/rejected）
+- [x] T253 更新 frontend/src/pages/MapPage.tsx 使用 fetchAllHotspots + 本地過濾邏輯（實作地圖範圍過濾和距離過濾）
 - [ ] T254 [P] 建立本地過濾工具函式 in frontend/src/utils/filters.ts（filterByDistance, filterByBounds）
 - [ ] T255 [P] 撰寫過濾函式單元測試 in frontend/tests/unit/utils/test_filters.spec.ts
 
@@ -454,7 +454,7 @@
 - [ ] T257 重新建置並部署後端（gcloud builds submit, 套用 CORS_ORIGINS 環境變數）
 - [ ] T258 重新建置並部署前端（gcloud builds submit, 套用 API 更新）
 - [ ] T259 驗證部署後的前後端整合（測試地圖功能、警示功能、無 CORS 錯誤、API 回應正常）
-- [ ] T260 [P] 更新部署文件記錄 CORS_ORIGINS 環境變數 in docs/deployment/BACKEND_DEPLOYMENT.md, docs/deployment/QUICK_REFERENCE.md
+- [x] T260 [P] 更新部署文件記錄 CORS_ORIGINS 環境變數 in docs/deployment/BACKEND_DEPLOYMENT.md, docs/deployment/QUICK_REFERENCE.md
 
 #### 文件更新
 

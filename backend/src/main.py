@@ -38,9 +38,10 @@ app = FastAPI(
 )
 
 # 設定 CORS
+origins = settings.cors_origins.split(",") if settings.cors_origins != "*" else ["*"]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 生產環境應限制特定來源
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

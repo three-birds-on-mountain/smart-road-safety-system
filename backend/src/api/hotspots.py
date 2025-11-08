@@ -69,62 +69,32 @@ def _serialize_accident(accident: Accident):
     """序列化事故為 API 回應格式"""
     return {
         "id": str(accident.id),
-        "source_type": (
+        "severity": (
             accident.source_type.value
             if hasattr(accident.source_type, "value")
             else str(accident.source_type)
         ),
         "source_id": accident.source_id,
         "occurred_at": accident.occurred_at.isoformat(),
-        "location_text": accident.location_text,
+        "address": accident.location_text,
         "latitude": float(accident.latitude),
         "longitude": float(accident.longitude),
-        "vehicle_type": accident.vehicle_type,
+        "involved_vehicles": [accident.vehicle_type] if accident.vehicle_type else [],
+        "involved_people": [],
+        "description": None,
+        "distance_meters": None,
     }
 
 
 @router.get("/all")
 async def get_all_hotspots(
+    period_days: Optional[int] = Query(None, description="分析期間天數（30/90/180/365）"),
+    severity_levels: Optional[str] = Query(None, description="嚴重程度篩選（逗號分隔，如 A1,A2）"),
     limit: int = Query(10000, description="最多回傳數量", ge=1, le=10000),
     db: Session = Depends(get_db),
 ):
     """
     取得所有事故熱點
-
-    一次性取得所有熱點資料，用於前端快取。
-    不含時間範圍和嚴重程度篩選，前端自行過濾。
-    """
-    try:
-        logger.info(f"查詢所有熱點，limit={limit}")
-
-        # 查詢所有熱點
-        hotspots = HotspotService.get_all(db=db, limit=limit)
-
-        # 轉換為回應格式
-        hotspot_data = [_serialize_hotspot(hotspot) for hotspot in hotspots]
-
-        return {
-            "data": hotspot_data,
-            "meta": {
-                "total_count": len(hotspot_data),
-            },
-        }
-    except Exception as e:
-        logger.error(f"查詢所有熱點失敗: {e}", exc_info=True)
-        raise
-
-
-@router.get("/nearby")
-async def get_nearby_hotspots(
-    latitude: float = Query(..., description="用戶當前緯度", ge=21.5, le=25.5),
-    longitude: float = Query(..., description="用戶當前經度", ge=119.5, le=122.5),
-    distance: int = Query(..., description="查詢半徑（公尺）", enum=ALLOWED_DISTANCES),
-    time_range: Optional[str] = Query(None, description="時間範圍", enum=ALLOWED_TIME_RANGES),
-    severity_levels: Optional[str] = Query(None, description="嚴重程度篩選（逗號分隔）"),
-    db: Session = Depends(get_db),
-):
-    """
-    查詢所有熱點
 
     查詢指定分析期間的所有熱點，預設為 365 天。
     支援嚴重程度篩選。

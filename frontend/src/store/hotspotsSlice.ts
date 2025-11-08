@@ -66,20 +66,6 @@ interface HotspotListMetaApi {
   };
 }
 
-interface FetchNearbyParams {
-  latitude: number;
-  longitude: number;
-  signal?: AbortSignal;
-}
-
-interface FetchInBoundsParams {
-  swLatitude: number;
-  swLongitude: number;
-  neLatitude: number;
-  neLongitude: number;
-  signal?: AbortSignal;
-}
-
 interface FetchHotspotDetailParams {
   hotspotId: string;
   signal?: AbortSignal;
@@ -190,114 +176,6 @@ export const fetchAllHotspots = createAsyncThunk<
   },
 );
 
-export const fetchNearbyHotspots = createAsyncThunk<
-  HotspotListResponse<NearbyHotspot>,
-  FetchNearbyParams,
-  { state: RootState }
->(
-  'hotspots/fetchNearby',
-  async ({ latitude, longitude, signal }, { getState }) => {
-    if (import.meta.env.VITE_USE_MOCK_API === 'true') {
-      return getMockNearbyHotspots({ latitude, longitude, settings: getState().settings.current });
-    }
-
-    const {
-      settings: {
-        current: { distanceMeters, severityFilter, timeRange },
-      },
-    } = getState();
-
-    const params = new URLSearchParams({
-      latitude: latitude.toString(),
-      longitude: longitude.toString(),
-      distance: distanceMeters.toString(),
-    });
-
-    const severityParam = mapSeverityLevelsToApi(severityFilter);
-    if (severityParam) {
-      params.set('severity_levels', severityParam);
-    }
-
-    const timeRangeQuery = mapTimeRangeToApi(timeRange);
-    if (timeRangeQuery) {
-      params.set('time_range', timeRangeQuery);
-    }
-
-    try {
-      const response = await apiClient.get<{
-        data: NearbyHotspotApi[];
-        meta: HotspotListMetaApi;
-      }>(`/hotspots/nearby`, {
-        params,
-        signal,
-      });
-
-      return {
-        data: response.data.data.map(adaptNearbyHotspot),
-        meta: {
-          totalCount: response.data.meta.total_count,
-          queryRadiusMeters: response.data.meta.query_radius_meters,
-          userLocation: response.data.meta.user_location,
-        },
-      };
-    } catch (error) {
-      if (import.meta.env.VITE_FALLBACK_TO_MOCK === 'true') {
-        return getMockNearbyHotspots({ latitude, longitude, settings: getState().settings.current });
-      }
-      throw error;
-    }
-  },
-);
-
-export const fetchHotspotsInBounds = createAsyncThunk<
-  HotspotListResponse<HotspotSummary>,
-  FetchInBoundsParams,
-  { state: RootState }
->(
-  'hotspots/fetchInBounds',
-  async ({ swLatitude, swLongitude, neLatitude, neLongitude, signal }, { getState }) => {
-    const {
-      settings: {
-        current: { severityFilter, timeRange },
-      },
-    } = getState();
-
-    const params = new URLSearchParams({
-      sw_lat: swLatitude.toString(),
-      sw_lng: swLongitude.toString(),
-      ne_lat: neLatitude.toString(),
-      ne_lng: neLongitude.toString(),
-    });
-
-    const severityParam = mapSeverityLevelsToApi(severityFilter);
-    if (severityParam) {
-      params.set('severity_levels', severityParam);
-    }
-
-    const timeRangeQuery = mapTimeRangeToApi(timeRange);
-    if (timeRangeQuery) {
-      params.set('time_range', timeRangeQuery);
-    }
-
-    const response = await apiClient.get<{
-      data: NearbyHotspotApi[];
-      meta: HotspotListMetaApi;
-    }>(`/hotspots/in-bounds`, {
-      params,
-      signal,
-    });
-
-    return {
-      data: response.data.data.map(adaptHotspotSummary),
-      meta: {
-        totalCount: response.data.meta.total_count,
-        queryRadiusMeters: response.data.meta.query_radius_meters,
-        userLocation: response.data.meta.user_location,
-      },
-    };
-  },
-);
-
 export const fetchHotspotDetail = createAsyncThunk<
   HotspotDetail,
   FetchHotspotDetailParams,
@@ -312,6 +190,7 @@ export const fetchHotspotDetail = createAsyncThunk<
 
     try {
       const response = await apiClient.get<{ data: HotspotDetailApi }>(`/hotspots/${hotspotId}`, {
+        params: { include_accidents: true },
         signal,
       });
       return adaptHotspotDetail(response.data.data);
@@ -370,43 +249,6 @@ const hotspotsSlice = createSlice({
         state.status = 'failed';
         state.error = action.error.message ?? 'Failed to load all hotspots';
       })
-      // fetchNearbyHotspots 用於警示功能
-      .addCase(fetchNearbyHotspots.pending, (state) => {
-        state.nearbyStatus = 'loading';
-        state.nearbyError = undefined;
-      })
-      .addCase(fetchNearbyHotspots.fulfilled, (state, action) => {
-        state.nearbyStatus = 'succeeded';
-        state.nearby = action.payload.data;
-        state.nearbyMeta = action.payload.meta;
-      })
-      .addCase(fetchNearbyHotspots.rejected, (state, action) => {
-        if (action.meta.aborted) {
-          state.nearbyStatus = 'idle';
-          return;
-        }
-
-        state.nearbyStatus = 'failed';
-        state.nearbyError = action.error.message ?? 'Failed to load nearby hotspots';
-      })
-      // fetchHotspotsInBounds 用於地圖顯示
-      .addCase(fetchHotspotsInBounds.pending, (state) => {
-        state.status = 'loading';
-        state.error = undefined;
-      })
-      .addCase(fetchHotspotsInBounds.fulfilled, (state, action) => {
-        state.status = 'succeeded';
-        state.items = action.payload.data;
-      })
-      .addCase(fetchHotspotsInBounds.rejected, (state, action) => {
-        if (action.meta.aborted) {
-          state.status = 'idle';
-          return;
-        }
-
-        state.status = 'failed';
-        state.error = action.error.message ?? 'Failed to load hotspots in bounds';
-      })
       .addCase(fetchHotspotDetail.pending, (state) => {
         state.detailStatus = 'loading';
         state.detailError = undefined;
@@ -434,6 +276,6 @@ export const {
   resetHotspotsState,
 } = hotspotsSlice.actions;
 
-export type { FetchNearbyParams, FetchInBoundsParams, FetchHotspotDetailParams };
+export type { FetchHotspotDetailParams };
 
 export default hotspotsSlice.reducer;

@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     # API 設定
     api_v1_prefix: str = "/api/v1"
 
+    # CORS 設定
+    cors_origins: str = "*"
+
     # Pydantic v2 配置方式
     model_config = SettingsConfigDict(
         env_file=".env",

@@ -7,6 +7,7 @@
 | `DATABASE_URL` | backend / docker-compose | ✅ | PostgreSQL + PostGIS 連線字串 | `postgresql://postgres:postgres@localhost:5432/road_safety_db` |
 | `GOOGLE_MAPS_API_KEY` | backend | ✅ | Geocoding/Reverse Geocoding API Key | `AIza...` |
 | `ADMIN_JWT_SECRET` | backend | ✅ | Admin JWT HS256 簽章密鑰 | `change-me-in-prod` |
+| `CORS_ORIGINS` | backend | ❌ | CORS 允許的來源（逗號分隔），使用 `*` 允許所有來源 | `*` 或 `https://example.com,https://app.example.com` |
 | `ENVIRONMENT` | backend | ❌ | 運行環境 `development` / `staging` / `production` | `development` |
 | `LOG_LEVEL` | backend | ❌ | Python logging level | `INFO` |
 | `VITE_API_BASE_URL` | frontend | ✅ | Backend API URL | `http://localhost:8000/api/v1` |
@@ -24,6 +25,7 @@
    DATABASE_URL=postgresql://postgres:postgres@localhost:5432/road_safety_db
    GOOGLE_MAPS_API_KEY=your-google-maps-api-key
    ADMIN_JWT_SECRET=change-me
+   CORS_ORIGINS=*
    LOG_LEVEL=INFO
    ENVIRONMENT=development
    ```
@@ -53,6 +55,7 @@ VITE_API_BASE_URL=http://localhost:8000/api/v1 docker-compose up
 ⚠️ **安全注意事項**:
 - 使用強密碼作為 `ADMIN_JWT_SECRET`
 - 限制 `DATABASE_URL` 存取權限
+- **限制 `CORS_ORIGINS` 為特定網域**，避免使用 `*`（例如：`https://example.com,https://app.example.com`）
 - 透過安全的秘密管理機制儲存敏感資訊（AWS Secrets Manager、GCP Secret Manager、HashiCorp Vault）
 - 設定 `ENVIRONMENT=production`
 - 設定 `LOG_LEVEL=WARNING` 或 `ERROR`
