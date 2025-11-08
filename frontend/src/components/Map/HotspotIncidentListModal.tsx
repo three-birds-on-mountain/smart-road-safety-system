@@ -13,17 +13,17 @@ const severityConfig: Record<
   { label: string; badgeClass: string; dotClass: string }
 > = {
   A1: {
-    label: 'A1｜死亡事故',
+    label: 'A1｜死亡',
     badgeClass: 'bg-danger-500 text-white',
     dotClass: 'bg-danger-500',
   },
   A2: {
-    label: 'A2｜重傷事故',
+    label: 'A2｜重傷',
     badgeClass: 'bg-warning-500 text-white',
     dotClass: 'bg-warning-500',
   },
   A3: {
-    label: 'A3｜輕傷事故',
+    label: 'A3｜輕傷',
     badgeClass: 'bg-secondary-500 text-white',
     dotClass: 'bg-secondary-500',
   },
@@ -54,10 +54,7 @@ const formatDistance = (distance?: number) => {
 };
 
 const formatInvolved = (people?: string[], vehicles?: string[]) => {
-  const combined = [
-    ...(people ?? []).filter(Boolean),
-    ...(vehicles ?? []).filter(Boolean),
-  ];
+  const combined = [...(people ?? []).filter(Boolean), ...(vehicles ?? []).filter(Boolean)];
   if (!combined.length) {
     return '未提供';
   }
@@ -69,28 +66,22 @@ const HotspotIncidentListModal = ({ hotspot, onClose }: HotspotIncidentListModal
   const severityFilter = useAppSelector((state) => state.settings.current.severityFilter);
 
   // 計算根據篩選器過濾後的總事故數
-  const filteredTotalAccidents = 
+  const filteredTotalAccidents =
     (severityFilter.includes('A1') ? hotspot.a1Count : 0) +
     (severityFilter.includes('A2') ? hotspot.a2Count : 0) +
     (severityFilter.includes('A3') ? hotspot.a3Count : 0);
 
-  const accidents: AccidentRecord[] = useMemo(
-    () => hotspot.accidents ?? [],
-    [hotspot.accidents],
-  );
-  const primaryAddress =
-    accidents.find((item) => item.address)?.address ?? '近期事故位置';
+  const accidents: AccidentRecord[] = useMemo(() => hotspot.accidents ?? [], [hotspot.accidents]);
+  const primaryAddress = accidents.find((item) => item.address)?.address ?? '近期事故位置';
 
   return (
     <div className="fixed inset-0 z-[120] flex flex-col bg-surface-white">
       <header className="flex items-center justify-between border-b border-gray-200 px-4 py-3 shadow-sm">
         <div className="flex flex-col gap-1">
-          <span className="text-xs uppercase tracking-wide text-text-secondary">
-            事故熱點
-          </span>
+          <span className="text-xs uppercase tracking-wide text-text-secondary">事故熱點</span>
           <h2 className="text-lg font-semibold text-text-primary">{primaryAddress}</h2>
           <p className="text-xs text-text-secondary">
-            分析期間：{formatDateTime(hotspot.analysisPeriodStart)} ~{' '}
+            {formatDateTime(hotspot.analysisPeriodStart)} ~{' '}
             {formatDateTime(hotspot.analysisPeriodEnd)}
           </p>
         </div>
@@ -115,25 +106,19 @@ const HotspotIncidentListModal = ({ hotspot, onClose }: HotspotIncidentListModal
       <section className="border-b border-gray-100 bg-surface-muted px-4 py-3">
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <span className="rounded-full bg-primary-100 px-3 py-1 text-primary-700">
-            事故總數 {filteredTotalAccidents}
+            事故總數: {hotspot.totalAccidents}
           </span>
-          {severityFilter.includes('A1') && hotspot.a1Count > 0 && (
-            <span className="rounded-full bg-danger-50 px-3 py-1 text-danger-600">
-              A1 {hotspot.a1Count}
-            </span>
-          )}
-          {severityFilter.includes('A2') && hotspot.a2Count > 0 && (
-            <span className="rounded-full bg-warning-50 px-3 py-1 text-warning-600">
-              A2 {hotspot.a2Count}
-            </span>
-          )}
-          {severityFilter.includes('A3') && hotspot.a3Count > 0 && (
-            <span className="rounded-full bg-secondary-50 px-3 py-1 text-secondary-600">
-              A3 {hotspot.a3Count}
-            </span>
-          )}
+          <span className="rounded-full bg-danger-300 text-secondary-900 px-3 py-1 text-danger-600">
+            A1: {hotspot.a1Count}
+          </span>
+          <span className="rounded-full bg-warning-300 text-secondary-900 px-3 py-1 text-warning-600">
+            A2: {hotspot.a2Count}
+          </span>
+          <span className="rounded-full bg-secondary-300 text-secondary-800 px-3 py-1 text-secondary-600">
+            A3: {hotspot.a3Count}
+          </span>
           <span className="rounded-full bg-gray-50 px-3 py-1 text-text-secondary">
-            影響半徑 {hotspot.radiusMeters}m
+            影響半徑: {hotspot.radiusMeters}m
           </span>
         </div>
       </section>
@@ -184,14 +169,18 @@ const HotspotIncidentListModal = ({ hotspot, onClose }: HotspotIncidentListModal
                         )}
                       </span>
                     </div>
-                    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${severity.badgeClass}`}>
+                    <span
+                      className={`shrink-0 w-fit rounded-full px-3 py-1 text-xs font-semibold ${severity.badgeClass}`}
+                    >
                       {severity.label}
                     </span>
                   </div>
                   <div className="mt-3 flex items-center gap-2 text-xs text-text-secondary">
                     <span className={`h-2.5 w-2.5 rounded-full ${severity.dotClass}`} aria-hidden />
                     <span className="font-semibold text-text-primary">涉入人／車</span>
-                    <span>{formatInvolved(accident.involvedPeople, accident.involvedVehicles)}</span>
+                    <span>
+                      {formatInvolved(accident.involvedPeople, accident.involvedVehicles)}
+                    </span>
                   </div>
                   {accident.description && (
                     <p className="mt-3 rounded-md bg-surface-muted px-3 py-2 text-xs text-text-secondary">
