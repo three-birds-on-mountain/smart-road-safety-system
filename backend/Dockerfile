@@ -15,9 +15,9 @@ RUN uv pip install --system -e .
 # 複製原始碼和遷移腳本
 COPY src/ ./src/
 
-# 暴露端口
-EXPOSE 8000
+# 暴露端口（Cloud Run 使用 PORT 環境變數）
+EXPOSE 8080
 
-# 啟動應用程式
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# 啟動應用程式（使用 PORT 環境變數，預設 8080）
+CMD uvicorn src.main:app --host 0.0.0.0 --port ${PORT:-8080}
 
