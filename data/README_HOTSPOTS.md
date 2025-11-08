@@ -37,11 +37,11 @@ uv run python data/generate_hotspots.py \
   --database-url "$DATABASE_URL" \
   --period-days 180
 
-# 調整 DBSCAN 參數（更嚴格的聚類條件）
+# 調整 DBSCAN 參數
 uv run python data/generate_hotspots.py \
   --database-url "$DATABASE_URL" \
-  --epsilon-meters 300 \
-  --min-accidents 10
+  --epsilon-meters 200 \
+  --min-accidents 1
 
 # 清除舊的熱點資料
 uv run python data/generate_hotspots.py \

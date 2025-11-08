@@ -104,6 +104,7 @@ def upgrade() -> None:
         sa.Column("earliest_accident_at", sa.TIMESTAMP(timezone=True), nullable=False),
         sa.Column("latest_accident_at", sa.TIMESTAMP(timezone=True), nullable=False),
         sa.Column("analysis_date", sa.Date(), nullable=False),
+        sa.Column("analysis_period_days", sa.Integer(), nullable=False),
         sa.Column("analysis_period_start", sa.Date(), nullable=False),
         sa.Column("analysis_period_end", sa.Date(), nullable=False),
         sa.Column("accident_ids", postgresql.JSONB(), nullable=False),
@@ -136,6 +137,11 @@ def upgrade() -> None:
         "hotspots",
         ["analysis_date"],
         postgresql_ops={"analysis_date": "DESC"},
+    )
+    op.create_index(
+        "idx_hotspot_analysis_days",
+        "hotspots",
+        ["analysis_period_days", "analysis_date"],
     )
     op.create_index(
         "idx_hotspot_accident_time", "hotspots", ["earliest_accident_at", "latest_accident_at"]

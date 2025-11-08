@@ -189,6 +189,57 @@ class HotspotService:
         return query.all()
 
     @staticmethod
+    def get_all(
+        db: Session,
+        period_days: int = 365,
+        severity_levels: Optional[str] = None,
+        limit: int = 1000,
+    ) -> List[Hotspot]:
+        """
+        查詢所有熱點
+
+        Args:
+            db: 資料庫連線
+            period_days: 分析期間天數（30, 90, 180, 365）
+            severity_levels: 嚴重程度篩選（逗號分隔，如 "A1,A2"）
+            limit: 最多回傳數量
+
+        Returns:
+            熱點列表（按事故數排序）
+        """
+        query = db.query(Hotspot)
+
+        # 篩選指定分析期間
+        query = query.filter(Hotspot.analysis_period_days == period_days)
+
+        # 只查詢最新的分析結果
+        latest_analysis_date = (
+            db.query(func.max(Hotspot.analysis_date))
+            .filter(Hotspot.analysis_period_days == period_days)
+            .scalar()
+        )
+        if latest_analysis_date:
+            query = query.filter(Hotspot.analysis_date == latest_analysis_date)
+
+        # 嚴重程度篩選
+        if severity_levels:
+            levels = [s.strip() for s in severity_levels.split(",")]
+            conditions = []
+            if "A1" in levels:
+                conditions.append(Hotspot.a1_count > 0)
+            if "A2" in levels:
+                conditions.append(Hotspot.a2_count > 0)
+            if "A3" in levels:
+                conditions.append(Hotspot.a3_count > 0)
+            if conditions:
+                query = query.filter(or_(*conditions))
+
+        # 按事故數排序
+        query = query.order_by(Hotspot.total_accidents.desc()).limit(limit)
+
+        return query.all()
+
+    @staticmethod
     def get_by_id(db: Session, hotspot_id: str) -> Optional[Hotspot]:
         """根據 ID 查詢熱點"""
         import uuid
@@ -199,6 +250,45 @@ class HotspotService:
             return None  # 無效的 UUID 格式，直接回傳 None
         
         return db.query(Hotspot).filter(Hotspot.id == hotspot_id).first()
+
+    @staticmethod
+    def get_accidents_by_hotspot_id(db: Session, hotspot_id: str) -> List:
+        """
+        根據熱點 ID 查詢該熱點包含的所有事故記錄
+
+        Args:
+            db: 資料庫連線
+            hotspot_id: 熱點 ID
+
+        Returns:
+            事故記錄列表
+        """
+        from src.models.accident import Accident
+        import json
+
+        # 取得熱點資訊
+        hotspot = HotspotService.get_by_id(db, hotspot_id)
+        if not hotspot:
+            return []
+
+        # 解析事故 ID 列表
+        if isinstance(hotspot.accident_ids, str):
+            accident_ids = json.loads(hotspot.accident_ids)
+        else:
+            accident_ids = hotspot.accident_ids
+
+        if not accident_ids:
+            return []
+
+        # 查詢事故記錄
+        accidents = (
+            db.query(Accident)
+            .filter(Accident.id.in_(accident_ids))
+            .order_by(Accident.occurred_at.desc())
+            .all()
+        )
+
+        return accidents
 
     @staticmethod
     def merge_overlapping_hotspots(
@@ -321,6 +411,7 @@ def _merge_hotspot_cluster(cluster: List[Hotspot]) -> Hotspot:
         earliest_accident_at=earliest,
         latest_accident_at=latest,
         analysis_date=cluster[0].analysis_date,
+        analysis_period_days=cluster[0].analysis_period_days,
         analysis_period_start=cluster[0].analysis_period_start,
         analysis_period_end=cluster[0].analysis_period_end,
         accident_ids=json.dumps(all_accident_ids),

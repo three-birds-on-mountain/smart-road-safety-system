@@ -147,10 +147,12 @@ def perform_dbscan_clustering(
     )
 
     # 執行 DBSCAN（使用 haversine 距離計算地球表面距離）
-    epsilon_degrees = epsilon_meters / 111000.0  # 約略：1度 ≈ 111公里
+    # 將 epsilon 從公尺轉換成弧度（haversine 需要弧度單位）
+    EARTH_RADIUS_KM = 6371.0  # 地球平均半徑（公里）
+    epsilon_radians = epsilon_meters / 1000.0 / EARTH_RADIUS_KM
 
     dbscan = DBSCAN(
-        eps=epsilon_degrees,
+        eps=epsilon_radians,
         min_samples=min_samples,
         metric="haversine",
         algorithm="ball_tree",
@@ -203,6 +205,7 @@ def generate_hotspot_records(
     coordinates: np.ndarray,
     labels: np.ndarray,
     min_samples: int,
+    analysis_period_days: int,
     analysis_period_start: date,
     analysis_period_end: date,
 ) -> List[Dict]:
@@ -271,6 +274,7 @@ def generate_hotspot_records(
             "earliest_accident_at": earliest,
             "latest_accident_at": latest,
             "analysis_date": analysis_date,
+            "analysis_period_days": analysis_period_days,
             "analysis_period_start": analysis_period_start,
             "analysis_period_end": analysis_period_end,
             "accident_ids": json.dumps(accident_ids),
@@ -315,6 +319,7 @@ def insert_hotspots(conn, hotspots: List[Dict], clear_existing: bool):
                 earliest_accident_at,
                 latest_accident_at,
                 analysis_date,
+                analysis_period_days,
                 analysis_period_start,
                 analysis_period_end,
                 accident_ids,
@@ -339,6 +344,7 @@ def insert_hotspots(conn, hotspots: List[Dict], clear_existing: bool):
                 h["earliest_accident_at"],
                 h["latest_accident_at"],
                 h["analysis_date"],
+                h["analysis_period_days"],
                 h["analysis_period_start"],
                 h["analysis_period_end"],
                 h["accident_ids"],
@@ -430,6 +436,7 @@ def main():
             coordinates,
             labels,
             args.min_accidents,
+            args.period_days,
             analysis_period_start,
             analysis_period_end,
         )
