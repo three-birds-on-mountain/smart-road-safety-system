@@ -814,9 +814,12 @@ const MapPage = () => {
         />
       )}
 
-      {/* 警示覆蓋層（簡化版：底部浮動顯示） */}
+      {/* 警示覆蓋層（簡化版：頂部浮動顯示） */}
       {activeAlert && !routeState.safetySummary && (
-        <div className="pointer-events-none absolute top-8 left-4 right-4 z-20 flex justify-center">
+        <div
+          className="pointer-events-none absolute left-4 right-4 z-30 flex justify-center"
+          style={{ top: '4rem', zIndex: 10 }}
+        >
           <div className="pointer-events-auto w-full max-w-md">
             <AlertOverlay
               hotspot={activeAlert.hotspot}
