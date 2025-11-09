@@ -64,6 +64,7 @@ def sample_hotspot(db):
         earliest_accident_at=datetime.utcnow() - timedelta(days=30),
         latest_accident_at=datetime.utcnow() - timedelta(days=1),
         analysis_date=today,
+        analysis_period_days=365,
         analysis_period_start=today - timedelta(days=365),
         analysis_period_end=today - timedelta(days=1),
         accident_ids=json.dumps(["accident-1", "accident-2"]),
@@ -97,6 +98,8 @@ def test_get_hotspot_by_id_success(client, sample_hotspot):
     assert "earliest_accident_at" in hotspot_data
     assert "latest_accident_at" in hotspot_data
     assert "analysis_date" in hotspot_data
+    assert "analysis_period_days" in hotspot_data
+    assert hotspot_data["analysis_period_days"] == 365
     assert "analysis_period_start" in hotspot_data
     assert "analysis_period_end" in hotspot_data
 
@@ -114,6 +117,77 @@ def test_get_hotspot_by_id_with_accidents(client, sample_hotspot):
     assert "data" in data
     assert "accidents" in data["data"]
     # 注意：目前實作中 accidents 是空陣列，這是預期的
+
+
+def test_get_hotspot_by_id_with_period_days(client, db):
+    """測試 period_days 參數過濾事故日期"""
+    from src.models.accident import Accident, SourceType
+    from datetime import timezone
+    
+    # 建立熱點
+    today = date.today()
+    hotspot_id = uuid4()
+    
+    # 建立不同時間的事故
+    accident_old = Accident(
+        id=uuid4(),
+        source_type=SourceType.A2,
+        source_id="TEST-OLD",
+        occurred_at=datetime.now(timezone.utc) - timedelta(days=100),  # 100 天前
+        latitude=Decimal("25.0479"),
+        longitude=Decimal("121.5170"),
+        location_text="測試地點 (舊)",
+    )
+    
+    accident_recent = Accident(
+        id=uuid4(),
+        source_type=SourceType.A2,
+        source_id="TEST-RECENT",
+        occurred_at=datetime.now(timezone.utc) - timedelta(days=20),  # 20 天前
+        latitude=Decimal("25.0479"),
+        longitude=Decimal("121.5170"),
+        location_text="測試地點 (新)",
+    )
+    
+    db.add(accident_old)
+    db.add(accident_recent)
+    db.commit()
+    
+    # 建立包含這些事故的熱點
+    hotspot = Hotspot(
+        id=hotspot_id,
+        center_latitude=Decimal("25.0479"),
+        center_longitude=Decimal("121.5170"),
+        geom=WKTElement("POINT(121.5170 25.0479)", srid=4326),
+        radius_meters=500,
+        total_accidents=2,
+        a1_count=0,
+        a2_count=2,
+        a3_count=0,
+        earliest_accident_at=accident_old.occurred_at,
+        latest_accident_at=accident_recent.occurred_at,
+        analysis_date=today,
+        analysis_period_days=365,
+        analysis_period_start=today - timedelta(days=365),
+        analysis_period_end=today - timedelta(days=1),
+        accident_ids=json.dumps([str(accident_old.id), str(accident_recent.id)]),
+    )
+    db.add(hotspot)
+    db.commit()
+    
+    # 使用 period_days=30 查詢，應該只回傳 20 天前的事故
+    response = client.get(
+        f"/api/v1/hotspots/{hotspot_id}",
+        params={"include_accidents": True, "period_days": 30}
+    )
+    
+    assert response.status_code == 200
+    data = response.json()
+    accidents = data["data"]["accidents"]
+    
+    # 應該只有 1 個事故（20 天前的那個）
+    assert len(accidents) == 1
+    assert accidents[0]["source_id"] == "TEST-RECENT"
 
 
 def test_get_hotspot_by_id_not_found(client):

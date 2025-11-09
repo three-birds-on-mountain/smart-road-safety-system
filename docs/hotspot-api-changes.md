@@ -168,7 +168,7 @@ for days in 365 180 90 30; do
   uv run python data/generate_hotspots.py \
     --database-url "$DATABASE_URL" \
     --period-days $days \
-    --epsilon-meters 200 \
+    --epsilon-meters 50 \
     --min-accidents 1
 done
 ```

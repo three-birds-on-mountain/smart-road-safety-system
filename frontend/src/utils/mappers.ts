@@ -8,6 +8,13 @@ const TIME_RANGE_MAP = {
   '1M': '1_month',
 } as const satisfies Record<TimeRangeOption, '1_year' | '6_months' | '3_months' | '1_month'>;
 
+const TIME_RANGE_TO_DAYS = {
+  '1Y': 365,
+  '6M': 180,
+  '3M': 90,
+  '1M': 30,
+} as const satisfies Record<TimeRangeOption, 30 | 90 | 180 | 365>;
+
 export const mapTimeRangeToApi = (
   timeRange?: TimeRangeOption,
 ): '1_year' | '6_months' | '3_months' | '1_month' | undefined => {
@@ -15,6 +22,13 @@ export const mapTimeRangeToApi = (
     return undefined;
   }
   return TIME_RANGE_MAP[timeRange];
+};
+
+export const mapTimeRangeToDays = (timeRange?: TimeRangeOption): 30 | 90 | 180 | 365 | undefined => {
+  if (!timeRange) {
+    return undefined;
+  }
+  return TIME_RANGE_TO_DAYS[timeRange];
 };
 
 export const mapSeverityLevelsToApi = (levels: AccidentSeverity[]): string | undefined => {

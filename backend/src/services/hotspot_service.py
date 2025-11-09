@@ -253,7 +253,10 @@ class HotspotService:
 
     @staticmethod
     def get_accidents_by_hotspot_id(
-        db: Session, hotspot_id: str, severity_levels: Optional[str] = None
+        db: Session,
+        hotspot_id: str,
+        period_days: Optional[int] = None,
+        severity_levels: Optional[str] = None,
     ) -> List:
         """
         根據熱點 ID 查詢該熱點包含的所有事故記錄
@@ -261,6 +264,7 @@ class HotspotService:
         Args:
             db: 資料庫連線
             hotspot_id: 熱點 ID
+            period_days: 分析期間天數（30, 90, 180, 365），用於過濾事故日期
             severity_levels: 嚴重程度篩選（逗號分隔，如 "A1,A2"）
 
         Returns:
@@ -285,6 +289,13 @@ class HotspotService:
 
         # 查詢事故記錄
         query = db.query(Accident).filter(Accident.id.in_(accident_ids))
+
+        # 根據 period_days 過濾日期範圍
+        if period_days:
+            from datetime import timezone
+
+            cutoff_date = datetime.now(timezone.utc) - timedelta(days=period_days)
+            query = query.filter(Accident.occurred_at >= cutoff_date)
 
         # 根據嚴重程度篩選
         if severity_levels:

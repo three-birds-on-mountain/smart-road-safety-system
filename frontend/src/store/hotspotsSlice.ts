@@ -10,6 +10,7 @@ import type {
 } from '../types/hotspot';
 import type { RootState } from '../store';
 import type { AccidentSeverity } from '../types/accident';
+import { mapTimeRangeToDays } from '../utils/mappers';
 
 interface HotspotsState {
   allHotspots: HotspotSummary[]; // 所有熱點資料（啟動時載入一次）
@@ -190,11 +191,14 @@ export const fetchHotspotDetail = createAsyncThunk<
     try {
       const state = getState();
       const severityFilter = state.settings.current.severityFilter;
+      const timeRange = state.settings.current.timeRange;
       const severityLevels = severityFilter.length > 0 ? severityFilter.join(',') : undefined;
+      const periodDays = mapTimeRangeToDays(timeRange);
 
       const response = await apiClient.get<{ data: HotspotDetailApi }>(`/hotspots/${hotspotId}`, {
         params: {
           include_accidents: true,
+          period_days: periodDays,
           severity_levels: severityLevels,
         },
         signal,
