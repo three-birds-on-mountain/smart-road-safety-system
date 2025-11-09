@@ -96,33 +96,34 @@ const HotspotDetailPopup = ({
   onShowFullDetail,
   onClose,
 }: HotspotDetailPopupProps) => {
-  // 建立所有出現的事故等級陣列（按 A1 A2 A3 順序）
+  const [showSeverityHint, setShowSeverityHint] = useState(false);
+
+  // 取得當前勾選的嚴重程度篩選器
+  const severityFilter = useAppSelector((state) => state.settings.current.severityFilter);
+
+  // 建立符合篩選器且有事故的等級陣列（按 A1 A2 A3 順序）
   const severityLabels: Array<{ severity: string; label: string; badgeClass: string }> = [];
-  if (hotspot.a1Count > 0) {
+  if (severityFilter.includes('A1') && hotspot.a1Count > 0) {
     severityLabels.push({
       severity: 'A1',
       label: getSeverityLabel('A1'),
       badgeClass: getSeverityBadgeClass('A1'),
     });
   }
-  if (hotspot.a2Count > 0) {
+  if (severityFilter.includes('A2') && hotspot.a2Count > 0) {
     severityLabels.push({
       severity: 'A2',
       label: getSeverityLabel('A2'),
       badgeClass: getSeverityBadgeClass('A2'),
     });
   }
-  if (hotspot.a3Count > 0) {
+  if (severityFilter.includes('A3') && hotspot.a3Count > 0) {
     severityLabels.push({
       severity: 'A3',
       label: getSeverityLabel('A3'),
       badgeClass: getSeverityBadgeClass('A3'),
     });
   }
-  const [showSeverityHint, setShowSeverityHint] = useState(false);
-
-  // 取得當前勾選的嚴重程度篩選器
-  const severityFilter = useAppSelector((state) => state.settings.current.severityFilter);
 
   const toggleSeverityHint = () => {
     setShowSeverityHint((prev) => !prev);
