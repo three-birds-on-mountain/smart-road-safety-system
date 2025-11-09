@@ -1,29 +1,29 @@
-import { useMemo } from 'react'
-import AlertModeSelector from '../components/Settings/AlertModeSelector'
-import AccidentLevelFilter from '../components/Settings/AccidentLevelFilter'
-import DistanceSelector from '../components/Settings/DistanceSelector'
-import TimeRangeFilter from '../components/Settings/TimeRangeFilter'
-import ThresholdSlider from '../components/Settings/ThresholdSlider'
-import { useAppSelector } from '../hooks/store'
-import type { AlertChannel, TimeRangeOption } from '../types/settings'
-import type { AccidentSeverity } from '../types/accident'
+import { useMemo } from 'react';
+import AlertModeSelector from '../components/Settings/AlertModeSelector';
+import AccidentLevelFilter from '../components/Settings/AccidentLevelFilter';
+import DistanceSelector from '../components/Settings/DistanceSelector';
+import TimeRangeFilter from '../components/Settings/TimeRangeFilter';
+import ThresholdSlider from '../components/Settings/ThresholdSlider';
+import { useAppSelector } from '../hooks/store';
+import type { AlertChannel, TimeRangeOption } from '../types/settings';
+import type { AccidentSeverity } from '../types/accident';
 
-const SEVERITY_ORDER: AccidentSeverity[] = ['A1', 'A2', 'A3']
-const CHANNEL_ORDER: AlertChannel[] = ['sound', 'vibration']
+const SEVERITY_ORDER: AccidentSeverity[] = ['A1', 'A2', 'A3'];
+const CHANNEL_ORDER: AlertChannel[] = ['sound', 'vibration'];
 const CHANNEL_LABELS: Record<AlertChannel, string> = {
   sound: '音效',
   vibration: '震動',
-}
+};
 
 const TIME_RANGE_TEXT: Record<TimeRangeOption, string> = {
   '1Y': '一年內',
   '6M': '半年內',
   '3M': '三個月內',
   '1M': '一個月內',
-}
+};
 
 interface SettingsPageProps {
-  onClose: () => void
+  onClose: () => void;
 }
 
 /**
@@ -31,28 +31,23 @@ interface SettingsPageProps {
  * 提供 X 關閉按鈕回到地圖主畫面
  */
 const SettingsPage = ({ onClose }: SettingsPageProps) => {
-  const settings = useAppSelector((state) => state.settings.current)
-
+  const settings = useAppSelector((state) => state.settings.current);
 
   const severitySummary = useMemo(
     () =>
-      SEVERITY_ORDER.filter((severity) =>
-        settings.severityFilter.includes(severity),
-      ).join(' / '),
+      SEVERITY_ORDER.filter((severity) => settings.severityFilter.includes(severity)).join(' / '),
     [settings.severityFilter],
-  )
+  );
 
   const channelSummary = useMemo(() => {
     if (settings.alertChannels.length === 0) {
-      return '僅視覺提示'
+      return '僅視覺提示';
     }
 
-    return CHANNEL_ORDER.filter((channel) =>
-      settings.alertChannels.includes(channel),
-    )
+    return CHANNEL_ORDER.filter((channel) => settings.alertChannels.includes(channel))
       .map((channel) => CHANNEL_LABELS[channel])
-      .join(' + ')
-  }, [settings.alertChannels])
+      .join(' + ');
+  }, [settings.alertChannels]);
 
   return (
     <div className="fixed inset-0 z-[300] flex flex-col overflow-y-auto bg-surface-muted">
@@ -75,17 +70,13 @@ const SettingsPage = ({ onClose }: SettingsPageProps) => {
             xmlns="http://www.w3.org/2000/svg"
             aria-hidden="true"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M6 18L18 6M6 6l12 12"
-            />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
       </header>
 
       {/* 設定內容區域 */}
-      <div className="flex-1 px-4 py-6">
+      <div className="flex-1 px-4 py-6" style={{ paddingBottom: '5rem' }}>
         <div className="mx-auto max-w-2xl space-y-6">
           {/* 設定生效提示 */}
           <div className="flex items-center gap-2 rounded-lg bg-gray-50 text-xs text-text-secondary">
@@ -103,9 +94,7 @@ const SettingsPage = ({ onClose }: SettingsPageProps) => {
 
           {/* 當前設定摘要（手機優先顯示） */}
           <div className="rounded-lg bg-surface-white p-4 shadow-md">
-            <div className="mb-2 text-sm font-semibold text-text-primary">
-              當前設定
-            </div>
+            <div className="mb-2 text-sm font-semibold text-text-primary">當前設定</div>
             <div className="flex flex-wrap gap-2 text-xs">
               <span className="rounded-full bg-secondary-600 px-3 py-1 text-white">
                 {severitySummary}
@@ -147,7 +136,7 @@ const SettingsPage = ({ onClose }: SettingsPageProps) => {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default SettingsPage
+export default SettingsPage;

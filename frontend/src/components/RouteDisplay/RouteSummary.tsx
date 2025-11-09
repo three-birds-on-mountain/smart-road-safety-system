@@ -128,7 +128,7 @@ const RouteSummary = ({ summary, isVisible, onToggle, onClearRoute }: RouteSumma
       {isVisible && (
         <div
           className="px-4 pb-6"
-          style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}
+          style={{ paddingBottom: 'max(3.5rem, env(safe-area-inset-bottom))' }}
         >
           {/* 標題列 */}
           <div className="mb-4 flex items-center justify-between">
