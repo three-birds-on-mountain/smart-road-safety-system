@@ -14,7 +14,7 @@ interface RouteSummaryProps {
  * 顯示路線經過的事故統計和安全建議
  * 支援滑動隱藏/展開
  */
-const RouteSummary = ({ summary, isVisible, onToggle, onClearRoute }: RouteSummaryProps) => {
+const RouteSummary = ({ summary, isVisible, onToggle, onClearRoute: _onClearRoute }: RouteSummaryProps) => {
   const { totalAccidents, a1Count, a2Count, a3Count, suggestPublicTransport, message } = summary;
 
   const [isDragging, setIsDragging] = useState(false);
