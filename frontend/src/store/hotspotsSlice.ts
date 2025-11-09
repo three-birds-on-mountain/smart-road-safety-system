@@ -145,7 +145,7 @@ export const fetchAllHotspots = createAsyncThunk<
   { state: RootState }
 >(
   'hotspots/fetchAll',
-  async (params) => {
+  async (params, { getState }) => {
     const signal = params?.signal;
 
     if (import.meta.env.VITE_USE_MOCK_API === 'true') {
@@ -153,11 +153,18 @@ export const fetchAllHotspots = createAsyncThunk<
     }
 
     try {
+      const state = getState();
+      const timeRange = state.settings.current.timeRange;
+      const periodDays = mapTimeRangeToDays(timeRange);
+
       const response = await apiClient.get<{
         data: NearbyHotspotApi[];
         meta: HotspotListMetaApi;
       }>(`/hotspots/all`, {
-        params: { limit: 10000 },
+        params: {
+          limit: 10000,
+          period_days: periodDays,
+        },
         signal,
       });
 

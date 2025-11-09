@@ -97,7 +97,7 @@ const getSeverityColor = (severity: string): string => {
  * />
  * ```
  */
-const MAX_RENDERABLE_HOTSPOTS = 500
+const MAX_RENDERABLE_HOTSPOTS = 10000
 
 const pickHighPriorityHotspots = (hotspots: HotspotSummary[]): HotspotSummary[] => {
   if (hotspots.length <= MAX_RENDERABLE_HOTSPOTS) {
@@ -167,9 +167,6 @@ const HotspotLayer = ({
         cluster: enableClustering,
         clusterMaxZoom,
         clusterRadius,
-        clusterProperties: {
-          total_accidents: ['+', ['get', 'filteredAccidents'], 0],
-        },
       })
     } else {
       // 更新現有 source 的資料
@@ -211,7 +208,7 @@ const HotspotLayer = ({
       })
     }
 
-    // === 圖層 2: 聚合點數量文字 ===
+    // === 圖層 2: 聚合點數量文字（顯示熱點數量）===
     if (!map.getLayer(clusterCountLayerId) && enableClustering) {
       map.addLayer({
         id: clusterCountLayerId,
@@ -219,14 +216,7 @@ const HotspotLayer = ({
         source: sourceId,
         filter: ['has', 'point_count'],
         layout: {
-          'text-field': [
-            'to-string',
-            [
-              'coalesce',
-              ['get', 'total_accidents'],
-              ['get', 'point_count'],
-            ],
-          ],
+          'text-field': ['to-string', ['get', 'point_count']],
           'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
           'text-size': 14,
         },

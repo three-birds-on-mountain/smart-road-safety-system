@@ -113,13 +113,11 @@ const MapPage = () => {
 
     // 匯入過濾函式並執行過濾
     (async () => {
-      const { filterBySeverity, filterByTimeRange, filterByDistance, filterByAccidentThreshold } =
+      const { filterBySeverity, filterByDistance, filterByAccidentThreshold } =
         await import('../utils/hotspotFilters');
 
-      // 1. 先套用時間範圍和嚴重程度過濾
-      let filtered = filterByTimeRange(allHotspots, settings.timeRange);
-
-      filtered = filterBySeverity(filtered, settings.severityFilter);
+      // 1. 套用嚴重程度過濾（時間範圍已由 API 端處理）
+      let filtered = filterBySeverity(allHotspots, settings.severityFilter);
 
       // 2. 套用事故數量門檻過濾
       filtered = filterByAccidentThreshold(filtered, settings.accidentThreshold ?? 1);
@@ -135,7 +133,6 @@ const MapPage = () => {
     })();
   }, [
     hotspotsState.allHotspots,
-    settings.timeRange,
     settings.severityFilter,
     settings.distanceMeters,
     settings.accidentThreshold,
@@ -149,7 +146,7 @@ const MapPage = () => {
     setActiveAlert(next);
   }, []);
 
-  // 一次性載入所有熱點
+  // 載入熱點資料（當時間範圍改變時重新載入）
   useEffect(() => {
     const controller = new AbortController();
 
@@ -158,7 +155,7 @@ const MapPage = () => {
     return () => {
       controller.abort();
     };
-  }, [dispatch]);
+  }, [dispatch, settings.timeRange]);
 
   useEffect(() => {
     const service = createGeolocationService(dispatch);
