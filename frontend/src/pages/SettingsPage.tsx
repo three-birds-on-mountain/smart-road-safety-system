@@ -55,7 +55,7 @@ const SettingsPage = ({ onClose }: SettingsPageProps) => {
   }, [settings.alertChannels])
 
   return (
-    <div className="flex h-screen w-screen flex-col overflow-y-auto bg-surface-muted">
+    <div className="fixed inset-0 z-[300] flex flex-col overflow-y-auto bg-surface-muted">
       {/* 標題列 + 關閉按鈕 */}
       <header className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 bg-surface-white px-4 py-3 shadow-sm">
         <h1 className="text-xl font-semibold text-primary-700">設定</h1>

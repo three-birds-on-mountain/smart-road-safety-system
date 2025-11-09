@@ -34,9 +34,7 @@ const App = () => {
 
       {/* 設定頁 Modal（全屏覆蓋） */}
       {isSettingsModalOpen && (
-        <div className="fixed inset-0 z-[100] bg-surface-muted">
-          <SettingsPage onClose={handleCloseSettings} />
-        </div>
+        <SettingsPage onClose={handleCloseSettings} />
       )}
     </div>
   )
