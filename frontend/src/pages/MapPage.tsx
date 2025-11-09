@@ -112,9 +112,8 @@ const MapPage = () => {
 
     // 匯入過濾函式並執行過濾
     (async () => {
-      const { filterBySeverity, filterByTimeRange, filterByDistance, filterByAccidentThreshold } = await import(
-        '../utils/hotspotFilters'
-      );
+      const { filterBySeverity, filterByTimeRange, filterByDistance, filterByAccidentThreshold } =
+        await import('../utils/hotspotFilters');
 
       // 1. 先套用時間範圍和嚴重程度過濾
       let filtered = filterByTimeRange(allHotspots, settings.timeRange);
@@ -419,7 +418,7 @@ const MapPage = () => {
 
   const handleOpenLocationSettings = async () => {
     console.log('🔍 handleOpenLocationSettings 被呼叫');
-    
+
     if (typeof window === 'undefined') {
       console.log('❌ window 未定義');
       return;
@@ -448,27 +447,27 @@ const MapPage = () => {
         try {
           const permissionStatus = await navigator.permissions.query({ name: 'geolocation' });
           console.log('📍 權限狀態:', permissionStatus.state);
-          
+
           if (permissionStatus.state === 'prompt') {
             // 如果是 prompt 狀態，請求定位會觸發權限對話框
             console.log('⏸️ 權限狀態為 prompt，嘗試觸發權限請求');
             geolocationServiceRef.current?.startWatching();
             return;
           }
-          
+
           if (permissionStatus.state === 'denied') {
             // 如果已經被拒絕，提示使用者手動開啟
             console.log('🚫 權限已被拒絕，顯示提示訊息');
             alert(
               '定位權限已被拒絕。\n\n' +
-              '請點擊網址列左側的鎖頭圖示 🔒，\n' +
-              '找到「位置」或「定位」設定，\n' +
-              '將其改為「允許」，\n' +
-              '然後重新整理頁面。'
+                '請點擊網址列左側的鎖頭圖示 🔒，\n' +
+                '找到「位置」或「定位」設定，\n' +
+                '將其改為「允許」，\n' +
+                '然後重新整理頁面。',
             );
             return;
           }
-          
+
           if (permissionStatus.state === 'granted') {
             console.log('✅ 權限已授予，重新啟動定位服務');
             geolocationServiceRef.current?.startWatching();
@@ -479,20 +478,16 @@ const MapPage = () => {
           // 繼續嘗試直接請求
         }
       }
-      
+
       // 如果 Permissions API 不可用或檢查失敗，嘗試直接請求定位
       console.log('🔄 嘗試直接請求定位權限');
       try {
         await new Promise<GeolocationPosition>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(
-            resolve,
-            reject,
-            {
-              enableHighAccuracy: true,
-              timeout: 5000,
-              maximumAge: 0,
-            }
-          );
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 5000,
+            maximumAge: 0,
+          });
         });
         console.log('✅ 定位請求成功');
         geolocationServiceRef.current?.startWatching();
@@ -502,10 +497,10 @@ const MapPage = () => {
         if (error.code === error.PERMISSION_DENIED) {
           alert(
             '定位權限已被拒絕。\n\n' +
-            '請點擊網址列左側的鎖頭圖示 🔒，\n' +
-            '找到「位置」或「定位」設定，\n' +
-            '將其改為「允許」，\n' +
-            '然後重新整理頁面。'
+              '請點擊網址列左側的鎖頭圖示 🔒，\n' +
+              '找到「位置」或「定位」設定，\n' +
+              '將其改為「允許」，\n' +
+              '然後重新整理頁面。',
           );
           return;
         }
@@ -540,11 +535,11 @@ const MapPage = () => {
     console.log('ℹ️ 顯示最終提示訊息');
     alert(
       '無法自動開啟定位設定。\n\n' +
-      '請手動在瀏覽器中啟用定位權限：\n' +
-      '1. 點擊網址列左側的鎖頭圖示 🔒\n' +
-      '2. 找到「位置」或「定位」設定\n' +
-      '3. 將其改為「允許」\n' +
-      '4. 重新整理頁面'
+        '請手動在瀏覽器中啟用定位權限：\n' +
+        '1. 點擊網址列左側的鎖頭圖示 🔒\n' +
+        '2. 找到「位置」或「定位」設定\n' +
+        '3. 將其改為「允許」\n' +
+        '4. 重新整理頁面',
     );
   };
 
@@ -658,7 +653,7 @@ const MapPage = () => {
       </div>
 
       {/* 回到定位按鈕（位於設定按鈕上方） */}
-      <div className="pointer-events-none fixed right-6 bottom-[150px] z-50">
+      <div className="pointer-events-none fixed right-6 bottom-[168px] z-50">
         <button
           type="button"
           onClick={handleRecenter}
@@ -702,7 +697,12 @@ const MapPage = () => {
             className="pointer-events-auto flex items-center gap-2 rounded-lg bg-white px-4 py-2 shadow-lg transition hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
             aria-label="規劃路線"
           >
-            <svg className="h-5 w-5 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg
+              className="h-5 w-5 text-primary-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -734,7 +734,12 @@ const MapPage = () => {
                 aria-label="關閉"
               >
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
@@ -751,7 +756,11 @@ const MapPage = () => {
       )}
 
       {/* GPS 狀態指示器（搜尋框下方） */}
-      <div className={`pointer-events-none absolute left-4 z-10 flex flex-col gap-2 ${showRouteSearch ? 'top-[200px]' : 'top-[60px]'}`}>
+      <div
+        className={`pointer-events-none absolute left-4 z-10 flex flex-col gap-2 ${
+          showRouteSearch ? 'top-[200px]' : 'top-[60px]'
+        }`}
+      >
         {shouldShowGpsBadge && (
           <span
             className={[
@@ -803,28 +812,6 @@ const MapPage = () => {
           onToggle={toggleRouteSummary}
           onClearRoute={handleClearRoute}
         />
-      )}
-
-      {/* 顯示安全評估浮動按鈕（當抽屜隱藏且有路線時顯示） */}
-      {routeState.safetySummary && !isRouteSummaryVisible && (
-        <div className="pointer-events-none fixed left-6 bottom-[90px] z-50">
-          <button
-            type="button"
-            onClick={toggleRouteSummary}
-            className="pointer-events-auto flex items-center gap-2 rounded-full bg-primary-500 px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-primary-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
-            aria-label="顯示安全評估"
-          >
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-              />
-            </svg>
-            <span>安全評估</span>
-          </button>
-        </div>
       )}
 
       {/* 警示覆蓋層（簡化版：底部浮動顯示） */}
