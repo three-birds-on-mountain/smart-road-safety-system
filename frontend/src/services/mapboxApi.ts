@@ -4,6 +4,7 @@
  */
 
 import type { RouteGeometry } from '../types/route';
+import { convertToTraditional } from '../utils/chineseConverter';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
 const GEOCODING_API_BASE = 'https://api.mapbox.com/geocoding/v5/mapbox.places';
@@ -89,7 +90,15 @@ export async function searchAddress(
     throw new Error(`Geocoding API error: ${response.status} ${response.statusText}`);
   }
 
-  return response.json();
+  const data: GeocodingResponse = await response.json();
+
+  // 將所有地址轉換為繁體中文
+  data.features = data.features.map((feature) => ({
+    ...feature,
+    place_name: convertToTraditional(feature.place_name),
+  }));
+
+  return data;
 }
 
 /**
@@ -154,5 +163,13 @@ export async function reverseGeocode(lng: number, lat: number): Promise<Geocodin
     throw new Error(`Reverse Geocoding API error: ${response.status} ${response.statusText}`);
   }
 
-  return response.json();
+  const data: GeocodingResponse = await response.json();
+
+  // 將所有地址轉換為繁體中文
+  data.features = data.features.map((feature) => ({
+    ...feature,
+    place_name: convertToTraditional(feature.place_name),
+  }));
+
+  return data;
 }

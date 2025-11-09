@@ -786,7 +786,7 @@ const MapPage = () => {
         )}
 
         {locationState.error && (
-          <div className="pointer-events-auto rounded-md border border-danger-500 bg-danger-500/95 px-3 py-2 text-xs text-white shadow-md">
+          <div className="pointer-events-auto rounded-md border border-danger-500 bg-danger-50 px-3 py-2 text-xs text-text-secondary shadow-md">
             {locationState.error}
           </div>
         )}
