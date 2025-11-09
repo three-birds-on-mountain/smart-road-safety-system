@@ -2,7 +2,7 @@ import type { NearbyHotspot } from '../types/hotspot';
 import type { AlertSettings, AlertChannel } from '../types/settings';
 import type { Coordinates } from '../store/locationSlice';
 import { getHighestSeverityLevel } from '../types/hotspot';
-import { isFlutterBridgeAvailable, sendNotification } from './flutterBridge';
+import { isFlutterBridgeAvailable, sendNotification, sendAlertFeedback } from './flutterBridge';
 
 export interface AlertServiceOptions {
   audioSrc?: string;
@@ -120,6 +120,7 @@ export class AlertService {
       hotspot,
       distanceMeters,
       channels: settings.alertChannels,
+      autoSilenceSeconds: settings.autoSilenceSeconds,
     });
 
     if (!bridgeHandled) {
@@ -233,10 +234,12 @@ export class AlertService {
     hotspot,
     distanceMeters,
     channels,
+    autoSilenceSeconds,
   }: {
     hotspot: NearbyHotspot;
     distanceMeters: number;
     channels: AlertChannel[];
+    autoSilenceSeconds: number;
   }): boolean {
     if (!isFlutterBridgeAvailable() || channels.length === 0) {
       return false;
@@ -244,11 +247,20 @@ export class AlertService {
 
     const highestSeverity = getHighestSeverityLevel(hotspot);
     const title = highestSeverity === 'A1' ? '⚠️ 致命事故熱點' : '⚠️ 事故熱點提醒';
-    const content = `前方約 ${Math.round(
-      distanceMeters,
-    )} 公尺存在 ${hotspot.totalAccidents} 起事故記錄，請降低車速並保持注意。`;
+    const distanceText = Math.round(distanceMeters);
+    const content = `前方約 ${distanceText} 公尺存在 ${hotspot.totalAccidents} 起事故記錄，請降低車速並保持注意。`;
 
-    return sendNotification(title, content, channels);
+    const feedbackSent = sendAlertFeedback({
+      hotspotId: hotspot.id,
+      severity: highestSeverity,
+      distanceMeters,
+      channels,
+      autoSilenceSeconds,
+    });
+
+    const notificationSent = sendNotification(title, content, channels);
+
+    return feedbackSent || notificationSent;
   }
 }
 

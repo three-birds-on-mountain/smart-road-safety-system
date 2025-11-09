@@ -1,4 +1,5 @@
 import type { AlertChannel } from '../types/settings';
+import type { AccidentSeverity } from '../types/accident';
 
 export interface FlutterBridgeMessage<TData = unknown> {
   name: string;
@@ -226,9 +227,11 @@ export const sendNotification = (
   // 優先使用新的 FlutterBridge API（雙向通訊）
   if (typeof window.flutterObject?.postMessage === 'function') {
     const bridge = new FlutterBridge();
-    bridge.notify(title, content).catch((error) => {
-      console.error('發送通知失敗:', error);
-    });
+    bridge
+      .notify(title, content, channels)
+      .catch((error) => {
+        console.error('發送通知失敗:', error);
+      });
     return true;
   }
 
@@ -240,6 +243,32 @@ export const sendNotification = (
       content,
       channels,
     },
+  });
+};
+
+export interface AlertFeedbackPayload {
+  hotspotId: string;
+  severity: AccidentSeverity;
+  distanceMeters: number;
+  channels: AlertChannel[];
+  autoSilenceSeconds: number;
+  vibrationPattern?: number[];
+}
+
+export const sendAlertFeedback = (payload: AlertFeedbackPayload): boolean => {
+  if (!isFlutterBridgeAvailable()) {
+    return false;
+  }
+
+  const data = {
+    ...payload,
+    vibrationPattern: payload.vibrationPattern ?? [200, 100, 200],
+    triggeredAt: Date.now(),
+  };
+
+  return postMessage({
+    name: 'alert_feedback',
+    data,
   });
 };
 
@@ -288,8 +317,12 @@ export class FlutterBridge {
 
   scanQR = () => this.call<null, string>('qr_code_scan');
 
-  notify = (title: string, content: string) =>
-    this.call<{ title: string; content: string }, void>('notify', { title, content });
+  notify = (title: string, content: string, channels?: AlertChannel[]) =>
+    this.call<{ title: string; content: string; channels?: AlertChannel[] }, void>('notify', {
+      title,
+      content,
+      channels,
+    });
 
   openLink = (url: string) => this.call<string, void>('open_link', url);
 

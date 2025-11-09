@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createAlertService } from '../../src/services/alerts';
-import { isFlutterBridgeAvailable, sendNotification } from '../../src/services/flutterBridge';
+import {
+  isFlutterBridgeAvailable,
+  sendNotification,
+  sendAlertFeedback,
+} from '../../src/services/flutterBridge';
 import type { Coordinates } from '../../src/store/locationSlice';
 import type { AlertSettings } from '../../src/types/settings';
 import type { NearbyHotspot } from '../../src/types/hotspot';
@@ -8,6 +12,7 @@ import type { NearbyHotspot } from '../../src/types/hotspot';
 vi.mock('../../src/services/flutterBridge', () => ({
   isFlutterBridgeAvailable: vi.fn(() => false),
   sendNotification: vi.fn(() => true),
+  sendAlertFeedback: vi.fn(() => false),
 }));
 
 const baseSettings: AlertSettings = {
@@ -181,6 +186,8 @@ describe('AlertService', () => {
     mockedBridge.mockReturnValue(true);
     const mockedSender = vi.mocked(sendNotification);
     mockedSender.mockReturnValue(true);
+    const mockedFeedback = vi.mocked(sendAlertFeedback);
+    mockedFeedback.mockReturnValue(true);
 
     const service = createAlertService();
     const hotspot = createHotspot();
@@ -196,6 +203,50 @@ describe('AlertService', () => {
 
     expect(result.triggered).toBe(true);
     expect(result.activatedChannels).toEqual(['sound', 'vibration']);
-    expect(mockedSender).toHaveBeenCalled();
+    expect(mockedFeedback).toHaveBeenCalledWith(
+      expect.objectContaining({
+        channels: expect.arrayContaining(['sound', 'vibration']),
+        hotspotId: hotspot.id,
+      }),
+    );
+    expect(mockedSender).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.any(String),
+      expect.arrayContaining(['sound', 'vibration']),
+    );
+  });
+
+  it('passes vibration-only channel to Flutter bridge when requested', () => {
+    const mockedBridge = vi.mocked(isFlutterBridgeAvailable);
+    mockedBridge.mockReturnValue(true);
+    const mockedSender = vi.mocked(sendNotification);
+    mockedSender.mockReturnValue(true);
+    const mockedFeedback = vi.mocked(sendAlertFeedback);
+    mockedFeedback.mockReturnValue(true);
+
+    const service = createAlertService();
+    const hotspot = createHotspot();
+
+    const result = service.triggerAlert({
+      hotspot,
+      userLocation,
+      settings: {
+        ...baseSettings,
+        alertChannels: ['vibration'],
+      },
+    });
+
+    expect(result.triggered).toBe(true);
+    expect(result.activatedChannels).toEqual(['vibration']);
+    expect(mockedFeedback).toHaveBeenCalledWith(
+      expect.objectContaining({
+        channels: ['vibration'],
+      }),
+    );
+    expect(mockedSender).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.any(String),
+      expect.arrayContaining(['vibration']),
+    );
   });
 });
